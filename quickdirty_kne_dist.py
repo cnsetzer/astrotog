@@ -1,9 +1,11 @@
 import os
 import re
 import sncosmo
+from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
 seds_data = {}
+key_list = []
 # Define directory for location of SEDS
 seds_path = "./sedb/rosswog/"
 # Get the list of SED files
@@ -14,6 +16,7 @@ for filei in fl:
     fileio = open(filename, 'r')
     # Initialize dicts for sedsdb
     seds_key = filei.strip(".dat")
+    key_list.append(seds_key)
     seds_data[seds_key] = {}
     # Read header for parameter data for model (Specific for Rosswog)
     for headline in fileio:
@@ -46,5 +49,18 @@ for filei in fl:
     # sncosmo.plot_lc(model=model, bands=['lsstr'])
     # plt.show()
 
+# Test Grid with Scatter plot in the 3dimensions
+pkappa, pm_ej, pv_ej = [], [], []
+for key in key_list:
+        pkappa.append(seds_data[key]['kappa'])
+        pm_ej.append(seds_data[key]['m_ej'])
+        pv_ej.append(seds_data[key]['v_ej'])
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(pkappa, pm_ej, pv_ej)
+ax.set_xlabel('Kappa')
+ax.set_ylabel('M_ej')
+ax.set_zlabel('V_ej')
+plt.show()
 
 # Build parameter grid that hosts the read-in SEDs
