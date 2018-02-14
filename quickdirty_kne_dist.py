@@ -1,6 +1,8 @@
 import os
 import re
 import sncosmo
+import numpy as np
+from scipy.interpolate import neare
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
@@ -52,7 +54,7 @@ for filei in fl:
 # Test Grid with Scatter plot in the 3dimensions
 pkappa, pm_ej, pv_ej = [], [], []
 for key in key_list:
-        pkappa.append(seds_data[key]['kappa'])
+        pkappa.append(int(seds_data[key]['kappa']))
         pm_ej.append(seds_data[key]['m_ej'])
         pv_ej.append(seds_data[key]['v_ej'])
 fig = plt.figure()
@@ -63,4 +65,44 @@ ax.set_ylabel('M_ej')
 ax.set_zlabel('V_ej')
 plt.show()
 
+# Slice the parameters space based on Kappa
+pm_ej_k1, pm_ej_k10, pm_ej_k100 = [], [], []
+pv_ej_k1, pv_ej_k10, pv_ej_k100 = [], [], []
+for i in np.arange(len(key_list)):
+    if pkappa[i] == 1:
+        pv_ej_k1[i] = pv_ej[i]
+        pm_ej_k1[i] = pm_ej[i]
+    elif pkappa[i] == 10:
+        pv_ej_k10[i] = pv_ej[i]
+        pm_ej_k10[i] = pm_ej[i]
+    else:
+        pv_ej_k100[i] = pv_ej[i]
+        pm_ej_k100[i] = pm_ej[i]
+
 # Build parameter grid that hosts the read-in SEDs
+
+
+# Define Priors from which to draw the KNe distribution
+kappa = [min(pkappa), 10]
+v_ej = [min(pv_ej), max(pv_ej)]
+m_ej = [min(pm_ej), max(pm_ej)]
+
+# Set number of KNe to generate
+ndist = 100
+
+for i in np.arange(ndsit):
+    # First we need to draw from the prior parameters
+    # Sample Binomial distribution for Kappa
+    KNe_tmp_kappa = kappa[int(np.random.binomial(1, 0.5, size=None))]
+    # Sample ejecta/wind velocity and ejecta/wind mass from flat prior
+    KNe_tmp_v_ej = np.random.uniform(low=v_ej[0], high=v_ej[1])
+    KNe_tmp_m_ej = np.random.uniform(low=m_ej[0], high=m_ej[1])
+
+    # Interpolation on 2D (v_ej,m_ej) space separate for each Kappa
+    if KNe_tmp_kappa == kappa[0]:
+        # Find nearest neighbors in this kappa-slice grid
+
+    else:
+        # Find nearest neighbors in this kappa-slice grid
+
+wave
