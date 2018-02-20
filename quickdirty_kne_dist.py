@@ -16,6 +16,9 @@ from astropy.cosmology import Planck15 as cosmo
 seds_path = "./sedb/rosswog/winds"
 surveydb_path = '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
 fields = ['fieldID', 'fieldRA', 'fieldDec', 'filter', 'expMJD', 'fiveSigmaDepth']
+param_priors = {'zmin': 0.0, 'zmax': 0.7, 'cosmology': astropy.cosmology(),
+                'kappa_min':, 'kappa_max': , 'm_ej_min': , 'm_ej_max': ,
+                'v_ej_min': , 'v_ej_max': , }
 # Test import with plots of lc
 # sncosmo.plot_lc(model=model, bands=['lsstr'])
 # plt.show()
@@ -149,21 +152,21 @@ def Build_Param_Space_From_SEDdb(SEDdb):
     return p_space
 
 
-def Gen_zDist_SEDs(zrange, survey_time, survey_area, cosmology, param_limits, seds_path):
+def Gen_zDist_SEDs(seds_path, survey_params, param_priors):
     # Internal funciton to generate a redshift distribution
     Dist_SEDs = {}
     # Given survey parameters, a SED rate, and a cosmology draw from a Poisson
     # distribution the distribution of the objects vs. redshift.
-    SED_zlist = list(sncosmo.zdist(zmin=zrange[0], zmax=zrange[1],
-                                   time=survey_time, area=survey_area,
-                                   rate=SED_Rate(), cosmo=cosmology))
+    SED_zlist = list(sncosmo.zdist(zmin=param_priors['zmin'], zmax=param_priors['zmax'],
+                                   time=survey_params['survey_time'], area=survey_params['survey_area'],
+                                   rate=SED_Rate(), cosmo=param_priors['cosmology']))
     N_SEDs = len(SED_zlist)
     for i in np.arange(N_SEDs):
-        SED_params = Draw_SED_Params(param_limits)
+        SED_params = Draw_SED_Params(param_priors)
         Dist_SEDs[i] = Gen_SED(SED_params, seds_path)
         # Place the SED at the redshift from the redshift distribution calc.
         Dist_SEDs[i]['model'].set(z=SED_zlist[i],
-                                  amplitude=1./pow(cosmology.luminosity_distance(SED_zlist[i]).value, 2))
+                                  amplitude=1./pow(param_priors['cosmology'].luminosity_distance(SED_zlist[i]).value, 2))
     return Dist_SEDs
 
 
@@ -205,7 +208,7 @@ def Draw_KNe_Params(param_limits):
 
 
 def uniform_pdf(a, b, x):
-    # Log probability for the uniform distribution
+    # Probability for the uniform distribution for future MCMC
     if a <= x <= b:
         return (1/b-a)
     else:
@@ -214,14 +217,14 @@ def uniform_pdf(a, b, x):
 
 def SEDs_to_Lightcurves(SEDs, instrument):
     # Go from SED to multi-band lightcurves for a given instrument
-    for key in SEDs.key_list():
+    for key in SEDs.keys():
 
     return lightcurves
 
 
-def ObsSample_Light_Curve(Lightcurve, Band):
+def ObsSample_Light_Curves(SEDs, obs_database):
     # Small function to take in light
-
+    #
     return Sampled_LC
 
 
@@ -251,7 +254,7 @@ def Ra_Dec_Dist(n, survey_params):
     Dec_dist = np.arcsin((1 - np.sin(survey_params['min_dec'])*np.sin(survey_params['max_dec'])
                - pow(np.sin(survey_params['min_dec']), 2))/((np.sin(survey_params['max_dec']
                - np.sin(survey_params['min_dec'])))*np.random.uniform(low=0.0, high=1.0, size=n)))
-    return RA_dist, Dec_dist0
+    return RA_dist, Dec_dist
 
 
 def Time_Dist(n, survey_params):
@@ -264,3 +267,20 @@ def Build_Sub_SurveyDB(obsdb_path, fields, flag):
     obs_db = Get_ObsStratDB(obsdb_path, flag)
     sub_survey_db = obs_db.summary[fields].deepcopy
     return sub_survey_db
+
+def Gen_SED_dist(SEDdb_path, survey_params, param_priors):
+    # Compile the full parameter space of the generate SEDS
+    # First compute the z_dist based on the survey parameters as this sets the
+    # Number of SEDs
+    SEDs = Gen_zDist_SEDs(SEDdb_path, survey_params, param_priors)
+    key_list = SEDs.keys()
+    N_SEDs = len(SEDs)
+    RA_dist, Dec_dist = Ra_Dec_Dist(N_SEDs, survey_params)
+    t_dist = Time_Dist(N_SEDs, survey_params)
+    for key, i in key_list, np.arange(N_SEDs):
+        #SEDs[key]['parameters']['z'] = SEDs[key]['model'].get('z')
+        SEDs[key]['parameters']['ra'] = RA_dist[i]
+        SEDs[key]['parameters']['dec'] = Dec_dist[i]
+        SEDs[key]['parameters']['min_MJD'] = t_dist[i]
+        SEDs[key]['parameters']['max_MJD'] = t_dist[i] + SEDs[key]['model'].maxtime()
+return SEDs
