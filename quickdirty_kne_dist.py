@@ -3,17 +3,19 @@ import re
 import sncosmo
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import emcee
+from copy import deepcopy
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
+import opsimsummary as oss
+
 # Import a cosmology, comment out if you want to define your own per the
 # astropy cosmology class
 from astropy.cosmology import Planck15 as cosmo
 
 # Define directory for location of SEDS
 seds_path = "./sedb/rosswog/winds"
-
+surveydb_path = '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
+fields = ['fieldID', 'fieldRA', 'fieldDec', 'filter', 'expMJD', 'fiveSigmaDepth']
 # Test import with plots of lc
 # sncosmo.plot_lc(model=model, bands=['lsstr'])
 # plt.show()
@@ -98,6 +100,11 @@ def Get_SED_header_info(fileio):
         return kappa, m_ej, v_ej
 
 
+def Get_ObsStratDB(db_path, flag):
+    # Import Observing Strategy Database
+    return opsimdb = oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag)
+
+
 def Gen_SED(params, SEDdb_loc=None):
     # Given a set of parameters generate an SED
     if SEDdb_loc:
@@ -142,7 +149,7 @@ def Build_Param_Space_From_SEDdb(SEDdb):
     return p_space
 
 
-def Dist_SEDs(zrange, survey_time, survey_area, cosmology, param_limits, seds_path):
+def Gen_zDist_SEDs(zrange, survey_time, survey_area, cosmology, param_limits, seds_path):
     # Internal funciton to generate a redshift distribution
     Dist_SEDs = {}
     # Given survey parameters, a SED rate, and a cosmology draw from a Poisson
@@ -207,10 +214,53 @@ def uniform_pdf(a, b, x):
 
 def SEDs_to_Lightcurves(SEDs, instrument):
     # Go from SED to multi-band lightcurves for a given instrument
+    for key in SEDs.key_list():
 
     return lightcurves
+
 
 def ObsSample_Light_Curve(Lightcurve, Band):
     # Small function to take in light
 
     return Sampled_LC
+
+
+def Get_Survey_Params(obs_db):
+    # Given a prescribed survey simulation get basic properties of the
+    # simulation. Currently assume a rectangular (in RA,DEC) solid angle on
+    # the sky
+    # Note that the values are assumed to be in radians
+    min_db = obs_db.summary.min().deepcopy
+    max_db = obs_db.summary.max().deepcopy
+    survey_params = {}
+    survey_params['min_ra'] = min_db['fieldRA']
+    survey_params['max_ra'] = max_db['fieldRA']
+    survey_params['min_dec'] = min_db['fieldDec']
+    survey_params['max_dec'] = max_db['fieldDec']
+    survey_params['survey_area'] = np.rad2deg(np.cos(min_dec) - np.cos(max_dec))*np.rad2deg(max_ra - min_ra)
+    survey_params['min_mjd'] = min_db['expMJD']
+    survey_params['max_mjd'] = max_db['expMJD']
+    survey_params['survey_time'] = max_mjd - min_mjd  # Survey time in days
+    return survey_params, obs_db
+
+
+def Ra_Dec_Dist(n, survey_params):
+    # For given survey paramters distribute random points within the (RA,DEC)
+    # space. Again assuming a uniform RA,Dec region
+    RA_dist = np.random.uniform(survey_params['min_ra'], survey_params['max_ra'], n)
+    Dec_dist = np.arcsin((1 - np.sin(survey_params['min_dec'])*np.sin(survey_params['max_dec'])
+               - pow(np.sin(survey_params['min_dec']), 2))/((np.sin(survey_params['max_dec']
+               - np.sin(survey_params['min_dec'])))*np.random.uniform(low=0.0, high=1.0, size=n)))
+    return RA_dist, Dec_dist0
+
+
+def Time_Dist(n, survey_params):
+    time_dist = np.random.uniform(survey_params['min_mjd'], survey_params['max_mjd'], n)
+    return time_dist
+
+
+def Build_Sub_SurveyDB(obsdb_path, fields, flag):
+    # For a desired set fields create smaller subset database for queries
+    obs_db = Get_ObsStratDB(obsdb_path, flag)
+    sub_survey_db = obs_db.summary[fields].deepcopy
+    return sub_survey_db
