@@ -13,45 +13,27 @@ import opsimsummary as oss
 from astropy.cosmology import Planck15 as cosmo
 
 # Define directory for location of SEDS
-seds_path = "./sedb/rosswog/NSNS/winds"
+sedsdb_path = "./sedb/rosswog/NSNS/winds"
 surveydb_path = '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
 fields = ['fieldID', 'fieldRA', 'fieldDec', 'filter', 'expMJD', 'fiveSigmaDepth']
-param_priors = {'zmin': 0.0, 'zmax': 0.7, 'cosmology': cosmo,
+param_priors = {'zmin': 0.0, 'zmax': 0.1, 'cosmology': cosmo,
                 'kappa_min': 1, 'kappa_max': 10, 'm_ej_min': 0.01,
                 'm_ej_max': 0.2, 'v_ej_min': 0.01, 'v_ej_max': 0.5}
 instrument_params = {'FOV_rad': np.deg2rad(1.75), 'Mag_Sys': 'ab'}
 gen_flag = 'cycle'
-# Test import with plots of lc
-# sncosmo.plot_lc(model=model, bands=['lsstr'])
-# plt.show()
+db_flag = 'wfd'
+# Setup the basic running structure
+obs_database = Get_ObsStratDB(surveydb_path, db_flag)
+survey_params = Get_Survey_Params(obs_database)
+SEDs = Gen_SED_dist(sedsdb_path, survey_params, param_priors, gen_flag)
+Observations = Gen_Observations(SEDs, obs_database, instrument_params)
 
-# # Test Grid with Scatter plot in the 3dimensions
-# pkappa, pm_ej, pv_ej = [], [], []
-# for key in key_list:
-#         pkappa.append(int(seds_data[key]['kappa']))
-#         pm_ej.append(seds_data[key]['m_ej'])
-#         pv_ej.append(seds_data[key]['v_ej'])
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
-# ax.scatter(pkappa, pm_ej, pv_ej)
-# ax.set_xlabel('Kappa')
-# ax.set_ylabel('M_ej')
-# ax.set_zlabel('V_ej')
-# plt.show()
+# Plot the results
+figure = Plot_Observations(Observations)
+# For the first run show only one plot
+plt.show()
 
-# # Slice the parameters space based on Kappa
-# pm_ej_k1, pm_ej_k10, pm_ej_k100 = [], [], []
-# pv_ej_k1, pv_ej_k10, pv_ej_k100 = [], [], []
-# for i in np.arange(len(key_list)):
-#     if pkappa[i] == 1:
-#         pv_ej_k1[i] = pv_ej[i]
-#         pm_ej_k1[i] = pm_ej[i]
-#     elif pkappa[i] == 10:
-#         pv_ej_k10[i] = pv_ej[i]
-#         pm_ej_k10[i] = pm_ej[i]
-#     else:
-#         pv_ej_k100[i] = pv_ej[i]
-#         pm_ej_k100[i] = pm_ej[i]
+# Begin Function Bank
 
 
 def Get_SEDdb(path_to_seds):
@@ -138,7 +120,7 @@ def Interpolate_SED(params, SEDdb_loc):
     # Given a parameter space of SEDs from numerical simulations
     # interpolate a new SED that falls within this region.
     SEDdb = Get_SEDdb(SEDdb_loc)
-    sub_SEDdb = Interpolation_Subspace(SEDdb, params, param_limits)
+    sub_SEDdb = Interpolation_Subspace(SEDdb, params, param_priors)
     # Find the nearest neighbors for interpolation from the parameters.
     Neighbor_SEDs = Get_SEDdb_Neighbors(sub_SEDdb)
     return iSED
@@ -179,11 +161,13 @@ def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
                                    rate=SED_Rate(), cosmo=param_priors['cosmology']))
     N_SEDs = len(SED_zlist)
     for i in np.arange(N_SEDs):
+        new_key = 'Mock_Obs {}'.format(str(i))
         SED_params = Draw_SED_Params(param_priors)
-        Dist_SEDs[i] = Gen_SED(SED_params, seds_path, gen_flag)
+        Dist_SEDs[new_key] = Gen_SED(SED_params, seds_path, gen_flag)
         # Place the SED at the redshift from the redshift distribution calc.
-        Dist_SEDs[i]['model'].set(z=SED_zlist[i],
-                                  amplitude=1./pow(param_priors['cosmology'].luminosity_distance(SED_zlist[i]).value, 2))
+        redshift = SED_zlist[i]
+        lumdist = param_priors['cosmology'].luminosity_distance(redshift).value
+        Dist_SEDs[new_key]['model'].set(z=redshift, amplitude=1./pow(lumdist, 2))
     return Dist_SEDs
 
 
@@ -199,28 +183,26 @@ def KNe_Rate():
     return rate
 
 
-def Draw_SED_Params(param_limits):
+def Draw_SED_Params(param_priors):
     # Wrapper for generic SED parameters, note this is dependent on Model
     # Currently returns for KNe
-    return Draw_KNe_Params(param_limits)
+    return Draw_KNe_Params(param_priors)
 
 
-def Draw_KNe_Params(param_limits):
+def Draw_KNe_Params(param_priors):
     # Sample the parameter priors
     p = {}
-    for key in param_limits.keys():
-        if key = 'kappa':
-            p[key] = param_limits[key][0]+int(param_limits[key][1] -
-            param_limits[key][0])*int(np.random.binomial(1, 0.5, size=None))
-        elif key = 'm_ej' | key = 'v_ej':
-            p['m_ej'] = np.random.uniform(low=param_limits['m_ej'][0],
-                                          high=param_limits['m_ej'][1])
-            p['v_ej'] = np.random.uniform(low=param_limits['v_ej'][0],
-                                     high=param_limits['v_ej'][1]*pow(p['m_ej']
-                                          / param_limits['m_ej'][0],
-                                          np.log10(0.25/param_limits['v_ej'][1])
-                                          / np.log10(param_limits['m_ej'][1]
-                                          / param_limits['m_ej'][0])))
+    kappa_min = param_priors['kappa_min']
+    kappa_max = param_priors['kappa_max']
+    kappa_diff = kappa_max-kappa_min
+    mej_min = param_priors['m_ej_min']
+    mej_max = param_priors['m_ej_max']
+    vej_min = param_priors['v_ej_min']
+    vej_max = param_priors['v_ej_max']
+    p['kappa'] = kappa_min+int(kappa_diff)*int(np.random.binomial(1, 0.5))
+    p['m_ej'] = np.random.uniform(low=mej_min, high=mej_max)
+    p['v_ej'] = np.random.uniform(low=vej_min, high=vej_max*pow(p['m_ej']
+                / mej_min, np.log10(0.25/vej_max) / np.log10(mej_max/mej_min)))
     return p
 
 
@@ -289,12 +271,16 @@ def Gen_Observations(SEDs, obs_database, instrument_params):
 def Match_Event_to_Obs(SED, obs_database, instrument_params):
     # Function to find  "observations"
     survey_field_hw = instrument_params['FOV_rad']
-    field_rahalf_width = survey_field_hw
-    field_dechalf_width = survey_field_hw
-    t_overlaps = obs_database.query('%d < expMJD < %d' % (SED['parameters']['min_MJD'], SED['parameters']['max_MJD']))
-    ra_t_overlaps = t_overlaps.query('fieldRA - %d < %d < fieldRA + %d' % (field_rahalf_width, SED['parameters']['ra'], field_rahalf_width))
+    field_ra_hw = survey_field_hw
+    field_dec_hw = survey_field_hw
+    min_time = SED['parameters']['min_MJD']
+    max_time = SED['parameters']['max_MJD']
+    ra = SED['parameters']['ra']
+    dec = SED['parameters']['dec']
+    t_overlaps = obs_database.query('{} < expMJD < {}'.format(min_time, max_time))
+    ra_t_overlaps = t_overlaps.query('fieldRA - {0} < {1} < fieldRA + {0}'.format(field_ra_hw, ra))
     # Full overlaps (note this doesn't take into account dithering)
-    full_overlap_db = ra_t_overlaps.query('fieldDec - %d < %d < fieldDec + %d' % (field_dechalf_width, SED['parameters']['ra'], field_dechalf_width))
+    full_overlap_db = ra_t_overlaps.query('fieldDec - {0} < {1} < fieldDec + {0}'.format(field_dec_hw, dec))
     return full_overlap_db
 
 
@@ -303,8 +289,8 @@ def Get_Survey_Params(obs_db):
     # simulation. Currently assume a rectangular (in RA,DEC) solid angle on
     # the sky
     # Note that the values are assumed to be in radians
-    min_db = obs_db.summary.min().deepcopy
-    max_db = obs_db.summary.max().deepcopy
+    min_db = obs_db.summary.min()
+    max_db = obs_db.summary.max()
     survey_params = {}
     survey_params['min_ra'] = min_db['fieldRA'].unique()
     survey_params['max_ra'] = max_db['fieldRA'].unique()
@@ -348,9 +334,31 @@ def Gen_SED_dist(SEDdb_path, survey_params, param_priors, gen_flag=None):
     RA_dist, Dec_dist = Ra_Dec_Dist(N_SEDs, survey_params)
     t_dist = Time_Dist(N_SEDs, survey_params)
     for key, i in key_list, np.arange(N_SEDs):
-        #SEDs[key]['parameters']['z'] = SEDs[key]['model'].get('z')
+        # SEDs[key]['parameters']['z'] = SEDs[key]['model'].get('z')
         SEDs[key]['parameters']['ra'] = RA_dist[i]
         SEDs[key]['parameters']['dec'] = Dec_dist[i]
         SEDs[key]['parameters']['min_MJD'] = t_dist[i]
         SEDs[key]['parameters']['max_MJD'] = t_dist[i] + SEDs[key]['model'].maxtime()
     return SEDs
+
+def Plot_Observations(Observations):
+    # Function to take the specific observation data structure and plot the
+    # mock observations.
+    obs_key = 'observations'
+    source_list = Observations.keys()
+    for key in source_list:
+        band_keys = Observations[key][obs_key].keys()
+        n_plots = len(band_keys)
+        # Max 6-color lightcurves
+        f, axes = plt.subplots(n_plots)
+        for band, i in band_keys, np.arange(n_plots):
+            times = Observations[key][obs_key][band]['times']
+            mags = Observations[key][obs_key][band]['magnitudes']
+            errs = Observations[key][obs_key][band]['mag_errors']
+            axes[i].errorbar(times, mags, errs)
+            axes[i].legend(['{}'.format(band)])
+            axes[i].set(xlabel='MJD', ylabel=r'$m_{ab}$')
+        axes[0].set_title('{}'.format(key))
+        # Break to only do one plot at the moment
+        break
+    return f
