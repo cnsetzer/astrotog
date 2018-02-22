@@ -8,33 +8,6 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import opsimsummary as oss
 
-# Import a cosmology, comment out if you want to define your own per the
-# astropy cosmology class
-from astropy.cosmology import Planck15 as cosmo
-
-# Define directory for location of SEDS
-sedsdb_path = "./sedb/rosswog/NSNS/winds"
-surveydb_path = '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
-fields = ['fieldID', 'fieldRA', 'fieldDec', 'filter', 'expMJD', 'fiveSigmaDepth']
-param_priors = {'zmin': 0.0, 'zmax': 0.1, 'cosmology': cosmo,
-                'kappa_min': 1, 'kappa_max': 10, 'm_ej_min': 0.01,
-                'm_ej_max': 0.2, 'v_ej_min': 0.01, 'v_ej_max': 0.5}
-instrument_params = {'FOV_rad': np.deg2rad(1.75), 'Mag_Sys': 'ab'}
-gen_flag = 'cycle'
-db_flag = 'wfd'
-# Setup the basic running structure
-obs_database = Get_ObsStratDB(surveydb_path, db_flag)
-survey_params = Get_Survey_Params(obs_database)
-SEDs = Gen_SED_dist(sedsdb_path, survey_params, param_priors, gen_flag)
-Observations = Gen_Observations(SEDs, obs_database, instrument_params)
-
-# Plot the results
-figure = Plot_Observations(Observations)
-# For the first run show only one plot
-plt.show()
-
-# Begin Function Bank
-
 
 def Get_SEDdb(path_to_seds):
     # Import SEDs into a dictionary structure
@@ -87,9 +60,9 @@ def Get_SED_header_info(fileio):
     return kappa, m_ej, v_ej
 
 
-def Get_ObsStratDB(db_path, flag):
+def Get_ObsStratDB(surveydb_path, flag):
     # Import Observing Strategy Database
-    return opsimdb = oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag)
+    return oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag)
 
 
 def Gen_SED(params, SEDdb_loc=None, gen_flag=None):
@@ -324,6 +297,7 @@ def Build_Sub_SurveyDB(obsdb_path, fields, flag):
     sub_survey_db = obs_db.summary[fields].deepcopy
     return sub_survey_db
 
+
 def Gen_SED_dist(SEDdb_path, survey_params, param_priors, gen_flag=None):
     # Compile the full parameter space of the generate SEDS
     # First compute the z_dist based on the survey parameters as this sets the
@@ -340,6 +314,7 @@ def Gen_SED_dist(SEDdb_path, survey_params, param_priors, gen_flag=None):
         SEDs[key]['parameters']['min_MJD'] = t_dist[i]
         SEDs[key]['parameters']['max_MJD'] = t_dist[i] + SEDs[key]['model'].maxtime()
     return SEDs
+
 
 def Plot_Observations(Observations):
     # Function to take the specific observation data structure and plot the
