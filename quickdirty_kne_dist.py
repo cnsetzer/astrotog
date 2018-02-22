@@ -13,12 +13,14 @@ import opsimsummary as oss
 from astropy.cosmology import Planck15 as cosmo
 
 # Define directory for location of SEDS
-seds_path = "./sedb/rosswog/winds"
+seds_path = "./sedb/rosswog/NSNS/winds"
 surveydb_path = '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
 fields = ['fieldID', 'fieldRA', 'fieldDec', 'filter', 'expMJD', 'fiveSigmaDepth']
-param_priors = {'zmin': 0.0, 'zmax': 0.7, 'cosmology': astropy.cosmology(),
-                'kappa_min':, 'kappa_max': , 'm_ej_min': , 'm_ej_max': ,
-                'v_ej_min': , 'v_ej_max': , }
+param_priors = {'zmin': 0.0, 'zmax': 0.7, 'cosmology': cosmo,
+                'kappa_min': 1, 'kappa_max': 10, 'm_ej_min': 0.01,
+                'm_ej_max': 0.2, 'v_ej_min': 0.01, 'v_ej_max': 0.5}
+instrument_params = {'FOV_rad': np.deg2rad(1.75), 'Mag_Sys': 'ab'}
+gen_flag = 'cycle'
 # Test import with plots of lc
 # sncosmo.plot_lc(model=model, bands=['lsstr'])
 # plt.show()
@@ -86,21 +88,21 @@ def Get_SEDdb(path_to_seds):
 
 
 def Get_SED_header_info(fileio):
-        # Read header for parameter data for model (Specific for Rosswog)
-        for headline in fileio:
-            if headline.strip().startswith("#"):
-                if re.search("kappa =", headline):
-                    kappa = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
-                elif re.search("m_ej = |m_w =", headline):
-                    m_ej = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
-                elif re.search("v_ej = |v_w =", headline):
-                    v_ej = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
-                else:
-                    continue
+    # Read header for parameter data for model (Specific for Rosswog)
+    for headline in fileio:
+        if headline.strip().startswith("#"):
+            if re.search("kappa =", headline):
+                kappa = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
+            elif re.search("m_ej = |m_w =", headline):
+                m_ej = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
+            elif re.search("v_ej = |v_w =", headline):
+                v_ej = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
             else:
-                fileio.close()
-                break
-        return kappa, m_ej, v_ej
+                continue
+        else:
+            fileio.close()
+            break
+    return kappa, m_ej, v_ej
 
 
 def Get_ObsStratDB(db_path, flag):
@@ -108,13 +110,28 @@ def Get_ObsStratDB(db_path, flag):
     return opsimdb = oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag)
 
 
-def Gen_SED(params, SEDdb_loc=None):
+def Gen_SED(params, SEDdb_loc=None, gen_flag=None):
     # Given a set of parameters generate an SED
     if SEDdb_loc:
-        return interpolate_SED(params, SEDdb_loc)
+        if gen_flag == 'cycle':
+            return Pick_Rand_dbSED(SEDdb_loc)
+        else:
+            return interpolate_SED(params, SEDdb_loc)
     else:
         # Space for implementation of a parametric model for SEDs
         return generated_SED
+
+
+def Pick_Rand_dbSED(database_path):
+    # Temporary function to pick random SED
+    SEDdb = Get_SEDdb(SEDdb_loc)
+    # unpacks keys object into a indexable list
+    unpacked_key_list = *SEDdb.keys(),
+    # Number of available seds
+    N_SEDs = len(unpacked_key_list)
+    Random_Draw = np.random.randint(low=0, high=N_SEDs)
+    Rand_SED = SEDdb[unpacked_key_list[Random_Draw]]
+    return Rand_SED
 
 
 def Interpolate_SED(params, SEDdb_loc):
@@ -132,7 +149,7 @@ def Get_SEDdb_Neighbors(sub_SEDdb):
     # return the nearest neighbors
     Neighbor_SEDs = {}
     p_space = Build_Param_Space_From_SEDdb(sub_SEDdb)
-
+    print('This isn\'t working yet')
     return Neighbor_SEDs
 
 
@@ -141,18 +158,18 @@ def Interpolation_Subspace(SEDdb, params):
     # relevant subspace for interpolation
     p_space = Build_Param_Space_From_SEDdb(SEDdb)
     for p in params:
-
+        print('This isn\'t working yet')
     return sub_SEDdb
 
 
 def Build_Param_Space_From_SEDdb(SEDdb):
     # Given the SEDdb build the parameter space for interpolation
     keys = SEDdb.keys()
-
+    print('This isn\'t working yet')
     return p_space
 
 
-def Gen_zDist_SEDs(seds_path, survey_params, param_priors):
+def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
     # Internal funciton to generate a redshift distribution
     Dist_SEDs = {}
     # Given survey parameters, a SED rate, and a cosmology draw from a Poisson
@@ -163,7 +180,7 @@ def Gen_zDist_SEDs(seds_path, survey_params, param_priors):
     N_SEDs = len(SED_zlist)
     for i in np.arange(N_SEDs):
         SED_params = Draw_SED_Params(param_priors)
-        Dist_SEDs[i] = Gen_SED(SED_params, seds_path)
+        Dist_SEDs[i] = Gen_SED(SED_params, seds_path, gen_flag)
         # Place the SED at the redshift from the redshift distribution calc.
         Dist_SEDs[i]['model'].set(z=SED_zlist[i],
                                   amplitude=1./pow(param_priors['cosmology'].luminosity_distance(SED_zlist[i]).value, 2))
@@ -207,25 +224,78 @@ def Draw_KNe_Params(param_limits):
     return p
 
 
-def uniform_pdf(a, b, x):
-    # Probability for the uniform distribution for future MCMC
-    if a <= x <= b:
-        return (1/b-a)
-    else:
-        return 0
-
-
-def SEDs_to_Lightcurves(SEDs, instrument):
+def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params,):
     # Go from SED to multi-band lightcurves for a given instrument
-    for key in SEDs.keys():
+    lc_samples = {}
+    # Gather observations by band to build the separate lightcurves
+    bands = matched_db['filter'].unique()
+    for band in bands:
+        mags, magnitude_errors = [], []
+        lsst_band = 'lsst{}'.format(band)
+        times = matched_db.query('filter == \'{}\''.format(band))['expMJD'].unique()
+        for time, i in times, np.arange(len(times)):
+            single_obs_db = matched_db.query('filter == \'{}\' and expMJD == {}'.format(band, time))
+            mags[i] = Get_Obs_Magnitudes(SED, single_obs_db, instrument_params)
+            bandflux = Get_BandFlux(SED, single_obs_db)
+            fiveSigmaDepth = single_obs_db['fiveSigmaDepth'].unique()
+            bandflux_error = Get_Band_Flux_Error(fiveSigmaDepth)
+            magnitude_errors[i] = Get_Magnitude_Error(bandflux, bandflux_error)
+        # Assemble the per band dictionary of lightcurve observations
+        lc_samples[lsst_band] = {'times': times, 'magnitudes': mags, 'mag_errors': magnitude_errors}
+    return lc_samples
 
-    return lightcurves
+
+def Get_BandFlux(SED, single_obs_db):
+    # Get the bandflux for the given filter and phase
+    obs_phase = single_obs_db['expMJD'] - SED['parameters']['min_MJD']
+    band = 'lsst{}'.format(single_obs_db['filter'].unique())
+    bandflux = SED['model'].bandflux(band, obs_phase)
+    return bandflux
 
 
-def ObsSample_Light_Curves(SEDs, obs_database):
-    # Small function to take in light
-    #
-    return Sampled_LC
+def Get_Obs_Magnitudes(SED, single_obs_db, instrument_params):
+    # Get the observed magnitudes for the given band
+    obs_phase = single_obs_db['expMJD'].unique() - SED['parameters']['min_MJD']
+    band = 'lsst{}'.format(single_obs_db['filter'].unique())
+    magsys = instrument_params['Mag_Sys']
+    bandmag = SED['model'].bandmag(band, magsys, obs_phase)
+    return bandmag
+
+
+def Get_Magnitude_Error(bandflux, bandflux_error):
+    # Compute the per-band magnitude errors
+    magnitude_error = abs(-2.5*bandflux_error/(bandflux*np.log(10)))
+    return magnitude_error
+
+
+def Get_Band_Flux_Error(fiveSigmaDepth):
+    # Compute the integrated bandflux error
+    # Note this is trivial since the five sigma depth incorporates the
+    # integrated time of the exposures.
+    Flux_five_sigma = pow(10, -0.4*fiveSigmaDepth)
+    bandflux_error = Flux_five_sigma/5
+    return bandflux_error
+
+
+def Gen_Observations(SEDs, obs_database, instrument_params):
+    key_list = SEDs.keys()
+    for key in key_list:
+        matched_obs_db = Match_Event_to_Obs(SEDs[key], obs_database, instrument_params)
+        mock_lc_obs = SED_to_Sample_Lightcurves(SEDs[key], matched_obs_db, instrument_params)
+        SEDs[key]['observations'] = mock_lc_obs
+    return SEDs
+
+
+def Match_Event_to_Obs(SED, obs_database, instrument_params):
+    # Function to find  "observations"
+    survey_field_hw = instrument_params['FOV_rad']
+    field_rahalf_width = survey_field_hw
+    field_dechalf_width = survey_field_hw
+    t_overlaps = obs_database.query('%d < expMJD < %d' % (SED['parameters']['min_MJD'], SED['parameters']['max_MJD']))
+    ra_t_overlaps = t_overlaps.query('fieldRA - %d < %d < fieldRA + %d' % (field_rahalf_width, SED['parameters']['ra'], field_rahalf_width))
+    # Full overlaps (note this doesn't take into account dithering)
+    full_overlap_db = ra_t_overlaps.query('fieldDec - %d < %d < fieldDec + %d' % (field_dechalf_width, SED['parameters']['ra'], field_dechalf_width))
+    return full_overlap_db
 
 
 def Get_Survey_Params(obs_db):
@@ -236,13 +306,13 @@ def Get_Survey_Params(obs_db):
     min_db = obs_db.summary.min().deepcopy
     max_db = obs_db.summary.max().deepcopy
     survey_params = {}
-    survey_params['min_ra'] = min_db['fieldRA']
-    survey_params['max_ra'] = max_db['fieldRA']
-    survey_params['min_dec'] = min_db['fieldDec']
-    survey_params['max_dec'] = max_db['fieldDec']
+    survey_params['min_ra'] = min_db['fieldRA'].unique()
+    survey_params['max_ra'] = max_db['fieldRA'].unique()
+    survey_params['min_dec'] = min_db['fieldDec'].unique()
+    survey_params['max_dec'] = max_db['fieldDec'].unique()
     survey_params['survey_area'] = np.rad2deg(np.cos(min_dec) - np.cos(max_dec))*np.rad2deg(max_ra - min_ra)
-    survey_params['min_mjd'] = min_db['expMJD']
-    survey_params['max_mjd'] = max_db['expMJD']
+    survey_params['min_mjd'] = min_db['expMJD'].unique()
+    survey_params['max_mjd'] = max_db['expMJD'].unique()
     survey_params['survey_time'] = max_mjd - min_mjd  # Survey time in days
     return survey_params, obs_db
 
@@ -268,11 +338,11 @@ def Build_Sub_SurveyDB(obsdb_path, fields, flag):
     sub_survey_db = obs_db.summary[fields].deepcopy
     return sub_survey_db
 
-def Gen_SED_dist(SEDdb_path, survey_params, param_priors):
+def Gen_SED_dist(SEDdb_path, survey_params, param_priors, gen_flag=None):
     # Compile the full parameter space of the generate SEDS
     # First compute the z_dist based on the survey parameters as this sets the
     # Number of SEDs
-    SEDs = Gen_zDist_SEDs(SEDdb_path, survey_params, param_priors)
+    SEDs = Gen_zDist_SEDs(SEDdb_path, survey_params, param_priors, gen_flag)
     key_list = SEDs.keys()
     N_SEDs = len(SEDs)
     RA_dist, Dec_dist = Ra_Dec_Dist(N_SEDs, survey_params)
@@ -283,4 +353,4 @@ def Gen_SED_dist(SEDdb_path, survey_params, param_priors):
         SEDs[key]['parameters']['dec'] = Dec_dist[i]
         SEDs[key]['parameters']['min_MJD'] = t_dist[i]
         SEDs[key]['parameters']['max_MJD'] = t_dist[i] + SEDs[key]['model'].maxtime()
-return SEDs
+    return SEDs
