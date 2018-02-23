@@ -61,32 +61,37 @@ def Get_SED_header_info(fileio):
     return kappa, m_ej, v_ej
 
 
-def Get_ObsStratDB(surveydb_path, flag):
+def Get_ObsStratDB_Summary(surveydb_path, flag):
     # Import Observing Strategy Database
-    return oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag)
+    return oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag).summary
 
 
-def Gen_SED(params, SEDdb_loc=None, gen_flag=None):
+def Gen_SED(N_SEDs, new_sed_keys, params, SEDdb_loc=None, gen_flag=None):
     # Given a set of parameters generate an SED
     if SEDdb_loc:
         if gen_flag == 'cycle':
-            return Pick_Rand_dbSED(SEDdb_loc)
+            return Pick_Rand_dbSED(N_SEDs, new_sed_keys, SEDdb_loc)
         else:
-            return interpolate_SED(params, SEDdb_loc)
+            return interpolate_SED(N_SEDs, new_sed_keys, params, SEDdb_loc)
     else:
         # Space for implementation of a parametric model for SEDs
         return generated_SED
 
 
-def Pick_Rand_dbSED(database_path):
-    # Temporary function to pick random SED
-    SEDdb = Get_SEDdb(database_path)
+def Pick_Rand_dbSED(N_SEDs, new_sed_keys, SEDdb_loc):
+    # Get the SED db
+    SEDdb = Get_SEDdb(SEDdb_loc)
     # unpacks keys object into a indexable list
     unpacked_key_list = *SEDdb.keys(),
     # Number of available seds
-    N_SEDs = len(unpacked_key_list)
-    Random_Draw = np.random.randint(low=0, high=N_SEDs)
-    Rand_SED = SEDdb[unpacked_key_list[Random_Draw]]
+    N_dbSEDs = len(unpacked_key_list)
+    print('The number of SEDs in Database is {}'.format(N_dbSEDs))
+    Random_Draw = np.random.randint(low=0, high=N_dbSEDs, size=N_SEDs)
+
+    Rand_SED = {}
+
+    for i, key in enumerate(new_sed_keys):
+        Rand_SED[key] = SEDdb[unpacked_key_list[Random_Draw[i]]]
     return Rand_SED
 
 
@@ -132,13 +137,17 @@ def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
     # distribution the distribution of the objects vs. redshift.
     SED_zlist = list(sncosmo.zdist(zmin=param_priors['zmin'], zmax=param_priors['zmax'],
                                    time=survey_params['survey_time'], area=survey_params['survey_area'],
-                                   ratefunc=SED_Rate()))  # cosmo=param_priors['cosmology']))
+                                   ratefunc=SED_Rate()))  # , cosmo=param_priors['cosmology']))
     N_SEDs = len(SED_zlist)
+    new_keys = list()
+    print('The number of mock SEDs being genereated is {}'.format(N_SEDs))
     for i in np.arange(N_SEDs):
-        new_key = 'Mock_Obs {}'.format(str(i))
-        SED_params = Draw_SED_Params(param_priors)
-        Dist_SEDs[new_key] = Gen_SED(SED_params, seds_path, gen_flag)
-        # Place the SED at the redshift from the redshift distribution calc.
+        new_keys.append('Mock {}'.format(str(i)))
+
+    SED_params = Draw_SED_Params(param_priors, N_SEDs)
+    Dist_SEDs = Gen_SED(N_SEDs, new_keys, SED_params, seds_path, gen_flag)
+    # Place the SED at the redshift from the redshift distribution calc.
+    for i, new_key in enumerate(new_keys):
         redshift = SED_zlist[i]
         lumdist = param_priors['cosmology'].luminosity_distance(redshift).value
         Dist_SEDs[new_key]['model'].set(z=redshift, amplitude=1./pow(lumdist, 2))
@@ -157,15 +166,19 @@ def KNe_Rate():
     return lambda x: rate
 
 
-def Draw_SED_Params(param_priors):
+def Draw_SED_Params(param_priors, n):
     # Wrapper for generic SED parameters, note this is dependent on Model
     # Currently returns for KNe
-    return Draw_KNe_Params(param_priors)
+    return Draw_KNe_Params(param_priors, n)
 
 
-def Draw_KNe_Params(param_priors):
+def Draw_KNe_Params(param_priors, n):
     # Sample the parameter priors
+    # Build empty param dicts
     p = {}
+    for i in np.arange(n):
+        p['{}'.format(i)] = {}
+    # Set bounds
     kappa_min = param_priors['kappa_min']
     kappa_max = param_priors['kappa_max']
     kappa_diff = kappa_max-kappa_min
@@ -173,14 +186,15 @@ def Draw_KNe_Params(param_priors):
     mej_max = param_priors['m_ej_max']
     vej_min = param_priors['v_ej_min']
     vej_max = param_priors['v_ej_max']
-    p['kappa'] = kappa_min+int(kappa_diff)*int(np.random.binomial(1, 0.5))
-    p['m_ej'] = np.random.uniform(low=mej_min, high=mej_max)
-    p['v_ej'] = np.random.uniform(low=vej_min, high=vej_max*pow(p['m_ej']
+    for key in p.keys():
+        p[key]['kappa'] = kappa_min+int(kappa_diff)*int(np.random.binomial(1, 0.5))
+        p[key]['m_ej'] = np.random.uniform(low=mej_min, high=mej_max)
+        p[key]['v_ej'] = np.random.uniform(low=vej_min, high=vej_max*pow(p[key]['m_ej']
                 / mej_min, np.log10(0.25/vej_max) / np.log10(mej_max/mej_min)))
     return p
 
 
-def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params,):
+def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
     # Go from SED to multi-band lightcurves for a given instrument
     lc_samples = {}
     # Gather observations by band to build the separate lightcurves
@@ -189,13 +203,13 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params,):
         mags, magnitude_errors = [], []
         lsst_band = 'lsst{}'.format(band)
         times = matched_db.query('filter == \'{}\''.format(band))['expMJD'].unique()
-        for time, i in times, np.arange(len(times)):
+        for time in enumerate(times):
             single_obs_db = matched_db.query('filter == \'{}\' and expMJD == {}'.format(band, time))
-            mags[i] = Get_Obs_Magnitudes(SED, single_obs_db, instrument_params)
+            mags.append(Get_Obs_Magnitudes(SED, single_obs_db, instrument_params))
             bandflux = Get_BandFlux(SED, single_obs_db)
             fiveSigmaDepth = single_obs_db['fiveSigmaDepth'].unique()
             bandflux_error = Get_Band_Flux_Error(fiveSigmaDepth)
-            magnitude_errors[i] = Get_Magnitude_Error(bandflux, bandflux_error)
+            magnitude_errors.append(Get_Magnitude_Error(bandflux, bandflux_error))
         # Assemble the per band dictionary of lightcurve observations
         lc_samples[lsst_band] = {'times': times, 'magnitudes': mags, 'mag_errors': magnitude_errors}
     return lc_samples
@@ -204,7 +218,7 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params,):
 def Get_BandFlux(SED, single_obs_db):
     # Get the bandflux for the given filter and phase
     obs_phase = single_obs_db['expMJD'] - SED['parameters']['min_MJD']
-    band = 'lsst{}'.format(single_obs_db['filter'].unique())
+    band = 'lsst{}'.format(single_obs_db['filter'].unique()[0])
     bandflux = SED['model'].bandflux(band, obs_phase)
     return bandflux
 
@@ -212,7 +226,7 @@ def Get_BandFlux(SED, single_obs_db):
 def Get_Obs_Magnitudes(SED, single_obs_db, instrument_params):
     # Get the observed magnitudes for the given band
     obs_phase = single_obs_db['expMJD'].unique() - SED['parameters']['min_MJD']
-    band = 'lsst{}'.format(single_obs_db['filter'].unique())
+    band = 'lsst{}'.format(single_obs_db['filter'].unique()[0])
     magsys = instrument_params['Mag_Sys']
     bandmag = SED['model'].bandmag(band, magsys, obs_phase)
     return bandmag
@@ -220,7 +234,10 @@ def Get_Obs_Magnitudes(SED, single_obs_db, instrument_params):
 
 def Get_Magnitude_Error(bandflux, bandflux_error):
     # Compute the per-band magnitude errors
-    magnitude_error = abs(-2.5*bandflux_error/(bandflux*np.log(10)))
+    if bandflux > 0:
+        magnitude_error = abs(-2.5*bandflux_error/(bandflux*np.log(10)))
+    else:
+        magnitude_error = 100.00
     return magnitude_error
 
 
@@ -263,8 +280,8 @@ def Get_Survey_Params(obs_db):
     # simulation. Currently assume a rectangular (in RA,DEC) solid angle on
     # the sky
     # Note that the values are assumed to be in radians
-    min_db = obs_db.summary.min()
-    max_db = obs_db.summary.max()
+    min_db = obs_db.min()
+    max_db = obs_db.max()
     survey_params = {}
     survey_params['min_ra'] = min_db['fieldRA']
     survey_params['max_ra'] = max_db['fieldRA']
@@ -284,9 +301,8 @@ def Ra_Dec_Dist(n, survey_params):
     # For given survey paramters distribute random points within the (RA,DEC)
     # space. Again assuming a uniform RA,Dec region
     RA_dist = np.random.uniform(survey_params['min_ra'], survey_params['max_ra'], n)
-    Dec_dist = np.arcsin((1 - np.sin(survey_params['min_dec'])*np.sin(survey_params['max_dec'])
-               - pow(np.sin(survey_params['min_dec']), 2))/((np.sin(survey_params['max_dec']
-               - np.sin(survey_params['min_dec'])))*np.random.uniform(low=0.0, high=1.0, size=n)))
+    Dec_dist = np.arcsin((np.random.uniform(low=0.0, high=1.0, size=n))*(np.sin(survey_params['max_dec'])
+                - np.sin(survey_params['min_dec'])) + np.sin(survey_params['min_dec']))
     return RA_dist, Dec_dist
 
 
@@ -298,7 +314,7 @@ def Time_Dist(n, survey_params):
 def Build_Sub_SurveyDB(obsdb_path, fields, flag):
     # For a desired set fields create smaller subset database for queries
     obs_db = Get_ObsStratDB(obsdb_path, flag)
-    sub_survey_db = obs_db.summary[fields].deepcopy
+    sub_survey_db = obs_db[fields].deepcopy
     return sub_survey_db
 
 
@@ -311,7 +327,7 @@ def Gen_SED_dist(SEDdb_path, survey_params, param_priors, gen_flag=None):
     N_SEDs = len(SEDs)
     RA_dist, Dec_dist = Ra_Dec_Dist(N_SEDs, survey_params)
     t_dist = Time_Dist(N_SEDs, survey_params)
-    for key, i in key_list, np.arange(N_SEDs):
+    for i, key in enumerate(key_list):
         SEDs[key]['parameters']['z'] = SEDs[key]['model'].get('z')
         SEDs[key]['parameters']['ra'] = RA_dist[i]
         SEDs[key]['parameters']['dec'] = Dec_dist[i]
@@ -330,7 +346,7 @@ def Plot_Observations(Observations):
         n_plots = len(band_keys)
         # Max 6-color lightcurves
         f, axes = plt.subplots(n_plots)
-        for band, i in band_keys, np.arange(n_plots):
+        for i, band in enumerate(band_keys):
             times = Observations[key][obs_key][band]['times']
             mags = Observations[key][obs_key][band]['magnitudes']
             errs = Observations[key][obs_key][band]['mag_errors']
@@ -346,8 +362,10 @@ def Plot_Observations(Observations):
 def Get_Detections(All_Observations, Selection_Cuts):
     # Given Cuts (Here this will be assumed to be SNR)
     Detections = {}
+    n_detections = 0
     obs_key = 'observations'
     mocks_keys = All_Observations.keys()
+    n_mocks = len(mocks_keys)
     Cut_keys = Selection_Cuts.keys()
     for mkey in mocks_keys:
         band_keys = All_Observations[mkey][obs_key].keys()
@@ -356,8 +374,8 @@ def Get_Detections(All_Observations, Selection_Cuts):
         for band in band_keys:
             # Initialize as false detection
             All_Observations[mkey][obs_key][band]['Detected'] = False
-            obs_in_band_keys = All_Observations[mkey][obs_key][band].keys()
-            n_obs = len(All_Observations[mkey][obs_key][band][obs_in_band_keys[0]])
+            obs_in_band = All_Observations[mkey][obs_key][band]['times']
+            n_obs = len(obs_in_band)
             for cuts in Cut_keys:
                 for i in np.arange(n_obs):
                     cut_comparison = All_Observations[mkey][obs_key][band][cuts][i]
@@ -366,7 +384,9 @@ def Get_Detections(All_Observations, Selection_Cuts):
                         if All_Observations[mkey]['Detected'] is False:
                             All_Observations[mkey]['Detected'] = True
                             Detections[mkey] = All_Observations[mkey]
-    return All_Observations, Detections
+                            n_detections += 1
+    efficiency = n_detections / n_mocks
+    return All_Observations, Detections, n_detections, efficiency
 
 
 def Assign_SNR(Observations):
@@ -385,15 +405,21 @@ def Assign_SNR(Observations):
 
 def Get_N_z(All_Source_Obs, Detections):
     param_key = 'parameters'
+    all_zs, detect_zs = [], []
     mock_all_keys = All_Source_Obs.keys()
     mock_detect_keys = Detections.keys()
-    all_zs = All_Source_Obs[mock_all_keys][param_key]['z']
-    detect_zs = Detections[mock_detect_keys][param_key]['z']
+    for key in mock_all_keys:
+        all_zs.append(All_Source_Obs[key][param_key]['z'])
+    for key in mock_detect_keys:
+        detect_zs.append(Detections[key][param_key]['z'])
+
     all_z_hist, all_z_bins = np.histogram(a=all_zs, bins=10)
+    bin_size = abs(all_z_bins[1]-all_z_bins[0])
     detect_z_hist, detect_z_bins = np.histogram(a=detect_zs, bins=all_z_bins)
     N_z_dist_fig = plt.figure()
     plt.hist(x=all_z_hist, bins=all_z_bins, histtype='step', color='red', label='All')
     plt.hist(x=detect_z_hist, bins=detect_z_bins, histtype='step', color='black', label='Detected')
     plt.xlabel('z')
-    plt.ylabel('Number per {} redshift bin'.format())
+    plt.ylabel(r'$N(z)$')
+    plt.title('Number per {.3f} redshift bin'.format(bin_size))
     return N_z_dist_fig
