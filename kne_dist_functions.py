@@ -19,7 +19,7 @@ def Get_SEDdb(path_to_seds):
     fl = os.listdir(path_to_seds)
     # Read in all  SEDS
     for filei in fl:
-        filename = seds_path + filei
+        filename = path_to_seds + '/' + filei
         fileio = open(filename, 'r')
         # Initialize dicts for sedsdb
         seds_key = filei.split(".", 1)[0]
@@ -36,6 +36,7 @@ def Get_SEDdb(path_to_seds):
         model = sncosmo.Model(source=source)
         # Construct the full sed db
         seds_data[seds_key]['model'] = model
+        seds_data[seds_key]['parameters'] = {}
         seds_data[seds_key]['parameters']['kappa'] = kappa
         seds_data[seds_key]['parameters']['m_ej'] = m_ej
         seds_data[seds_key]['parameters']['v_ej'] = v_ej
@@ -79,7 +80,7 @@ def Gen_SED(params, SEDdb_loc=None, gen_flag=None):
 
 def Pick_Rand_dbSED(database_path):
     # Temporary function to pick random SED
-    SEDdb = Get_SEDdb(SEDdb_loc)
+    SEDdb = Get_SEDdb(database_path)
     # unpacks keys object into a indexable list
     unpacked_key_list = *SEDdb.keys(),
     # Number of available seds
@@ -131,7 +132,7 @@ def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
     # distribution the distribution of the objects vs. redshift.
     SED_zlist = list(sncosmo.zdist(zmin=param_priors['zmin'], zmax=param_priors['zmax'],
                                    time=survey_params['survey_time'], area=survey_params['survey_area'],
-                                   rate=SED_Rate(), cosmo=param_priors['cosmology']))
+                                   ratefunc=SED_Rate()))  # cosmo=param_priors['cosmology']))
     N_SEDs = len(SED_zlist)
     for i in np.arange(N_SEDs):
         new_key = 'Mock_Obs {}'.format(str(i))
@@ -153,7 +154,7 @@ def SED_Rate():
 def KNe_Rate():
     # Rate definition for Kilonovae, defined for future exploration
     rate = 500/pow(1000, 3)  # per yer per Mpc^3
-    return rate
+    return lambda x: rate
 
 
 def Draw_SED_Params(param_priors):
@@ -265,15 +266,18 @@ def Get_Survey_Params(obs_db):
     min_db = obs_db.summary.min()
     max_db = obs_db.summary.max()
     survey_params = {}
-    survey_params['min_ra'] = min_db['fieldRA'].unique()
-    survey_params['max_ra'] = max_db['fieldRA'].unique()
-    survey_params['min_dec'] = min_db['fieldDec'].unique()
-    survey_params['max_dec'] = max_db['fieldDec'].unique()
-    survey_params['survey_area'] = np.rad2deg(np.cos(min_dec) - np.cos(max_dec))*np.rad2deg(max_ra - min_ra)
-    survey_params['min_mjd'] = min_db['expMJD'].unique()
-    survey_params['max_mjd'] = max_db['expMJD'].unique()
+    survey_params['min_ra'] = min_db['fieldRA']
+    survey_params['max_ra'] = max_db['fieldRA']
+    survey_params['min_dec'] = min_db['fieldDec']
+    survey_params['max_dec'] = max_db['fieldDec']
+    min_ra, max_ra = survey_params['min_ra'], survey_params['max_ra']
+    min_dec, max_dec = survey_params['min_dec'], survey_params['max_dec']
+    survey_params['survey_area'] = np.rad2deg(np.sin(max_dec) - np.sin(min_dec))*np.rad2deg(max_ra - min_ra)
+    survey_params['min_mjd'] = min_db['expMJD']
+    survey_params['max_mjd'] = max_db['expMJD']
+    min_mjd, max_mjd = survey_params['min_mjd'], survey_params['max_mjd']
     survey_params['survey_time'] = max_mjd - min_mjd  # Survey time in days
-    return survey_params, obs_db
+    return survey_params
 
 
 def Ra_Dec_Dist(n, survey_params):
@@ -308,7 +312,7 @@ def Gen_SED_dist(SEDdb_path, survey_params, param_priors, gen_flag=None):
     RA_dist, Dec_dist = Ra_Dec_Dist(N_SEDs, survey_params)
     t_dist = Time_Dist(N_SEDs, survey_params)
     for key, i in key_list, np.arange(N_SEDs):
-        # SEDs[key]['parameters']['z'] = SEDs[key]['model'].get('z')
+        SEDs[key]['parameters']['z'] = SEDs[key]['model'].get('z')
         SEDs[key]['parameters']['ra'] = RA_dist[i]
         SEDs[key]['parameters']['dec'] = Dec_dist[i]
         SEDs[key]['parameters']['min_MJD'] = t_dist[i]
@@ -337,3 +341,59 @@ def Plot_Observations(Observations):
         # Break to only do one plot at the moment
         break
     return f
+
+
+def Get_Detections(All_Observations, Selection_Cuts):
+    # Given Cuts (Here this will be assumed to be SNR)
+    Detections = {}
+    obs_key = 'observations'
+    mocks_keys = All_Observations.keys()
+    Cut_keys = Selection_Cuts.keys()
+    for mkey in mocks_keys:
+        band_keys = All_Observations[mkey][obs_key].keys()
+        # Initialize detection as false
+        All_Observations[mkey]['Detected'] = False
+        for band in band_keys:
+            # Initialize as false detection
+            All_Observations[mkey][obs_key][band]['Detected'] = False
+            obs_in_band_keys = All_Observations[mkey][obs_key][band].keys()
+            n_obs = len(All_Observations[mkey][obs_key][band][obs_in_band_keys[0]])
+            for cuts in Cut_keys:
+                for i in np.arange(n_obs):
+                    cut_comparison = All_Observations[mkey][obs_key][band][cuts][i]
+                    if cut_comparison >= Selection_Cuts[cuts]['lower'] and cut_comparison <= Selection_Cuts[cuts]['upper']:
+                        All_Observations[mkey][obs_key][band]['Detected'] = True
+                        if All_Observations[mkey]['Detected'] is False:
+                            All_Observations[mkey]['Detected'] = True
+                            Detections[mkey] = All_Observations[mkey]
+    return All_Observations, Detections
+
+
+def Assign_SNR(Observations):
+    obs_key = 'observations'
+    mags_key = 'magnitudes'
+    err_key = 'mag_errors'
+    key_list = Observations.keys()
+    for key in key_list:
+        band_keys = Observations[key][obs_key].keys()
+        for band in band_keys:
+            mags = Observations[key][obs_key][band][mags_key]
+            errs = Observations[key][obs_key][band][err_key]
+            Observations[key][obs_key][band]['SNR'] = np.divide(mags, errs)
+    return Observations
+
+
+def Get_N_z(All_Source_Obs, Detections):
+    param_key = 'parameters'
+    mock_all_keys = All_Source_Obs.keys()
+    mock_detect_keys = Detections.keys()
+    all_zs = All_Source_Obs[mock_all_keys][param_key]['z']
+    detect_zs = Detections[mock_detect_keys][param_key]['z']
+    all_z_hist, all_z_bins = np.histogram(a=all_zs, bins=10)
+    detect_z_hist, detect_z_bins = np.histogram(a=detect_zs, bins=all_z_bins)
+    N_z_dist_fig = plt.figure()
+    plt.hist(x=all_z_hist, bins=all_z_bins, histtype='step', color='red', label='All')
+    plt.hist(x=detect_z_hist, bins=detect_z_bins, histtype='step', color='black', label='Detected')
+    plt.xlabel('z')
+    plt.ylabel('Number per {} redshift bin'.format())
+    return N_z_dist_fig
