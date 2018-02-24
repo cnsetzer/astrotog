@@ -147,12 +147,17 @@ def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
     SED_params = Draw_SED_Params(param_priors, N_SEDs)
     Dist_SEDs = Gen_SED(N_SEDs, new_keys, SED_params, seds_path, gen_flag)
     # Place the SED at the redshift from the redshift distribution calc.
-    for i, new_key in enumerate(new_keys):
-        redshift = SED_zlist[i]
-        lumdist = param_priors['cosmology'].luminosity_distance(redshift).value
-        Dist_SEDs[new_key]['model'].set(z=redshift, amplitude=1./pow(lumdist, 2))
+    Dist_SEDs = Set_SED_Redshift(Dist_SEDs, SED_zlist, param_priors['cosmology'])
     return Dist_SEDs
 
+def Set_SED_Redshift(SEDs, redshifts, cosmology):
+    # Wrapper to set the redshift for the provided SEDs by sncosmo model method
+    for i, key in enumerate(SEDs.keys()):
+        redshift = redshifts[i]
+        lumdist = cosmology.luminosity_distance(redshift).value
+        print(lumdist)
+        SEDs[key]['model'].set(z=redshift, amplitude=1./pow(lumdist, 2))
+    return SEDs
 
 def SED_Rate():
     # Intermediate wrapper for generic SED rates, currently set to return KNe
