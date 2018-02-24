@@ -345,6 +345,7 @@ def Plot_Observations(Observations):
         band_keys = Observations[key][obs_key].keys()
         n_plots = len(band_keys)
         # Max 6-color lightcurves
+        print(n_plots)
         f, axes = plt.subplots(n_plots)
         for i, band in enumerate(band_keys):
             times = Observations[key][obs_key][band]['times']

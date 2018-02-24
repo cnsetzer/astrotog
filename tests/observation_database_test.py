@@ -3,6 +3,8 @@ from math import inf
 import matplotlib.pyplot as plt
 import kne_dist_functions as kdf
 import seaborn
+import kne_dist_functions as kdf
+
 # Import a cosmology, comment out if you want to define your own per the
 # astropy cosmology class
 from astropy.cosmology import Planck15 as cosmo
@@ -17,7 +19,7 @@ param_priors = {'zmin': 0.0, 'zmax': 0.1, 'cosmology': cosmo,
 instrument_params = {'FOV_rad': np.deg2rad(1.75), 'Mag_Sys': 'ab'}
 Cuts = {'SNR': {'upper': inf, 'lower': 5}}
 gen_flag = 'cycle'
-db_flag = 'wfd'
+†ˇdb_flag = 'wfd'
 # Setup the basic running structure
 obs_database = kdf.Get_ObsStratDB_Summary(surveydb_path, db_flag)
 print(' Done reading in observation databse: {}'.format(surveydb_path))
@@ -28,29 +30,3 @@ print(' Done retreiving survey paramters.')
 print('\n Generating mock KNe sources...')
 SEDs = kdf.Gen_SED_dist(sedsdb_path, survey_params, param_priors, gen_flag)
 print(' Done generating mock KNe sources.')
-# Apply observation to all mock SEDs
-print('\n Applying simulated observations to mock sources...')
-All_Source_Observations = kdf.Gen_Observations(SEDs, obs_database, instrument_params)
-print(' Done generating simulated observations of mock sources.')
-
-# Plot the lightcurve results
-figure = kdf.Plot_Observations(All_Source_Observations)
-# For the first run show only one plot
-plt.show()
-
-exit()
-# Add quality of observation information, currently just SNR
-All_Source_Observations = kdf.Assign_SNR(All_Source_Observations)
-# Using this quality assignment and predefined selection cut criteria determine
-# 'detections'
-All_Source_Observations, Detections, n_detect, efficiency = kdf.Get_Detections(All_Source_Observations, Cuts)
-print('\n The number of detected KNe for a {} cut of {} is {}\n This is an efficiency of {.2f}%'
-      .format('SNR', Cuts['SNR']['lower'], n_detect, 100*efficiency))
-
-# Plot histogram of detected vs genereated mock KNe
-N_z_fig = kdf.Get_N_z(All_Source_Observations, Detections)
-
-# Plot the lightcurve results
-figure = kdf.Plot_Observations(Detections)
-# For the first run show only one plot
-plt.show()
