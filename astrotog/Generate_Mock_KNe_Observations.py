@@ -34,11 +34,11 @@ All_Source_Observations = tod.Gen_Observations(SEDs, obs_database, instrument_pa
 print(' Done generating simulated observations of mock sources.')
 
 # Plot the lightcurve results
-figure = tod.Plot_Observations(All_Source_Observations)
-# For the first run show only one plot
-plt.show()
+# For debug show only one plot and exit
+# figure = tod.Plot_Observations(All_Source_Observations)
+# plt.show()
+# exit()
 
-exit()
 # Add quality of observation information, currently just SNR
 All_Source_Observations = tod.Assign_SNR(All_Source_Observations)
 # Using this quality assignment and predefined selection cut criteria determine

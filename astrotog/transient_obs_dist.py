@@ -31,7 +31,7 @@ def Get_SEDdb(path_to_seds):
         # print(seds_key)
 
         # Read in SEDS data with sncosmo tools
-        phase, wave, flux = sncosmo.read_griddata_ascii(filename)
+        phase, wave, flux = deepcopy(sncosmo.read_griddata_ascii(filename))
         source = sncosmo.TimeSeriesSource(phase, wave, flux, zero_before=True)
         model = sncosmo.Model(source=source)
         # Construct the full sed db
@@ -91,7 +91,7 @@ def Pick_Rand_dbSED(N_SEDs, new_sed_keys, SEDdb_loc):
     Rand_SED = {}
 
     for i, key in enumerate(new_sed_keys):
-        Rand_SED[key] = SEDdb[unpacked_key_list[Random_Draw[i]]]
+        Rand_SED[key] = deepcopy(SEDdb[unpacked_key_list[Random_Draw[i]]])
     return Rand_SED
 
 
@@ -154,8 +154,7 @@ def Set_SED_Redshift(SEDs, redshifts, cosmology):
     # Wrapper to set the redshift for the provided SEDs by sncosmo model method
     for i, key in enumerate(SEDs.keys()):
         redshift = redshifts[i]
-        lumdist = cosmology.luminosity_distance(redshift).value
-        print(lumdist)
+        lumdist = cosmology.luminosity_distance(redshift).value * 1e6  # in pc
         SEDs[key]['model'].set(z=redshift, amplitude=1./pow(lumdist, 2))
     return SEDs
 
@@ -203,16 +202,16 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
     # Go from SED to multi-band lightcurves for a given instrument
     lc_samples = {}
     # Gather observations by band to build the separate lightcurves
-    bands = matched_db['filter'].unique()
+    bands = deepcopy(matched_db['filter'].unique())
     for band in bands:
         mags, magnitude_errors = [], []
         lsst_band = 'lsst{}'.format(band)
-        times = matched_db.query('filter == \'{}\''.format(band))['expMJD'].unique()
+        times = deepcopy(matched_db.query('filter == \'{}\''.format(band))['expMJD'].unique())
         for time in enumerate(times):
-            single_obs_db = matched_db.query('filter == \'{}\' and expMJD == {}'.format(band, time))
+            single_obs_db = deepcopy(matched_db.query('filter == \'{0}\' and expMJD == {1}'.format(band, time)))
             mags.append(Get_Obs_Magnitudes(SED, single_obs_db, instrument_params))
             bandflux = Get_BandFlux(SED, single_obs_db)
-            fiveSigmaDepth = single_obs_db['fiveSigmaDepth'].unique()
+            fiveSigmaDepth = deepcopy(single_obs_db['fiveSigmaDepth'].unique())
             bandflux_error = Get_Band_Flux_Error(fiveSigmaDepth)
             magnitude_errors.append(Get_Magnitude_Error(bandflux, bandflux_error))
         # Assemble the per band dictionary of lightcurve observations
@@ -224,7 +223,7 @@ def Get_BandFlux(SED, single_obs_db):
     # Get the bandflux for the given filter and phase
     obs_phase = single_obs_db['expMJD'] - SED['parameters']['min_MJD']
     band = 'lsst{}'.format(single_obs_db['filter'].unique()[0])
-    bandflux = SED['model'].bandflux(band, obs_phase)
+    bandflux = deepcopy(SED['model'].bandflux(band, obs_phase))
     return bandflux
 
 
@@ -233,7 +232,7 @@ def Get_Obs_Magnitudes(SED, single_obs_db, instrument_params):
     obs_phase = single_obs_db['expMJD'].unique() - SED['parameters']['min_MJD']
     band = 'lsst{}'.format(single_obs_db['filter'].unique()[0])
     magsys = instrument_params['Mag_Sys']
-    bandmag = SED['model'].bandmag(band, magsys, obs_phase)
+    bandmag = deepcopy(SED['model'].bandmag(band, magsys, obs_phase))
     return bandmag
 
 
@@ -269,14 +268,14 @@ def Match_Event_to_Obs(SED, obs_database, instrument_params):
     survey_field_hw = instrument_params['FOV_rad']
     field_ra_hw = survey_field_hw
     field_dec_hw = survey_field_hw
-    min_time = SED['parameters']['min_MJD']
-    max_time = SED['parameters']['max_MJD']
-    ra = SED['parameters']['ra']
-    dec = SED['parameters']['dec']
-    t_overlaps = obs_database.query('{} < expMJD < {}'.format(min_time, max_time))
-    ra_t_overlaps = t_overlaps.query('fieldRA - {0} < {1} < fieldRA + {0}'.format(field_ra_hw, ra))
+    min_time = deepcopy(SED['parameters']['min_MJD'])
+    max_time = deepcopy(SED['parameters']['max_MJD'])
+    ra = deepcopy(SED['parameters']['ra'])
+    dec = deepcopy(SED['parameters']['dec'])
+    t_overlaps = deepcopy(obs_database.query('{0} < expMJD < {1}'.format(min_time, max_time)))
+    ra_t_overlaps = deepcopy(t_overlaps.query('fieldRA - {0} < {1} < fieldRA + {0}'.format(field_ra_hw, ra)))
     # Full overlaps (note this doesn't take into account dithering)
-    full_overlap_db = ra_t_overlaps.query('fieldDec - {0} < {1} < fieldDec + {0}'.format(field_dec_hw, dec))
+    full_overlap_db = deepcopy(ra_t_overlaps.query('fieldDec - {0} < {1} < fieldDec + {0}'.format(field_dec_hw, dec)))
     return full_overlap_db
 
 
@@ -319,7 +318,7 @@ def Time_Dist(n, survey_params):
 def Build_Sub_SurveyDB(obsdb_path, fields, flag):
     # For a desired set fields create smaller subset database for queries
     obs_db = Get_ObsStratDB(obsdb_path, flag)
-    sub_survey_db = obs_db[fields].deepcopy
+    sub_survey_db = deepcopy(obs_db[fields])
     return sub_survey_db
 
 
@@ -350,12 +349,11 @@ def Plot_Observations(Observations):
         band_keys = Observations[key][obs_key].keys()
         n_plots = len(band_keys)
         # Max 6-color lightcurves
-        print(n_plots)
         f, axes = plt.subplots(n_plots)
         for i, band in enumerate(band_keys):
-            times = Observations[key][obs_key][band]['times']
-            mags = Observations[key][obs_key][band]['magnitudes']
-            errs = Observations[key][obs_key][band]['mag_errors']
+            times = deepcopy(Observations[key][obs_key][band]['times'])
+            mags = deepcopy(Observations[key][obs_key][band]['magnitudes'])
+            errs = deepcopy(Observations[key][obs_key][band]['mag_errors'])
             axes[i].errorbar(times, mags, errs)
             axes[i].legend(['{}'.format(band)])
             axes[i].set(xlabel='MJD', ylabel=r'$m_{ab}$')
@@ -380,16 +378,17 @@ def Get_Detections(All_Observations, Selection_Cuts):
         for band in band_keys:
             # Initialize as false detection
             All_Observations[mkey][obs_key][band]['Detected'] = False
-            obs_in_band = All_Observations[mkey][obs_key][band]['times']
+            obs_in_band = deepcopy(All_Observations[mkey][obs_key][band]['times'])
             n_obs = len(obs_in_band)
             for cuts in Cut_keys:
                 for i in np.arange(n_obs):
-                    cut_comparison = All_Observations[mkey][obs_key][band][cuts][i]
+                    cut_comparison = deepcopy(All_Observations[mkey][obs_key][band][cuts][i])
+                    print(cut_comparison)
                     if cut_comparison >= Selection_Cuts[cuts]['lower'] and cut_comparison <= Selection_Cuts[cuts]['upper']:
                         All_Observations[mkey][obs_key][band]['Detected'] = True
                         if All_Observations[mkey]['Detected'] is False:
                             All_Observations[mkey]['Detected'] = True
-                            Detections[mkey] = All_Observations[mkey]
+                            Detections[mkey] = deepcopy(All_Observations[mkey])
                             n_detections += 1
     efficiency = n_detections / n_mocks
     return All_Observations, Detections, n_detections, efficiency
@@ -403,8 +402,8 @@ def Assign_SNR(Observations):
     for key in key_list:
         band_keys = Observations[key][obs_key].keys()
         for band in band_keys:
-            mags = Observations[key][obs_key][band][mags_key]
-            errs = Observations[key][obs_key][band][err_key]
+            mags = deepcopy(Observations[key][obs_key][band][mags_key])
+            errs = deepcopy(Observations[key][obs_key][band][err_key])
             Observations[key][obs_key][band]['SNR'] = np.divide(mags, errs)
     return Observations
 
