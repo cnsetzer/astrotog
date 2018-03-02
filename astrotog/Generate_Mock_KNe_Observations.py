@@ -44,7 +44,7 @@ All_Source_Observations = tod.Assign_SNR(All_Source_Observations)
 # Using this quality assignment and predefined selection cut criteria determine
 # 'detections'
 All_Source_Observations, Detections, n_detect, efficiency = tod.Get_Detections(All_Source_Observations, Cuts)
-print('\n The number of detected KNe for a {} cut of {} is {}\n This is an efficiency of {.2f}%'
+print('\n The number of detected KNe for a {0} cut of {1} is {2}\n This is an efficiency of {3}%'
       .format('SNR', Cuts['SNR']['lower'], n_detect, 100*efficiency))
 
 # Plot histogram of detected vs genereated mock KNe

@@ -137,7 +137,7 @@ def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
     # distribution the distribution of the objects vs. redshift.
     SED_zlist = list(sncosmo.zdist(zmin=param_priors['zmin'], zmax=param_priors['zmax'],
                                    time=survey_params['survey_time'], area=survey_params['survey_area'],
-                                   ratefunc=SED_Rate()))  # , cosmo=param_priors['cosmology']))
+                                   ratefunc=SED_Rate(), cosmo=param_priors['cosmology']))
     N_SEDs = len(SED_zlist)
     new_keys = list()
     print('The number of mock SEDs being genereated is {}'.format(N_SEDs))
@@ -150,13 +150,17 @@ def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
     Dist_SEDs = Set_SED_Redshift(Dist_SEDs, SED_zlist, param_priors['cosmology'])
     return Dist_SEDs
 
+
 def Set_SED_Redshift(SEDs, redshifts, cosmology):
     # Wrapper to set the redshift for the provided SEDs by sncosmo model method
     for i, key in enumerate(SEDs.keys()):
         redshift = redshifts[i]
         lumdist = cosmology.luminosity_distance(redshift).value * 1e6  # in pc
-        SEDs[key]['model'].set(z=redshift, amplitude=1./pow(lumdist, 2))
+        # Note that it is necessary to scale the amplitude relative to the 10pc
+        # (i.e. 10^2 in the following eqn.) placement of the SED currently
+        SEDs[key]['model'].set(z=redshift, amplitude=pow(np.divide(10.0, lumdist), 2))
     return SEDs
+
 
 def SED_Rate():
     # Intermediate wrapper for generic SED rates, currently set to return KNe
@@ -209,31 +213,44 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
         times = deepcopy(matched_db.query('filter == \'{}\''.format(band))['expMJD'].unique())
         for time in enumerate(times):
             single_obs_db = deepcopy(matched_db.query('filter == \'{0}\' and expMJD == {1}'.format(band, time)))
-            mags.append(Get_Obs_Magnitudes(SED, single_obs_db, instrument_params))
             bandflux = Get_BandFlux(SED, single_obs_db)
+            mags.append(Compute_Obs_Magnitudes(bandflux, instrument_params))
+            mags.append(Get_Obs_Magnitudes_from_Model(SED, single_obs_db, instrument_params))
             fiveSigmaDepth = deepcopy(single_obs_db['fiveSigmaDepth'].unique())
             bandflux_error = Get_Band_Flux_Error(fiveSigmaDepth)
             magnitude_errors.append(Get_Magnitude_Error(bandflux, bandflux_error))
         # Assemble the per band dictionary of lightcurve observations
         lc_samples[lsst_band] = {'times': times, 'magnitudes': mags, 'mag_errors': magnitude_errors}
-    return lc_samples
+    return deepcopy(lc_samples)
 
+
+def Compute_Obs_Magnitudes(bandflux, instrument_params):
+    magsys = instrument_params['Mag_Sys']
+    # Definte the flux reference based on the magnitude system reference to
+    # compute the associated maggi
+    if magsys == 'ab':
+        bandflux_ref =
+    else:
+        
+    maggi = bandflux/bandflux_ref
+    magnitude = -2.5*np.log10(maggi)
+    return magnitude
 
 def Get_BandFlux(SED, single_obs_db):
     # Get the bandflux for the given filter and phase
     obs_phase = single_obs_db['expMJD'] - SED['parameters']['min_MJD']
     band = 'lsst{}'.format(single_obs_db['filter'].unique()[0])
     bandflux = deepcopy(SED['model'].bandflux(band, obs_phase))
-    return bandflux
+    return np.asscalar(bandflux)
 
 
-def Get_Obs_Magnitudes(SED, single_obs_db, instrument_params):
+def Get_Obs_Magnitudes_from_Model(SED, single_obs_db, instrument_params):
     # Get the observed magnitudes for the given band
     obs_phase = single_obs_db['expMJD'].unique() - SED['parameters']['min_MJD']
     band = 'lsst{}'.format(single_obs_db['filter'].unique()[0])
     magsys = instrument_params['Mag_Sys']
     bandmag = deepcopy(SED['model'].bandmag(band, magsys, obs_phase))
-    return bandmag
+    return np.asscalar(bandmag)
 
 
 def Get_Magnitude_Error(bandflux, bandflux_error):
@@ -241,8 +258,8 @@ def Get_Magnitude_Error(bandflux, bandflux_error):
     if bandflux > 0:
         magnitude_error = abs(-2.5*bandflux_error/(bandflux*np.log(10)))
     else:
-        magnitude_error = 100.00
-    return magnitude_error
+        magnitude_error = np.asarray(100.00)
+    return np.asscalar(magnitude_error)
 
 
 def Get_Band_Flux_Error(fiveSigmaDepth):
@@ -251,7 +268,7 @@ def Get_Band_Flux_Error(fiveSigmaDepth):
     # integrated time of the exposures.
     Flux_five_sigma = pow(10, -0.4*fiveSigmaDepth)
     bandflux_error = Flux_five_sigma/5
-    return bandflux_error
+    return np.asscalar(bandflux_error)
 
 
 def Gen_Observations(SEDs, obs_database, instrument_params):
@@ -383,13 +400,13 @@ def Get_Detections(All_Observations, Selection_Cuts):
             for cuts in Cut_keys:
                 for i in np.arange(n_obs):
                     cut_comparison = deepcopy(All_Observations[mkey][obs_key][band][cuts][i])
-                    print(cut_comparison)
                     if cut_comparison >= Selection_Cuts[cuts]['lower'] and cut_comparison <= Selection_Cuts[cuts]['upper']:
                         All_Observations[mkey][obs_key][band]['Detected'] = True
                         if All_Observations[mkey]['Detected'] is False:
                             All_Observations[mkey]['Detected'] = True
                             Detections[mkey] = deepcopy(All_Observations[mkey])
                             n_detections += 1
+
     efficiency = n_detections / n_mocks
     return All_Observations, Detections, n_detections, efficiency
 
@@ -426,5 +443,5 @@ def Get_N_z(All_Source_Obs, Detections):
     plt.hist(x=detect_z_hist, bins=detect_z_bins, histtype='step', color='black', label='Detected')
     plt.xlabel('z')
     plt.ylabel(r'$N(z)$')
-    plt.title('Number per {.3f} redshift bin'.format(bin_size))
+    plt.title('Number per {} redshift bin'.format(bin_size))
     return N_z_dist_fig
