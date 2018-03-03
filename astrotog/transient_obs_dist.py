@@ -225,16 +225,23 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
 
 
 def Compute_Obs_Magnitudes(bandflux, instrument_params):
-    magsys = instrument_params['Mag_Sys']
     # Definte the flux reference based on the magnitude system reference to
     # compute the associated maggi
-    if magsys == 'ab':
-        bandflux_ref =
-    else:
-        
+    bandflux_ref = Compute_Reference_Bandflux(band, instrument_params)
     maggi = bandflux/bandflux_ref
     magnitude = -2.5*np.log10(maggi)
     return magnitude
+
+
+def Compute_Reference_Bandflux(band, instrument_params):
+    magsys = instrument_params['Mag_Sys']
+    instrument = instrument_params['Instrument']
+    
+    throughputs_path = '../throughputs/{0}/{1}'.format(instrument, band)
+
+
+
+    return ref_bandflux
 
 def Get_BandFlux(SED, single_obs_db):
     # Get the bandflux for the given filter and phase

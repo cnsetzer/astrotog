@@ -14,7 +14,7 @@ fields = ['fieldID', 'fieldRA', 'fieldDec', 'filter', 'expMJD', 'fiveSigmaDepth'
 param_priors = {'zmin': 0.0, 'zmax': 0.1, 'cosmology': cosmo,
                 'kappa_min': 1, 'kappa_max': 10, 'm_ej_min': 0.01,
                 'm_ej_max': 0.2, 'v_ej_min': 0.01, 'v_ej_max': 0.5}
-instrument_params = {'FOV_rad': np.deg2rad(1.75), 'Mag_Sys': 'ab'}
+instrument_params = {'Instrument': 'lsst', 'FOV_rad': np.deg2rad(1.75), 'Mag_Sys': 'ab'}
 Cuts = {'SNR': {'upper': inf, 'lower': 5}}
 gen_flag = 'cycle'
 db_flag = 'wfd'
