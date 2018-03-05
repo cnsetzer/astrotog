@@ -2,6 +2,7 @@ import os
 import re
 import sncosmo
 import numpy as np
+from scipy.integrate import simps
 import pandas as pd
 from copy import deepcopy
 from mpl_toolkits.mplot3d import Axes3D
@@ -206,58 +207,141 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
     # Go from SED to multi-band lightcurves for a given instrument
     lc_samples = {}
     # Gather observations by band to build the separate lightcurves
+    ref_bandflux = deepcopy(instrument_params['Bandflux_References'])
     bands = deepcopy(matched_db['filter'].unique())
     for band in bands:
         mags, magnitude_errors = [], []
         lsst_band = 'lsst{}'.format(band)
         times = deepcopy(matched_db.query('filter == \'{}\''.format(band))['expMJD'].unique())
-        for time in enumerate(times):
-            single_obs_db = deepcopy(matched_db.query('filter == \'{0}\' and expMJD == {1}'.format(band, time)))
-            bandflux = Get_BandFlux(SED, single_obs_db)
-            mags.append(Compute_Obs_Magnitudes(bandflux, instrument_params))
-            mags.append(Get_Obs_Magnitudes_from_Model(SED, single_obs_db, instrument_params))
+        for time in times:
+            single_obs_db = deepcopy(matched_db.query('expMJD == {}'.format(time)))
+            obs_phase = single_obs_db['expMJD'] - SED['parameters']['min_MJD']
+            bandflux = Compute_Bandflux(band=lsst_band, throughputs=throughputs, SED=SED, phase=obs_phase)
+            mags.append(Compute_Obs_Magnitudes(bandflux, ref_bandflux[lsst_band]))
             fiveSigmaDepth = deepcopy(single_obs_db['fiveSigmaDepth'].unique())
-            bandflux_error = Get_Band_Flux_Error(fiveSigmaDepth)
+            bandflux_error = Compute_Band_Flux_Error(fiveSigmaDepth)
             magnitude_errors.append(Get_Magnitude_Error(bandflux, bandflux_error))
         # Assemble the per band dictionary of lightcurve observations
         lc_samples[lsst_band] = {'times': times, 'magnitudes': mags, 'mag_errors': magnitude_errors}
     return deepcopy(lc_samples)
 
 
-def Compute_Obs_Magnitudes(bandflux, instrument_params):
+def Compute_Obs_Magnitudes(bandflux, bandflux_ref):
     # Definte the flux reference based on the magnitude system reference to
     # compute the associated maggi
-    bandflux_ref = Compute_Reference_Bandflux(band, instrument_params)
     maggi = bandflux/bandflux_ref
     magnitude = -2.5*np.log10(maggi)
     return magnitude
 
 
-def Compute_Reference_Bandflux(band, instrument_params):
+def Compute_Bandflux(band, throughputs, SED=None, phase=None, ref_model=None):
+    band_wave = deepcopy(throughputs[band]['wavelengths'])
+    band_throughput = deepcopy(throughputs[band]['throughput'])
+    # Get 'reference' SED
+    if ref_model:
+        flux_per_wave = ref_model.flux(time=1.0, wave=band_wave)
+
+    # Get SED flux
+    if SED and phase:
+        flux_per_wave = deepcopy(SED['model'].flux(phase, band_wave))
+
+    # Now integrate the convolution of the SED and the bandpass
+    convolution = flux_per_wave*band_throughput
+    bandflux = simps(convolution, band_wave)
+    return bandflux
+
+
+def Get_Reference_Flux(instrument_params):
     magsys = instrument_params['Mag_Sys']
+    ref_wave = list()
+    ref_flux_per_wave = list()
+    phase_for_ref = list()
+    ref_filepath = '../throughputs/references/{0}.dat'.format(magsys)
+    ref_file = open(ref_filepath, 'r')
+    for line in ref_file:
+        # Strip header comments
+        if line.strip().startswith("#"):
+            continue
+        else:
+            # Strip per line comments
+            comment_match = re.match(r'^([^#]*)#(.*)$', line)
+            if comment_match:  # The line contains a hash / comment
+                line = comment_match.group(1)
+            line = line.strip()
+            split_fields = re.split(r'[ ,|;"]+', line)
+            ref_wave.append(float(split_fields[0]))
+            ref_flux_per_wave.append(float(split_fields[1]))
+            # Add a line to the phase object too to use with sncosmo
+            phase_for_ref.append(1.0)
+    ref_file.close()
+    ref_wave = np.asarray(ref_wave)
+    ref_flux_per_wave = np.asarray(ref_flux_per_wave)
+    phase_for_ref = np.asarray(phase_for_ref)
+    # Put throughput and reference on the same wavelength grid
+    # Exploit sncosmo functionality to do this
+    ref_source = sncosmo.TimeSeriesSource(phase_for_ref, ref_wave, ref_flux_per_wave, zero_before=True)
+    ref_model = sncosmo.Model(source=ref_source)
+    ref_bandflux = {}
+    for band in instrument_params['Throughputs'].keys():
+        ref_bandflux[band] = Compute_Bandflux(band=band, throughputs=instrument_params['Throughputs'], ref_model=ref_model)
+    instrument_params['Bandflux_References'] = ref_bandflux
+    return instrument_params
+
+
+def Get_Throughputs(instrument_params):
+    throughputs = {}
     instrument = instrument_params['Instrument']
-    
-    throughputs_path = '../throughputs/{0}/{1}'.format(instrument, band)
+    throughputs_path = '../throughputs/{0}'.format(instrument)
+    tp_filelist = os.listdir(throughputs_path)
+    for band_file_name in tp_filelist:
+        band = band_file.strip('.dat')
+        throughputs[band] = {}
+        conversion = 1.0  # Conversion factor for the wavelength unit to Angstrom
+        throughput_file = throughputs_path + '/' + band_file_name
+        band_wave = list()
+        band_throughput = list()
+        # Get the particular band throughput
+        band_file = open(throughput_file, 'r')
+        for line in band_file:
+            # Strip header comments
+            if line.strip().startswith("#"):
+                nano_match = re.match(r'nm|nanometer', line)
+                if nano_match:
+                    conversion = 10.0  # conversion for nanometers to Angstrom
+                continue
+            else:
+                # Strip per line comments
+                comment_match = re.match(r'^([^#]*)#(.*)$', line)
+                if comment_match:  # The line contains a hash / comment
+                    line = comment_match.group(1)
+                line = line.strip()
+                split_fields = re.split(r'[ ,|;"]+', line)
+                band_wave.append(conversion*float(split_fields[0]))
+                band_throughput.append(float(split_fields[1]))
+        band_file_file.close()
+        band_wave = np.asarray(band_wave)
+        band_throughput = np.asarray(band_throughput)
+        throughputs[band]['wavelengths'] = band_wave
+        throughputs[band]['throughput'] = band_throughput
+        instrument_params['Throughputs'] = throughputs
+    return instrument_params
 
 
-
-    return ref_bandflux
-
-def Get_BandFlux(SED, single_obs_db):
-    # Get the bandflux for the given filter and phase
-    obs_phase = single_obs_db['expMJD'] - SED['parameters']['min_MJD']
-    band = 'lsst{}'.format(single_obs_db['filter'].unique()[0])
-    bandflux = deepcopy(SED['model'].bandflux(band, obs_phase))
-    return np.asscalar(bandflux)
-
-
-def Get_Obs_Magnitudes_from_Model(SED, single_obs_db, instrument_params):
-    # Get the observed magnitudes for the given band
-    obs_phase = single_obs_db['expMJD'].unique() - SED['parameters']['min_MJD']
-    band = 'lsst{}'.format(single_obs_db['filter'].unique()[0])
-    magsys = instrument_params['Mag_Sys']
-    bandmag = deepcopy(SED['model'].bandmag(band, magsys, obs_phase))
-    return np.asscalar(bandmag)
+# def Get_BandFlux(SED, single_obs_db):
+#     # Get the bandflux for the given filter and phase
+#     obs_phase = single_obs_db['expMJD'] - SED['parameters']['min_MJD']
+#     band = 'lsst{}'.format(single_obs_db['filter'].unique()[0])
+#     bandflux = deepcopy(SED['model'].bandflux(band, obs_phase))
+#     return np.asscalar(bandflux)
+#
+#
+# def Get_Obs_Magnitudes_from_Model(SED, single_obs_db, instrument_params):
+#     # Get the observed magnitudes for the given band
+#     obs_phase = single_obs_db['expMJD'].unique() - SED['parameters']['min_MJD']
+#     band = 'lsst{}'.format(single_obs_db['filter'].unique()[0])
+#     magsys = instrument_params['Mag_Sys']
+#     bandmag = deepcopy(SED['model'].bandmag(band, magsys, obs_phase))
+#     return np.asscalar(bandmag)
 
 
 def Get_Magnitude_Error(bandflux, bandflux_error):
@@ -269,7 +353,7 @@ def Get_Magnitude_Error(bandflux, bandflux_error):
     return np.asscalar(magnitude_error)
 
 
-def Get_Band_Flux_Error(fiveSigmaDepth):
+def Compute_Band_Flux_Error(fiveSigmaDepth):
     # Compute the integrated bandflux error
     # Note this is trivial since the five sigma depth incorporates the
     # integrated time of the exposures.
@@ -413,7 +497,6 @@ def Get_Detections(All_Observations, Selection_Cuts):
                             All_Observations[mkey]['Detected'] = True
                             Detections[mkey] = deepcopy(All_Observations[mkey])
                             n_detections += 1
-
     efficiency = n_detections / n_mocks
     return All_Observations, Detections, n_detections, efficiency
 
