@@ -208,6 +208,7 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
     lc_samples = {}
     # Gather observations by band to build the separate lightcurves
     ref_bandflux = deepcopy(instrument_params['Bandflux_References'])
+    throughputs = instrument_params['throughputs']
     bands = deepcopy(matched_db['filter'].unique())
     for band in bands:
         mags, magnitude_errors = [], []
@@ -255,7 +256,8 @@ def Get_Reference_Flux(instrument_params):
     magsys = instrument_params['Mag_Sys']
     ref_wave = list()
     ref_flux_per_wave = list()
-    phase_for_ref = list()
+    # Add a line to the phase object too to use with sncosmo
+    phase_for_ref = np.arange(0.5, 5.0, step=0.5)
     ref_filepath = '../throughputs/references/{0}.dat'.format(magsys)
     ref_file = open(ref_filepath, 'r')
     for line in ref_file:
@@ -271,19 +273,24 @@ def Get_Reference_Flux(instrument_params):
             split_fields = re.split(r'[ ,|;"]+', line)
             ref_wave.append(float(split_fields[0]))
             ref_flux_per_wave.append(float(split_fields[1]))
-            # Add a line to the phase object too to use with sncosmo
-            phase_for_ref.append(1.0)
+
     ref_file.close()
+    # Convert to arrays for use with the sncosmo model
+    phase_for_ref = np.asarray(phase_for_ref)
     ref_wave = np.asarray(ref_wave)
     ref_flux_per_wave = np.asarray(ref_flux_per_wave)
-    phase_for_ref = np.asarray(phase_for_ref)
+    ref_flux_per_wave_for_model = np.empty([len(phase_for_ref), len(ref_wave)])
+
+    # Fake multi-phase observations to exploit the sncosmo model
+    for i, phase in enumerate(phase_for_ref):
+            ref_flux_per_wave_for_model[i, :] = ref_flux_per_wave
     # Put throughput and reference on the same wavelength grid
     # Exploit sncosmo functionality to do this
-    ref_source = sncosmo.TimeSeriesSource(phase_for_ref, ref_wave, ref_flux_per_wave, zero_before=True)
+    ref_source = sncosmo.TimeSeriesSource(phase_for_ref, ref_wave, ref_flux_per_wave_for_model, zero_before=True)
     ref_model = sncosmo.Model(source=ref_source)
     ref_bandflux = {}
-    for band in instrument_params['Throughputs'].keys():
-        ref_bandflux[band] = Compute_Bandflux(band=band, throughputs=instrument_params['Throughputs'], ref_model=ref_model)
+    for band in instrument_params['throughputs'].keys():
+        ref_bandflux[band] = Compute_Bandflux(band=band, throughputs=instrument_params['throughputs'], ref_model=ref_model)
     instrument_params['Bandflux_References'] = ref_bandflux
     return instrument_params
 
@@ -305,7 +312,7 @@ def Get_Throughputs(instrument_params):
         for line in band_file:
             # Strip header comments
             if line.strip().startswith("#"):
-                nano_match = re.match(r'nm|nanometer', line)
+                nano_match = re.search(r'nm|nanometer', line)
                 if nano_match:
                     conversion = 10.0  # conversion for nanometers to Angstrom
                 continue
@@ -318,12 +325,12 @@ def Get_Throughputs(instrument_params):
                 split_fields = re.split(r'[ ,|;"]+', line)
                 band_wave.append(conversion*float(split_fields[0]))
                 band_throughput.append(float(split_fields[1]))
-        band_file_file.close()
+        band_file.close()
         band_wave = np.asarray(band_wave)
         band_throughput = np.asarray(band_throughput)
         throughputs[band]['wavelengths'] = band_wave
         throughputs[band]['throughput'] = band_throughput
-        instrument_params['Throughputs'] = throughputs
+        instrument_params['throughputs'] = throughputs
     return instrument_params
 
 
