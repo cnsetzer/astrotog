@@ -243,7 +243,7 @@ def Compute_Bandflux(band, throughputs, SED=None, phase=None, ref_model=None):
         flux_per_wave = ref_model.flux(time=1.0, wave=band_wave)
 
     # Get SED flux
-    if SED and phase:
+    if SED is not None and phase is not None:
         flux_per_wave = deepcopy(SED['model'].flux(phase, band_wave))
 
     # Now integrate the convolution of the SED and the bandpass
@@ -516,8 +516,8 @@ def Assign_SNR(Observations):
     for key in key_list:
         band_keys = Observations[key][obs_key].keys()
         for band in band_keys:
-            mags = deepcopy(Observations[key][obs_key][band][mags_key])
-            errs = deepcopy(Observations[key][obs_key][band][err_key])
+            mags = np.vstack(deepcopy(Observations[key][obs_key][band][mags_key]))
+            errs = np.vstack(deepcopy(Observations[key][obs_key][band][err_key]))
             Observations[key][obs_key][band]['SNR'] = np.divide(mags, errs)
     return Observations
 
