@@ -294,7 +294,7 @@ def Get_Throughputs(instrument_params):
     throughputs_path = '../throughputs/{0}'.format(instrument)
     tp_filelist = os.listdir(throughputs_path)
     for band_file_name in tp_filelist:
-        band = band_file.strip('.dat')
+        band = band_file_name.strip('.dat')
         throughputs[band] = {}
         conversion = 1.0  # Conversion factor for the wavelength unit to Angstrom
         throughput_file = throughputs_path + '/' + band_file_name
