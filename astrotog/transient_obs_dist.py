@@ -1,5 +1,6 @@
 import os
 import re
+import warnings
 import sncosmo
 import numpy as np
 from scipy.integrate import simps
@@ -28,12 +29,10 @@ def Get_SEDdb(path_to_seds):
         seds_data[seds_key] = {}
 
         kappa, m_ej, v_ej = Get_SED_header_info(fileio)
-    # Debug Print of seds_key to find problematic sed
-        # print(seds_key)
 
         # Read in SEDS data with sncosmo tools
         phase, wave, flux = deepcopy(sncosmo.read_griddata_ascii(filename))
-        source = sncosmo.TimeSeriesSource(phase, wave, flux, zero_before=True)
+        source = sncosmo.TimeSeriesSource(phase, wave, flux)
         model = sncosmo.Model(source=source)
         # Construct the full sed db
         seds_data[seds_key]['model'] = model
@@ -64,6 +63,7 @@ def Get_SED_header_info(fileio):
 
 def Get_ObsStratDB_Summary(surveydb_path, flag):
     # Import Observing Strategy Database
+    print(' Using OpSimOutput tool to get the database of simulated survey observations.')
     return oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag).summary
 
 
@@ -86,7 +86,7 @@ def Pick_Rand_dbSED(N_SEDs, new_sed_keys, SEDdb_loc):
     unpacked_key_list = *SEDdb.keys(),
     # Number of available seds
     N_dbSEDs = len(unpacked_key_list)
-    print('The number of SEDs in Database is {}'.format(N_dbSEDs))
+    print(' The number of SEDs in Database is {}'.format(N_dbSEDs))
     Random_Draw = np.random.randint(low=0, high=N_dbSEDs, size=N_SEDs)
 
     Rand_SED = {}
@@ -141,7 +141,7 @@ def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
                                    ratefunc=SED_Rate(), cosmo=param_priors['cosmology']))
     N_SEDs = len(SED_zlist)
     new_keys = list()
-    print('The number of mock SEDs being genereated is {}'.format(N_SEDs))
+    print(' The number of mock SEDs being genereated is {}'.format(N_SEDs))
     for i in np.arange(N_SEDs):
         new_keys.append('Mock {}'.format(str(i)))
 
@@ -211,28 +211,42 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
     throughputs = instrument_params['throughputs']
     bands = deepcopy(matched_db['filter'].unique())
     for band in bands:
-        mags, magnitude_errors = [], []
+        mags, magnitude_errors, bandflux, fiveSigmaDepth, bandflux_error = [], [], [], [], []
         lsst_band = 'lsst{}'.format(band)
         times = deepcopy(matched_db.query('filter == \'{}\''.format(band))['expMJD'].unique())
-        for time in times:
+        for i, time in enumerate(times):
             single_obs_db = deepcopy(matched_db.query('expMJD == {}'.format(time)))
-            obs_phase = single_obs_db['expMJD'] - SED['parameters']['min_MJD']
-            bandflux = Compute_Bandflux(band=lsst_band, throughputs=throughputs, SED=SED, phase=obs_phase)
-            mags.append(Compute_Obs_Magnitudes(bandflux, ref_bandflux[lsst_band]))
-            fiveSigmaDepth = deepcopy(single_obs_db['fiveSigmaDepth'].unique())
-            bandflux_error = Compute_Band_Flux_Error(fiveSigmaDepth)
-            magnitude_errors.append(Get_Magnitude_Error(bandflux, bandflux_error))
+            obs_phase = np.asscalar(single_obs_db['expMJD'].values - SED['parameters']['min_MJD'])
+            bandflux.append(Compute_Bandflux(band=lsst_band, throughputs=throughputs, SED=SED, phase=obs_phase))
+            # Some Debug
+            if bandflux[i] <= 0.0:
+                print(' This observation has zero or negative recorded flux, let\'s look at why.\n \
+                The phase of the observation is {0:.4f}.\n The redshift is {1}. The band is {2}'.format(obs_phase, SED['parameters']['z'], lsst_band))
+                print(' This could be due to the flux in the band being unregisterable')
+            mags.append(Compute_Obs_Magnitudes(bandflux[i], ref_bandflux[lsst_band]))
+            fiveSigmaDepth.append(deepcopy(single_obs_db['fiveSigmaDepth'].values))
+            bandflux_error.append(Compute_Band_Flux_Error(fiveSigmaDepth[i], ref_bandflux[lsst_band]))
+            magnitude_errors.append(Get_Magnitude_Error(bandflux[i], bandflux_error[i], ref_bandflux[lsst_band]))
+
         # Assemble the per band dictionary of lightcurve observations
-        lc_samples[lsst_band] = {'times': times, 'magnitudes': mags, 'mag_errors': magnitude_errors}
+        lc_samples[lsst_band] = {'times': times, 'magnitudes': mags, 'mag_errors': magnitude_errors,
+                                 'band_flux': bandflux, 'flux_error': bandflux_error, 'five_sigma_depth': fiveSigmaDepth}
     return deepcopy(lc_samples)
 
 
 def Compute_Obs_Magnitudes(bandflux, bandflux_ref):
+    warnings.simplefilter("error", RuntimeWarning)
     # Definte the flux reference based on the magnitude system reference to
     # compute the associated maggi
     maggi = bandflux/bandflux_ref
-    magnitude = -2.5*np.log10(maggi)
-    return magnitude
+    # Debug
+    try:
+        magnitude = -2.5*np.log10(maggi)
+    except RuntimeWarning:
+        print('This is thrown due to a magnitude computation runtime warning.\n \
+        The bandflux is {0:.5e},\n The reference bandflux is {1:.5e},\n \
+        And the maggi is {2:.5e}.'.format(bandflux, bandflux_ref, maggi))
+    return np.asscalar(magnitude)
 
 
 def Compute_Bandflux(band, throughputs, SED=None, phase=None, ref_model=None):
@@ -240,16 +254,18 @@ def Compute_Bandflux(band, throughputs, SED=None, phase=None, ref_model=None):
     band_throughput = deepcopy(throughputs[band]['throughput'])
     # Get 'reference' SED
     if ref_model:
-        flux_per_wave = ref_model.flux(time=1.0, wave=band_wave)
+        flux_per_wave = ref_model.flux(time=2.0, wave=band_wave)
 
     # Get SED flux
     if SED is not None and phase is not None:
-        flux_per_wave = deepcopy(SED['model'].flux(phase, band_wave))
+        # For very low i.e. zero registered flux, sncosmo sometimes returns
+        # negative values so use absolute value to work around this issue.
+        flux_per_wave = abs(deepcopy(SED['model'].flux(phase, band_wave)))
 
     # Now integrate the convolution of the SED and the bandpass
     convolution = flux_per_wave*band_throughput
     bandflux = simps(convolution, band_wave)
-    return bandflux
+    return np.asscalar(bandflux)
 
 
 def Get_Reference_Flux(instrument_params):
@@ -286,7 +302,7 @@ def Get_Reference_Flux(instrument_params):
             ref_flux_per_wave_for_model[i, :] = ref_flux_per_wave
     # Put throughput and reference on the same wavelength grid
     # Exploit sncosmo functionality to do this
-    ref_source = sncosmo.TimeSeriesSource(phase_for_ref, ref_wave, ref_flux_per_wave_for_model, zero_before=True)
+    ref_source = sncosmo.TimeSeriesSource(phase_for_ref, ref_wave, ref_flux_per_wave_for_model)
     ref_model = sncosmo.Model(source=ref_source)
     ref_bandflux = {}
     for band in instrument_params['throughputs'].keys():
@@ -351,20 +367,17 @@ def Get_Throughputs(instrument_params):
 #     return np.asscalar(bandmag)
 
 
-def Get_Magnitude_Error(bandflux, bandflux_error):
+def Get_Magnitude_Error(bandflux, bandflux_error, bandflux_ref):
     # Compute the per-band magnitude errors
-    if bandflux > 0:
-        magnitude_error = abs(-2.5*bandflux_error/(bandflux*np.log(10)))
-    else:
-        magnitude_error = np.asarray(100.00)
+    magnitude_error = abs(-2.5*bandflux_ref/(bandflux*np.log(10)))*bandflux_error
     return np.asscalar(magnitude_error)
 
 
-def Compute_Band_Flux_Error(fiveSigmaDepth):
+def Compute_Band_Flux_Error(fiveSigmaDepth, bandflux_ref):
     # Compute the integrated bandflux error
     # Note this is trivial since the five sigma depth incorporates the
     # integrated time of the exposures.
-    Flux_five_sigma = pow(10, -0.4*fiveSigmaDepth)
+    Flux_five_sigma = bandflux_ref*pow(10, -0.4*fiveSigmaDepth)
     bandflux_error = Flux_five_sigma/5
     return np.asscalar(bandflux_error)
 
@@ -447,7 +460,7 @@ def Gen_SED_dist(SEDdb_path, survey_params, param_priors, gen_flag=None):
     RA_dist, Dec_dist = Ra_Dec_Dist(N_SEDs, survey_params)
     t_dist = Time_Dist(N_SEDs, survey_params)
     for i, key in enumerate(key_list):
-        SEDs[key]['parameters']['z'] = SEDs[key]['model'].get('z')
+        SEDs[key]['parameters']['z'] = deepcopy(SEDs[key]['model'].get('z'))
         SEDs[key]['parameters']['ra'] = RA_dist[i]
         SEDs[key]['parameters']['dec'] = Dec_dist[i]
         SEDs[key]['parameters']['min_MJD'] = t_dist[i]
@@ -469,10 +482,20 @@ def Plot_Observations(Observations):
             times = deepcopy(Observations[key][obs_key][band]['times'])
             mags = deepcopy(Observations[key][obs_key][band]['magnitudes'])
             errs = deepcopy(Observations[key][obs_key][band]['mag_errors'])
-            axes[i].errorbar(times, mags, errs)
-            axes[i].legend(['{}'.format(band)])
-            axes[i].set(xlabel='MJD', ylabel=r'$m_{ab}$')
-        axes[0].set_title('{}'.format(key))
+            if n_plots > 1:
+                axes[i].errorbar(x=times, y=mags, yerr=errs, fmt='kx')
+                axes[i].legend(['{}'.format(band)])
+                axes[i].set(xlabel='MJD', ylabel=r'$m_{ab}$')
+                axes[i].set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
+            else:
+                axes.errorbar(x=times, y=mags, yerr=errs, fmt='kx')
+                axes.legend(['{}'.format(band)])
+                axes.set(xlabel='MJD', ylabel=r'$m_{ab}$')
+                axes.set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
+        if n_plots > 1:
+            axes[0].set_title('{}'.format(key))
+        else:
+            axes.set_title('{}'.format(key))
         # Break to only do one plot at the moment
         break
     return f
@@ -483,47 +506,78 @@ def Get_Detections(All_Observations, Selection_Cuts):
     Detections = {}
     n_detections = 0
     obs_key = 'observations'
+    det_key = 'Detected'
     mocks_keys = All_Observations.keys()
     n_mocks = len(mocks_keys)
     Cut_keys = Selection_Cuts.keys()
     for mkey in mocks_keys:
         band_keys = All_Observations[mkey][obs_key].keys()
         # Initialize detection as false
-        All_Observations[mkey]['Detected'] = False
+        All_Observations[mkey][det_key] = False
         for band in band_keys:
             # Initialize as false detection
-            All_Observations[mkey][obs_key][band]['Detected'] = False
+            All_Observations[mkey][obs_key][band][det_key] = False
             obs_in_band = deepcopy(All_Observations[mkey][obs_key][band]['times'])
             n_obs = len(obs_in_band)
             for cuts in Cut_keys:
                 for i in np.arange(n_obs):
                     cut_comparison = deepcopy(All_Observations[mkey][obs_key][band][cuts][i])
                     if cut_comparison >= Selection_Cuts[cuts]['lower'] and cut_comparison <= Selection_Cuts[cuts]['upper']:
-                        All_Observations[mkey][obs_key][band]['Detected'] = True
-                        if All_Observations[mkey]['Detected'] is False:
-                            All_Observations[mkey]['Detected'] = True
-                            Detections[mkey] = deepcopy(All_Observations[mkey])
+                        All_Observations[mkey][obs_key][band][det_key] = True
+                        if All_Observations[mkey][det_key] is False:
+                            All_Observations[mkey][det_key] = True
                             n_detections += 1
+                            # Build Detections dict base, to add only the
+                            # observations which pass the limits
+                            Detections[mkey] = {}
+                            for otherkeys in All_Observations[mkey].keys():
+                                if otherkeys == obs_key:
+                                    Detections[mkey][otherkeys] = {}
+                                else:
+                                    Detections[mkey][otherkeys] = deepcopy(All_Observations[mkey][otherkeys])
+            # Limit the amount of observations to those that also pass some limiting SNR
+            if All_Observations[mkey][obs_key][band][det_key] is True:
+                # Initialize dictionaries for transferring detections from
+                # all observations to dedicated detection object.
+                Detections[mkey][obs_key][band] = {}
+                dkey_items = {}
+                for key in All_Observations[mkey][obs_key][band].keys():
+                    dkey_items[key] = []
+                # Cycle over observations to assemble the invidiual detections
+                # above some lower limit
+                for i in np.arange(n_obs):
+                    for cuts in Cut_keys:
+                        if All_Observations[mkey][obs_key][band][cuts][i] >= Selection_Cuts[cuts]['limit']:
+                            for key in All_Observations[mkey][obs_key][band].keys():
+                                if key == det_key:
+                                    continue
+                                else:
+                                    key_value = deepcopy(All_Observations[mkey][obs_key][band][key][i])
+                                    dkey_items[key].append(key_value)
+                Detections[mkey][obs_key][band] = dkey_items
+
     efficiency = n_detections / n_mocks
     return All_Observations, Detections, n_detections, efficiency
 
 
 def Assign_SNR(Observations):
     obs_key = 'observations'
-    mags_key = 'magnitudes'
-    err_key = 'mag_errors'
+    flux_key = 'band_flux'
+    err_key = 'flux_error'
     key_list = Observations.keys()
     for key in key_list:
         band_keys = Observations[key][obs_key].keys()
         for band in band_keys:
-            mags = np.vstack(deepcopy(Observations[key][obs_key][band][mags_key]))
+            fluxes = np.vstack(deepcopy(Observations[key][obs_key][band][flux_key]))
             errs = np.vstack(deepcopy(Observations[key][obs_key][band][err_key]))
-            Observations[key][obs_key][band]['SNR'] = np.divide(mags, errs)
+            Observations[key][obs_key][band]['SNR'] = np.divide(fluxes, errs)
     return Observations
 
 
-def Get_N_z(All_Source_Obs, Detections):
+def Get_N_z(All_Source_Obs, Detections, param_priors):
     param_key = 'parameters'
+    z_min = param_priors['zmin']
+    z_max = param_priors['zmax']
     all_zs, detect_zs = [], []
     mock_all_keys = All_Source_Obs.keys()
     mock_detect_keys = Detections.keys()
@@ -531,8 +585,9 @@ def Get_N_z(All_Source_Obs, Detections):
         all_zs.append(All_Source_Obs[key][param_key]['z'])
     for key in mock_detect_keys:
         detect_zs.append(Detections[key][param_key]['z'])
-
-    all_z_hist, all_z_bins = np.histogram(a=all_zs, bins=10)
+    print('The redshifts of all sources are:{}'.format(all_zs))
+    print('The redshifts of the detected sources are:{}'.format(detect_zs))
+    all_z_hist, all_z_bins = np.histogram(a=all_zs, bins=10, range=(z_min, z_max))
     bin_size = abs(all_z_bins[1]-all_z_bins[0])
     detect_z_hist, detect_z_bins = np.histogram(a=detect_zs, bins=all_z_bins)
     N_z_dist_fig = plt.figure()
@@ -540,5 +595,5 @@ def Get_N_z(All_Source_Obs, Detections):
     plt.hist(x=detect_z_hist, bins=detect_z_bins, histtype='step', color='black', label='Detected')
     plt.xlabel('z')
     plt.ylabel(r'$N(z)$')
-    plt.title('Number per {} redshift bin'.format(bin_size))
+    plt.title('Number per {0:.4f} redshift bin'.format(bin_size))
     return N_z_dist_fig

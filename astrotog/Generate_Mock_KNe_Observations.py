@@ -15,10 +15,11 @@ param_priors = {'zmin': 0.0, 'zmax': 0.1, 'cosmology': cosmo,
                 'kappa_min': 1, 'kappa_max': 10, 'm_ej_min': 0.01,
                 'm_ej_max': 0.2, 'v_ej_min': 0.01, 'v_ej_max': 0.5}
 instrument_params = {'Instrument': 'lsst', 'FOV_rad': np.deg2rad(1.75), 'Mag_Sys': 'ab'}
-Cuts = {'SNR': {'upper': inf, 'lower': 5}}
+Cuts = {'SNR': {'upper': inf, 'lower': 5, 'limit': 0.01}}
 gen_flag = 'cycle'
 db_flag = 'wfd'
 # Setup the basic running structure
+print(' ')
 obs_database = tod.Get_ObsStratDB_Summary(surveydb_path, db_flag)
 print(' Done reading in observation databse: {}'.format(surveydb_path))
 print('\n Getting survey paramters...')
@@ -48,11 +49,11 @@ All_Source_Observations = tod.Assign_SNR(All_Source_Observations)
 # Using this quality assignment and predefined selection cut criteria determine
 # 'detections'
 All_Source_Observations, Detections, n_detect, efficiency = tod.Get_Detections(All_Source_Observations, Cuts)
-print('\n The number of detected KNe for a {0} cut of {1} is {2}\n This is an efficiency of {3}%'
+print('\n The number of detected KNe is {2} for a {0} cut of {1}.\n This is an efficiency of {3:.3f}%'
       .format('SNR', Cuts['SNR']['lower'], n_detect, 100*efficiency))
 
 # Plot histogram of detected vs genereated mock KNe
-N_z_fig = tod.Get_N_z(All_Source_Observations, Detections)
+N_z_fig = tod.Get_N_z(All_Source_Observations, Detections, param_priors)
 
 # Plot the lightcurve results
 figure = tod.Plot_Observations(Detections)
