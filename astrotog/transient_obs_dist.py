@@ -1,15 +1,12 @@
 import os
 import re
-import warnings
-import sncosmo
 import numpy as np
+import sncosmo
 from scipy.integrate import simps
-import pandas as pd
 from copy import deepcopy
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import opsimsummary as oss
-
+import seaborn
 
 def Get_SEDdb(path_to_seds):
     # Import SEDs into a dictionary structure
@@ -138,7 +135,7 @@ def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
     # distribution the distribution of the objects vs. redshift.
     SED_zlist = list(sncosmo.zdist(zmin=param_priors['zmin'], zmax=param_priors['zmax'],
                                    time=survey_params['survey_time'], area=survey_params['survey_area'],
-                                   ratefunc=SED_Rate(), cosmo=param_priors['cosmology']))
+                                   ratefunc=SED_Rate(param_priors), cosmo=param_priors['cosmology']))
     N_SEDs = len(SED_zlist)
     new_keys = list()
     print(' The number of mock SEDs being genereated is {}'.format(N_SEDs))
@@ -163,15 +160,10 @@ def Set_SED_Redshift(SEDs, redshifts, cosmology):
     return SEDs
 
 
-def SED_Rate():
+def SED_Rate(param_priors):
     # Intermediate wrapper for generic SED rates, currently set to return KNe
     # Rates
-    return KNe_Rate()
-
-
-def KNe_Rate():
-    # Rate definition for Kilonovae, defined for future exploration
-    rate = 500/pow(1000, 3)  # per yer per Mpc^3
+    rate = param_priors['rate']/pow(1000, 3)  # per yer per Mpc^3 for sncosmo
     return lambda x: rate
 
 
@@ -218,11 +210,6 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
             single_obs_db = deepcopy(matched_db.query('expMJD == {}'.format(time)))
             obs_phase = np.asscalar(single_obs_db['expMJD'].values - SED['parameters']['min_MJD'])
             bandflux.append(Compute_Bandflux(band=lsst_band, throughputs=throughputs, SED=SED, phase=obs_phase))
-            # Some Debug
-            if bandflux[i] <= 0.0:
-                print(' This observation has zero or negative recorded flux, let\'s look at why.\n \
-                The phase of the observation is {0:.4f}.\n The redshift is {1}. The band is {2}'.format(obs_phase, SED['parameters']['z'], lsst_band))
-                print(' This could be due to the flux in the band being unregisterable')
             mags.append(Compute_Obs_Magnitudes(bandflux[i], ref_bandflux[lsst_band]))
             fiveSigmaDepth.append(deepcopy(single_obs_db['fiveSigmaDepth'].values))
             bandflux_error.append(Compute_Band_Flux_Error(fiveSigmaDepth[i], ref_bandflux[lsst_band]))
@@ -235,17 +222,10 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
 
 
 def Compute_Obs_Magnitudes(bandflux, bandflux_ref):
-    warnings.simplefilter("error", RuntimeWarning)
     # Definte the flux reference based on the magnitude system reference to
     # compute the associated maggi
     maggi = bandflux/bandflux_ref
-    # Debug
-    try:
-        magnitude = -2.5*np.log10(maggi)
-    except RuntimeWarning:
-        print('This is thrown due to a magnitude computation runtime warning.\n \
-        The bandflux is {0:.5e},\n The reference bandflux is {1:.5e},\n \
-        And the maggi is {2:.5e}.'.format(bandflux, bandflux_ref, maggi))
+    magnitude = -2.5*np.log10(maggi)
     return np.asscalar(magnitude)
 
 
@@ -268,13 +248,13 @@ def Compute_Bandflux(band, throughputs, SED=None, phase=None, ref_model=None):
     return np.asscalar(bandflux)
 
 
-def Get_Reference_Flux(instrument_params):
+def Get_Reference_Flux(instrument_params, paths):
     magsys = instrument_params['Mag_Sys']
     ref_wave = list()
     ref_flux_per_wave = list()
     # Add a line to the phase object too to use with sncosmo
     phase_for_ref = np.arange(0.5, 5.0, step=0.5)
-    ref_filepath = '../throughputs/references/{0}.dat'.format(magsys)
+    ref_filepath = os.path.join(paths['references'], '{0}.dat'.format(magsys))
     ref_file = open(ref_filepath, 'r')
     for line in ref_file:
         # Strip header comments
@@ -311,10 +291,10 @@ def Get_Reference_Flux(instrument_params):
     return instrument_params
 
 
-def Get_Throughputs(instrument_params):
+def Get_Throughputs(instrument_params, paths):
     throughputs = {}
     instrument = instrument_params['Instrument']
-    throughputs_path = '../throughputs/{0}'.format(instrument)
+    throughputs_path = os.path.join(paths['throughputs'], '{0}'.format(instrument))
     tp_filelist = os.listdir(throughputs_path)
     for band_file_name in tp_filelist:
         band = band_file_name.strip('.dat')
@@ -468,7 +448,7 @@ def Gen_SED_dist(SEDdb_path, survey_params, param_priors, gen_flag=None):
     return SEDs
 
 
-def Plot_Observations(Observations):
+def Plot_Observations(Observations, fig_num):
     # Function to take the specific observation data structure and plot the
     # mock observations.
     obs_key = 'observations'
@@ -477,8 +457,9 @@ def Plot_Observations(Observations):
         band_keys = Observations[key][obs_key].keys()
         n_plots = len(band_keys)
         # Max 6-color lightcurves
-        f, axes = plt.subplots(n_plots)
+        f = plt.figure(fig_num)
         for i, band in enumerate(band_keys):
+            axes = f.add_subplot(n_plots, 1, i+1)
             times = deepcopy(Observations[key][obs_key][band]['times'])
             mags = deepcopy(Observations[key][obs_key][band]['magnitudes'])
             errs = deepcopy(Observations[key][obs_key][band]['mag_errors'])
@@ -497,8 +478,9 @@ def Plot_Observations(Observations):
         else:
             axes.set_title('{}'.format(key))
         # Break to only do one plot at the moment
+        fig_num += 1
         break
-    return f
+    return f, fig_num
 
 
 def Get_Detections(All_Observations, Selection_Cuts):
@@ -574,26 +556,29 @@ def Assign_SNR(Observations):
     return Observations
 
 
-def Get_N_z(All_Source_Obs, Detections, param_priors):
+def Get_N_z(All_Sources, Detections, param_priors, fig_num):
     param_key = 'parameters'
     z_min = param_priors['zmin']
     z_max = param_priors['zmax']
+    bin_size = param_priors['z_bin_size']
+    n_bins = int(round((z_max-z_min)/bin_size))
     all_zs, detect_zs = [], []
-    mock_all_keys = All_Source_Obs.keys()
+    mock_all_keys = All_Sources.keys()
     mock_detect_keys = Detections.keys()
     for key in mock_all_keys:
-        all_zs.append(All_Source_Obs[key][param_key]['z'])
+        all_zs.append(All_Sources[key][param_key]['z'])
     for key in mock_detect_keys:
         detect_zs.append(Detections[key][param_key]['z'])
-    print('The redshifts of all sources are:{}'.format(all_zs))
-    print('The redshifts of the detected sources are:{}'.format(detect_zs))
-    all_z_hist, all_z_bins = np.histogram(a=all_zs, bins=10, range=(z_min, z_max))
-    bin_size = abs(all_z_bins[1]-all_z_bins[0])
-    detect_z_hist, detect_z_bins = np.histogram(a=detect_zs, bins=all_z_bins)
-    N_z_dist_fig = plt.figure()
-    plt.hist(x=all_z_hist, bins=all_z_bins, histtype='step', color='red', label='All')
-    plt.hist(x=detect_z_hist, bins=detect_z_bins, histtype='step', color='black', label='Detected')
+    print('The redshift range of all sources is {0:.4f} to {1:.4f}.'.format(min(all_zs),max(all_zs)))
+    print('The redshift range of the detected sources is {0:.4f} to {1:.4f}.'.format(min(detect_zs),max(detect_zs)))
+    # Create the histogram
+    N_z_dist_fig = plt.figure(fig_num)
+    plt.hist(x=all_zs, bins=n_bins, range=(z_min, z_max), histtype='step', color='red', label='All Simulated Sources')
+    plt.hist(x=detect_zs, bins=n_bins, range=(z_min, z_max), histtype='step', color='black', label='Detected Sources')
+    plt.yscale('log')
+    plt.legend(loc=2)
     plt.xlabel('z')
     plt.ylabel(r'$N(z)$')
-    plt.title('Number per {0:.4f} redshift bin'.format(bin_size))
-    return N_z_dist_fig
+    plt.title('Number of sources per {0:.4f} redshift bin'.format(bin_size))
+    fig_num += 1
+    return N_z_dist_fig, fig_num
