@@ -579,6 +579,6 @@ def Get_N_z(All_Sources, Detections, param_priors, fig_num):
     plt.legend(loc=2)
     plt.xlabel('z')
     plt.ylabel(r'$N(z)$')
-    plt.title('Number of sources per {0:.4f} redshift bin'.format(bin_size))
+    plt.title('Number of sources per {0:.3f} redshift bin'.format(bin_size))
     fig_num += 1
     return N_z_dist_fig, fig_num
