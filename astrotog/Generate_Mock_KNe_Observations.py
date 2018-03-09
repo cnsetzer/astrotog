@@ -1,8 +1,6 @@
-import os
 import numpy as np
 from math import inf
 import matplotlib.pyplot as plt
-import astrotog
 from astrotog import transient_obs_dist as tod
 import seaborn
 # Import a cosmology, comment out if you want to define your own per the
@@ -25,7 +23,7 @@ param_priors = {'zmin': 0.0, 'zmax': 0.15, 'z_bin_size': 0.01, 'rate': 1000.0,
                 'm_ej_min': 0.01, 'm_ej_max': 0.2, 'v_ej_min': 0.01, 'v_ej_max': 0.5}
 instrument_params = {'Instrument': 'lsst', 'FOV_rad': np.deg2rad(1.75), 'Mag_Sys': 'ab'}
 # Different selections cuts and corresponding limits
-Cuts = {'SNR': {'upper': inf, 'lower': 5, 'limit': 0.5}}
+Cuts = {'SNR': {'upper': inf, 'lower': 5, 'limit': 1.5}}
 # Flag for SED generation to just cycle through SEDs in the database
 gen_flag = 'cycle'
 
@@ -66,4 +64,4 @@ N_z_fig, fig_num = tod.Get_N_z(SEDs, Detections, param_priors, fig_num)
 # Plot the lightcurve results
 Lightcurve_fig, fig_num = tod.Plot_Observations(Detections, fig_num)
 # For the first run show only one plot
-plt.show(block=False)
+plt.show()

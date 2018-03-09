@@ -349,7 +349,7 @@ def Get_Throughputs(instrument_params, paths):
 
 def Get_Magnitude_Error(bandflux, bandflux_error, bandflux_ref):
     # Compute the per-band magnitude errors
-    magnitude_error = abs(-2.5*bandflux_ref/(bandflux*np.log(10)))*bandflux_error
+    magnitude_error = abs(-2.5/(bandflux*np.log(10)))*bandflux_error
     return np.asscalar(magnitude_error)
 
 
@@ -474,7 +474,7 @@ def Plot_Observations(Observations, fig_num):
                 axes.set(xlabel='MJD', ylabel=r'$m_{ab}$')
                 axes.set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
         if n_plots > 1:
-            axes[0].set_title('{}'.format(key))
+            axes[0].set_title('Source, {}'.format(key))
         else:
             axes.set_title('{}'.format(key))
         # Break to only do one plot at the moment
@@ -524,7 +524,8 @@ def Get_Detections(All_Observations, Selection_Cuts):
                 Detections[mkey][obs_key][band] = {}
                 dkey_items = {}
                 for key in All_Observations[mkey][obs_key][band].keys():
-                    dkey_items[key] = []
+                    if key != det_key:
+                        dkey_items[key] = []
                 # Cycle over observations to assemble the invidiual detections
                 # above some lower limit
                 for i in np.arange(n_obs):
