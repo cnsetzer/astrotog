@@ -18,7 +18,7 @@ fields = ['fieldID', 'fieldRA', 'fieldDec', 'filter', 'expMJD', 'fiveSigmaDepth'
 # Flag for the survey database retreival to only get a subset of the whole.
 db_flag = 'wfd'
 # Parameter prior for generating the transient KNe distribution
-param_priors = {'zmin': 0.0, 'zmax': 0.15, 'z_bin_size': 0.01, 'rate': 1000.0,
+param_priors = {'zmin': 0.0, 'zmax': 0.2, 'z_bin_size': 0.01, 'rate': 1000.0,
                 'cosmology': cosmo, 'kappa_min': 1, 'kappa_max': 10,
                 'm_ej_min': 0.01, 'm_ej_max': 0.2, 'v_ej_min': 0.01, 'v_ej_max': 0.5}
 instrument_params = {'Instrument': 'lsst', 'FOV_rad': np.deg2rad(1.75), 'Mag_Sys': 'ab'}

@@ -203,21 +203,28 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
     throughputs = instrument_params['throughputs']
     bands = deepcopy(matched_db['filter'].unique())
     for band in bands:
-        mags, magnitude_errors, bandflux, fiveSigmaDepth, bandflux_error = [], [], [], [], []
+        mags, magnitude_errors, fiveSigmaDepth = [], [], []
+        true_bandflux, obs_bandflux, bandflux_error = [], [], []
+        true_mags = []
         lsst_band = 'lsst{}'.format(band)
         times = deepcopy(matched_db.query('filter == \'{}\''.format(band))['expMJD'].unique())
         for i, time in enumerate(times):
+            # Get the matched sed for a single observation
             single_obs_db = deepcopy(matched_db.query('expMJD == {}'.format(time)))
             obs_phase = np.asscalar(single_obs_db['expMJD'].values - SED['parameters']['min_MJD'])
-            bandflux.append(Compute_Bandflux(band=lsst_band, throughputs=throughputs, SED=SED, phase=obs_phase))
-            mags.append(Compute_Obs_Magnitudes(bandflux[i], ref_bandflux[lsst_band]))
+            true_bandflux.append(Compute_Bandflux(band=lsst_band, throughputs=throughputs, SED=SED, phase=obs_phase))
             fiveSigmaDepth.append(deepcopy(single_obs_db['fiveSigmaDepth'].values))
             bandflux_error.append(Compute_Band_Flux_Error(fiveSigmaDepth[i], ref_bandflux[lsst_band]))
-            magnitude_errors.append(Get_Magnitude_Error(bandflux[i], bandflux_error[i], ref_bandflux[lsst_band]))
+            obs_bandflux.append(Add_Flux_Noise(true_bandflux[i], bandflux_error[i]))
+            mags.append(Compute_Obs_Magnitudes(obs_bandflux[i], ref_bandflux[lsst_band]))
+            true_mags.append(Compute_Obs_Magnitudes(true_bandflux[i], ref_bandflux[lsst_band]))
+            magnitude_errors.append(Get_Magnitude_Error(obs_bandflux[i], bandflux_error[i], ref_bandflux[lsst_band]))
 
         # Assemble the per band dictionary of lightcurve observations
         lc_samples[lsst_band] = {'times': times, 'magnitudes': mags, 'mag_errors': magnitude_errors,
-                                 'band_flux': bandflux, 'flux_error': bandflux_error, 'five_sigma_depth': fiveSigmaDepth}
+                                 'band_flux': obs_bandflux, 'flux_error': bandflux_error,
+                                 'five_sigma_depth': fiveSigmaDepth, 'true_bandflux': true_bandflux,
+                                 'true_magnitude': true_mags}
     return deepcopy(lc_samples)
 
 
@@ -330,21 +337,12 @@ def Get_Throughputs(instrument_params, paths):
     return instrument_params
 
 
-# def Get_BandFlux(SED, single_obs_db):
-#     # Get the bandflux for the given filter and phase
-#     obs_phase = single_obs_db['expMJD'] - SED['parameters']['min_MJD']
-#     band = 'lsst{}'.format(single_obs_db['filter'].unique()[0])
-#     bandflux = deepcopy(SED['model'].bandflux(band, obs_phase))
-#     return np.asscalar(bandflux)
-#
-#
-# def Get_Obs_Magnitudes_from_Model(SED, single_obs_db, instrument_params):
-#     # Get the observed magnitudes for the given band
-#     obs_phase = single_obs_db['expMJD'].unique() - SED['parameters']['min_MJD']
-#     band = 'lsst{}'.format(single_obs_db['filter'].unique()[0])
-#     magsys = instrument_params['Mag_Sys']
-#     bandmag = deepcopy(SED['model'].bandmag(band, magsys, obs_phase))
-#     return np.asscalar(bandmag)
+def Add_Flux_Noise(bandflux, bandflux_error):
+    # Add gaussian noise to the true bandflux
+    new_bandflux = np.random.normal(loc=bandflux, scale=bandflux_error)
+    if new_bandflux<0.0:
+        new_bandflux = 1.0e-30
+    return new_bandflux
 
 
 def Get_Magnitude_Error(bandflux, bandflux_error, bandflux_ref):
@@ -463,20 +461,12 @@ def Plot_Observations(Observations, fig_num):
             times = deepcopy(Observations[key][obs_key][band]['times'])
             mags = deepcopy(Observations[key][obs_key][band]['magnitudes'])
             errs = deepcopy(Observations[key][obs_key][band]['mag_errors'])
-            if n_plots > 1:
-                axes[i].errorbar(x=times, y=mags, yerr=errs, fmt='kx')
-                axes[i].legend(['{}'.format(band)])
-                axes[i].set(xlabel='MJD', ylabel=r'$m_{ab}$')
-                axes[i].set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
-            else:
-                axes.errorbar(x=times, y=mags, yerr=errs, fmt='kx')
-                axes.legend(['{}'.format(band)])
-                axes.set(xlabel='MJD', ylabel=r'$m_{ab}$')
-                axes.set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
-        if n_plots > 1:
-            axes[0].set_title('Source, {}'.format(key))
-        else:
-            axes.set_title('{}'.format(key))
+            axes.errorbar(x=times, y=mags, yerr=errs, fmt='kx')
+            axes.legend(['{}'.format(band)])
+            axes.set(xlabel='MJD', ylabel=r'$m_{ab}$')
+            axes.set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
+
+        axes.set_title('{}'.format(key))
         # Break to only do one plot at the moment
         fig_num += 1
         break
