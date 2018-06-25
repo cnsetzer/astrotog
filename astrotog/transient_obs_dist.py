@@ -67,7 +67,7 @@ def Get_SED_header_info(fileio):
 def Get_ObsStratDB_Summary(surveydb_path, flag):
     # Import Observing Strategy Database
     print(' Using OpSimOutput tool to get the database of simulated survey observations.')
-    return oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag).summary
+    return oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag, opsimversion='lsstv3').summary
 
 
 def Gen_SED(N_SEDs, new_sed_keys, params, SEDdb_loc=None, gen_flag=None):

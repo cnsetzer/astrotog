@@ -9,14 +9,14 @@ from astropy.cosmology import Planck15 as cosmo
 
 # Define directory for locations of SEDS, references, throughputs
 paths = {}
-paths['seds'] = '/Users/cnsetzer/Documents/LSST/astrotog/sedb/rosswog/NSNS/winds'
+paths['seds'] = '/Users/cnsetzer/Documents/LSST/sedb/rosswog/NSNS/winds'
 paths['survey'] = '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
-paths['throughputs'] = '/Users/cnsetzer/Documents/LSST/astrotog/throughputs'
-paths['references'] = '/Users/cnsetzer/Documents/LSST/astrotog/throughputs/references'
+paths['throughputs'] = '/Users/cnsetzer/Documents/LSST/throughputs'
+paths['references'] = '/Users/cnsetzer/Documents/LSST/throughputs/references'
 # Relevant fields in the survey database
 fields = ['fieldID', 'fieldRA', 'fieldDec', 'filter', 'expMJD', 'fiveSigmaDepth']
 # Flag for the survey database retreival to only get a subset of the whole.
-db_flag = 'wfd'
+db_flag = 'combined'
 # Parameter prior for generating the transient KNe distribution
 param_priors = {'zmin': 0.0, 'zmax': 0.22, 'z_bin_size': 0.02, 'rate': 1000.0,
                 'cosmology': cosmo, 'kappa_min': 1, 'kappa_max': 10,
