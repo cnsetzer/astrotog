@@ -4,9 +4,15 @@ import numpy as np
 import sncosmo
 from scipy.integrate import simps
 from copy import deepcopy
+import matplotlib
 import matplotlib.pyplot as plt
 import opsimsummary as oss
-import seaborn
+import seaborn as sns
+# font = {'size': 14}
+# matplotlib.rc('font', **font)
+sns.set_style('whitegrid')  # I personally like this style.
+sns.set_context('talk')  # Easy to change context from `talk`, `notebook`, `poster`, `paper`. though further fine tuning is human.
+
 
 def Get_SEDdb(path_to_seds):
     # Import SEDs into a dictionary structure
@@ -451,25 +457,50 @@ def Plot_Observations(Observations, fig_num):
     # mock observations.
     obs_key = 'observations'
     source_list = Observations.keys()
+
+    # Plot max lc for talk
+    max_lc_p = 0
     for key in source_list:
         band_keys = Observations[key][obs_key].keys()
-        n_plots = len(band_keys)
-        # Max 6-color lightcurves
-        f = plt.figure(fig_num)
         for i, band in enumerate(band_keys):
-            axes = f.add_subplot(n_plots, 1, i+1)
-            times = deepcopy(Observations[key][obs_key][band]['times'])
-            mags = deepcopy(Observations[key][obs_key][band]['magnitudes'])
-            errs = deepcopy(Observations[key][obs_key][band]['mag_errors'])
-            axes.errorbar(x=times, y=mags, yerr=errs, fmt='kx')
-            axes.legend(['{}'.format(band)])
-            axes.set(xlabel='MJD', ylabel=r'$m_{ab}$')
-            axes.set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
+            num_p_lc = len(Observations[key][obs_key][band]['times'])
+            if num_p_lc > max_lc_p:
+                max_lc_p = num_p_lc
+                max_band = band
+                max_source_key = key
 
-        axes.set_title('{}'.format(key))
-        # Break to only do one plot at the moment
-        fig_num += 1
-        break
+    f = plt.figure(fig_num)
+    axes = f.add_subplot(1, 1, 1)
+    t_0 = Observations[max_source_key]['parameters']['min_MJD']
+    times = deepcopy(Observations[max_source_key][obs_key][max_band]['times'])
+    times = times - t_0
+    mags = deepcopy(Observations[max_source_key][obs_key][max_band]['magnitudes'])
+    errs = deepcopy(Observations[max_source_key][obs_key][max_band]['mag_errors'])
+    axes.errorbar(x=times, y=mags, yerr=errs, fmt='ro')
+    axes.legend(['{0}'.format(max_band)])
+    axes.set(xlabel=r'$t - t_{0}$ MJD', ylabel=r'$m_{ab}$')
+    axes.set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
+    axes.set_title('Simulated Source: {}'.format(max_source_key))
+    #
+    # for key in source_list:
+    #     band_keys = Observations[key][obs_key].keys()
+    #     n_plots = len(band_keys)
+    #     # Max 6-color lightcurves
+    #     f = plt.figure(fig_num)
+    #     for i, band in enumerate(band_keys):
+    #         axes = f.add_subplot(n_plots, 1, i+1)
+    #         times = deepcopy(Observations[key][obs_key][band]['times'])
+    #         mags = deepcopy(Observations[key][obs_key][band]['magnitudes'])
+    #         errs = deepcopy(Observations[key][obs_key][band]['mag_errors'])
+    #         axes.errorbar(x=times, y=mags, yerr=errs, fmt='kx')
+    #         axes.legend(['{}'.format(band)])
+    #         axes.set(xlabel='MJD', ylabel=r'$m_{ab}$')
+    #         axes.set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
+    #
+    #     axes.set_title('{}'.format(key))
+    #     # Break to only do one plot at the moment
+    #     fig_num += 1
+    #     break
     return f, fig_num
 
 
@@ -564,8 +595,9 @@ def Get_N_z(All_Sources, Detections, param_priors, fig_num):
     print('The redshift range of the detected sources is {0:.4f} to {1:.4f}.'.format(min(detect_zs),max(detect_zs)))
     # Create the histogram
     N_z_dist_fig = plt.figure(fig_num)
-    plt.hist(x=all_zs, bins=n_bins, range=(z_min, z_max), histtype='step', color='red', label='All Simulated Sources')
-    plt.hist(x=detect_zs, bins=n_bins, range=(z_min, z_max), histtype='step', color='black', label='Detected Sources')
+    plt.hist(x=all_zs, bins=n_bins, range=(z_min, z_max), histtype='step', color='red', label='All Sources', linewidth=3.0)
+    plt.hist(x=detect_zs, bins=n_bins, range=(z_min, z_max), histtype='stepfilled', edgecolor='blue', color='blue', alpha=0.3, label='Detected Sources', )
+    #plt.tick_params(which='both', length=10, width=1.5)
     plt.yscale('log')
     plt.legend(loc=2)
     plt.xlabel('z')
@@ -573,3 +605,12 @@ def Get_N_z(All_Sources, Detections, param_priors, fig_num):
     plt.title('Number of sources per {0:.3f} redshift bin'.format(bin_size))
     fig_num += 1
     return N_z_dist_fig, fig_num
+
+
+def Output_Observations(Detections):
+
+
+
+
+
+    return
