@@ -1,7 +1,10 @@
 import os
 import re
+import datetime
+import csv
 import numpy as np
 import sncosmo
+import pandas as pd
 from scipy.integrate import simps
 from copy import deepcopy
 import matplotlib
@@ -17,7 +20,6 @@ sns.set_context('talk')  # Easy to change context from `talk`, `notebook`, `post
 def Get_SEDdb(path_to_seds):
     # Import SEDs into a dictionary structure
     # supported format is currently that of Rosswog's SEDS .data
-    # TODO convert all files to json and read from json format
     seds_data = {}
     key_list = []
     # Get the list of SED files
@@ -608,9 +610,12 @@ def Get_N_z(All_Sources, Detections, param_priors, fig_num):
 
 
 def Output_Observations(Detections):
-
-
-
-
-
+    run_dir = 'run_' + datetime.datetime.now().strftime('%S%M%H_%d%m%y')
+    save_path = '/Users/cnsetzer/Documents/LSST/astrotog_output/' + run_dir + '/'
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    for i, name in enumerate(Detections.keys()):
+        df = pd.DataFrame.from_dict(data=Detections[name]['observations'])
+        file_str = save_path + name + '.dat'
+        df.to_csv(file_str)
     return

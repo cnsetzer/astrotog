@@ -13,17 +13,15 @@ paths['seds'] = '/Users/cnsetzer/Documents/LSST/sedb/rosswog/NSNS/winds'
 paths['survey'] = '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
 paths['throughputs'] = '/Users/cnsetzer/Documents/LSST/throughputs'
 paths['references'] = '/Users/cnsetzer/Documents/LSST/throughputs/references'
-# Relevant fields in the survey database
-fields = ['fieldID', 'fieldRA', 'fieldDec', 'filter', 'expMJD', 'fiveSigmaDepth']
 # Flag for the survey database retreival to only get a subset of the whole.
 db_flag = 'combined'
 # Parameter prior for generating the transient KNe distribution
-param_priors = {'zmin': 0.0, 'zmax': 0.22, 'z_bin_size': 0.02, 'rate': 1000.0,
+param_priors = {'zmin': 0.0, 'zmax': 0.25, 'z_bin_size': 0.02, 'rate': 750.0,
                 'cosmology': cosmo, 'kappa_min': 1, 'kappa_max': 10,
                 'm_ej_min': 0.01, 'm_ej_max': 0.2, 'v_ej_min': 0.01, 'v_ej_max': 0.5}
 instrument_params = {'Instrument': 'lsst', 'FOV_rad': np.deg2rad(1.75), 'Mag_Sys': 'ab'}
 # Different selections cuts and corresponding limits
-Cuts = {'SNR': {'upper': inf, 'lower': 5, 'limit': 1}}
+Cuts = {'SNR': {'upper': inf, 'lower': 5, 'limit': 1.25}}
 # Flag for SED generation to just cycle through SEDs in the database
 gen_flag = 'cycle'
 
@@ -58,10 +56,11 @@ print('\n The number of detected KNe is {2} for a {0} cut of {1}.\n This is an e
       .format('SNR', Cuts['SNR']['lower'], n_detect, 100*efficiency))
 print('The number of mock sources is {0}, and the number of observed sources is \
         {1}'.format(len(SEDs.keys()), len(Detections.keys())))
+
+
+print('Outputting Observations to files in folder: \'Output\'.')
+tod.Output_Observations(Detections)
+
 # Plot histogram of detected vs genereated mock KNe
 N_z_fig, fig_num = tod.Get_N_z(SEDs, Detections, param_priors, fig_num)
-
-# Plot the lightcurve results
-Lightcurve_fig, fig_num = tod.Plot_Observations(Detections, fig_num)
-# For the first run show only one plot
 plt.show()
