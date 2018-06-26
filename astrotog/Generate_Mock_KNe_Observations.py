@@ -16,12 +16,12 @@ paths['references'] = '/Users/cnsetzer/Documents/LSST/throughputs/references'
 # Flag for the survey database retreival to only get a subset of the whole.
 db_flag = 'combined'
 # Parameter prior for generating the transient KNe distribution
-param_priors = {'zmin': 0.0, 'zmax': 0.25, 'z_bin_size': 0.02, 'rate': 750.0,
+param_priors = {'zmin': 0.0, 'zmax': 0.25, 'z_bin_size': 0.02, 'rate': 1000.0,
                 'cosmology': cosmo, 'kappa_min': 1, 'kappa_max': 10,
                 'm_ej_min': 0.01, 'm_ej_max': 0.2, 'v_ej_min': 0.01, 'v_ej_max': 0.5}
 instrument_params = {'Instrument': 'lsst', 'FOV_rad': np.deg2rad(1.75), 'Mag_Sys': 'ab'}
 # Different selections cuts and corresponding limits
-Cuts = {'SNR': {'upper': inf, 'lower': 5, 'limit': 1.25}}
+Cuts = {'SNR': {'upper': inf, 'lower': 5, 'limit': 2.00}}
 # Flag for SED generation to just cycle through SEDs in the database
 gen_flag = 'cycle'
 

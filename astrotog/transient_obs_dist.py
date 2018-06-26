@@ -148,7 +148,7 @@ def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
     new_keys = list()
     print(' The number of mock SEDs being genereated is {}'.format(N_SEDs))
     for i in np.arange(N_SEDs):
-        new_keys.append('Mock {}'.format(str(i)))
+        new_keys.append('Mock_{}'.format(str(i)))
 
     SED_params = Draw_SED_Params(param_priors, N_SEDs)
     Dist_SEDs = Gen_SED(N_SEDs, new_keys, SED_params, seds_path, gen_flag)
@@ -610,12 +610,13 @@ def Get_N_z(All_Sources, Detections, param_priors, fig_num):
 
 
 def Output_Observations(Detections):
-    run_dir = 'run_' + datetime.datetime.now().strftime('%S%M%H_%d%m%y')
+    run_dir = 'run_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
     save_path = '/Users/cnsetzer/Documents/LSST/astrotog_output/' + run_dir + '/'
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     for i, name in enumerate(Detections.keys()):
-        df = pd.DataFrame.from_dict(data=Detections[name]['observations'])
-        file_str = save_path + name + '.dat'
-        df.to_csv(file_str)
+        for j,band in enumerate(Detections[name]['observations'].keys()):
+            df = pd.DataFrame.from_dict(data=Detections[name]['observations'][band])
+            file_str = save_path + name + '_' + band + '.dat'
+            df.to_csv(file_str)
     return
