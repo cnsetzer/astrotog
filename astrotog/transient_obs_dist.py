@@ -72,16 +72,14 @@ def Get_ObsStratDB_Summary(surveydb_path, flag):
     return oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag, opsimversion='lsstv3').summary
 
 
-def Gen_SED(N_SEDs, new_sed_keys, params, SEDdb_loc=None, gen_flag=None):
+def Gen_SED(N_SEDs, new_sed_keys, SEDdb_loc=None, gen_flag=None):
     # Given a set of parameters generate an SED
     if SEDdb_loc:
         if gen_flag == 'cycle':
             return Pick_Rand_dbSED(N_SEDs, new_sed_keys, SEDdb_loc)
-        else:
-            return interpolate_SED(N_SEDs, new_sed_keys, params, SEDdb_loc)
     else:
         # Space for implementation of a parametric model for SEDs
-        return generated_SED
+        return None
 
 
 def Pick_Rand_dbSED(N_SEDs, new_sed_keys, SEDdb_loc):
@@ -101,41 +99,6 @@ def Pick_Rand_dbSED(N_SEDs, new_sed_keys, SEDdb_loc):
     return Rand_SED
 
 
-def Interpolate_SED(params, SEDdb_loc):
-    # Given a parameter space of SEDs from numerical simulations
-    # interpolate a new SED that falls within this region.
-    SEDdb = Get_SEDdb(SEDdb_loc)
-    sub_SEDdb = Interpolation_Subspace(SEDdb, params, param_priors)
-    # Find the nearest neighbors for interpolation from the parameters.
-    Neighbor_SEDs = Get_SEDdb_Neighbors(sub_SEDdb)
-    return iSED
-
-
-def Get_SEDdb_Neighbors(sub_SEDdb):
-    # For a n dimensional parameter space spanned by data
-    # return the nearest neighbors
-    Neighbor_SEDs = {}
-    p_space = Build_Param_Space_From_SEDdb(sub_SEDdb)
-    print('This isn\'t working yet')
-    return Neighbor_SEDs
-
-
-def Interpolation_Subspace(SEDdb, params):
-    # Take in the full parameter space and boundary conditions and select the
-    # relevant subspace for interpolation
-    p_space = Build_Param_Space_From_SEDdb(SEDdb)
-    for p in params:
-        print('This isn\'t working yet')
-    return sub_SEDdb
-
-
-def Build_Param_Space_From_SEDdb(SEDdb):
-    # Given the SEDdb build the parameter space for interpolation
-    keys = SEDdb.keys()
-    print('This isn\'t working yet')
-    return p_space
-
-
 def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
     # Internal funciton to generate a redshift distribution
     Dist_SEDs = {}
@@ -150,8 +113,7 @@ def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
     for i in np.arange(N_SEDs):
         new_keys.append('Mock_{}'.format(str(i)))
 
-    SED_params = Draw_SED_Params(param_priors, N_SEDs)
-    Dist_SEDs = Gen_SED(N_SEDs, new_keys, SED_params, seds_path, gen_flag)
+    Dist_SEDs = Gen_SED(N_SEDs, new_keys, seds_path, gen_flag)
     # Place the SED at the redshift from the redshift distribution calc.
     Dist_SEDs = Set_SED_Redshift(Dist_SEDs, SED_zlist, param_priors['cosmology'])
     return Dist_SEDs
@@ -348,7 +310,7 @@ def Get_Throughputs(instrument_params, paths):
 def Add_Flux_Noise(bandflux, bandflux_error):
     # Add gaussian noise to the true bandflux
     new_bandflux = np.random.normal(loc=bandflux, scale=bandflux_error)
-    if new_bandflux<0.0:
+    if new_bandflux < 0.0:
         new_bandflux = 1.0e-30
     return new_bandflux
 
@@ -380,16 +342,30 @@ def Gen_Observations(SEDs, obs_database, instrument_params):
 def Match_Event_to_Obs(SED, obs_database, instrument_params):
     # Function to find  "observations"
     survey_field_hw = instrument_params['FOV_rad']
-    field_ra_hw = survey_field_hw
-    field_dec_hw = survey_field_hw
     min_time = deepcopy(SED['parameters']['min_MJD'])
     max_time = deepcopy(SED['parameters']['max_MJD'])
     ra = deepcopy(SED['parameters']['ra'])
     dec = deepcopy(SED['parameters']['dec'])
     t_overlaps = deepcopy(obs_database.query('{0} < expMJD < {1}'.format(min_time, max_time)))
-    ra_t_overlaps = deepcopy(t_overlaps.query('fieldRA - {0} < {1} < fieldRA + {0}'.format(field_ra_hw, ra)))
-    # Full overlaps (note this doesn't take into account dithering)
-    full_overlap_db = deepcopy(ra_t_overlaps.query('fieldDec - {0} < {1} < fieldDec + {0}'.format(field_dec_hw, dec)))
+    ra_t_overlaps = deepcopy(t_overlaps.query('ditheredRA - 1.25*{0} < {1} < ditheredRA + 1.25*{0}'.format(survey_field_hw, ra)))
+    full_overlaps = deepcopy(ra_t_overlaps.query('ditheredDec - 1.25*{0} < {1} < ditheredDec + 1.25*{0}'.format(survey_field_hw, dec)))
+    overlapped_indexes = []
+    for index, row in full_overlaps.iterrows():
+        pointing_ra = row['ditheredRA']
+        pointing_dec = row['ditheredDec']
+        angdist = np.arccos(np.sin(pointing_dec)*np.sin(dec) +
+                            np.cos(pointing_dec) *
+                            np.cos(dec)*np.cos(ra - pointing_ra))
+        if angdist < survey_field_hw:
+            overlapped_indexes.append(index)
+        else:
+            continue
+
+    if not overlapped_indexes:
+        full_overlap_db = pd.DataFrame(columns=list(full_overlaps.columns.values))
+    else:
+        full_overlap_db = t_overlaps.loc[overlapped_indexes]
+
     return full_overlap_db
 
 
@@ -427,13 +403,6 @@ def Ra_Dec_Dist(n, survey_params):
 def Time_Dist(n, survey_params):
     time_dist = np.random.uniform(survey_params['min_mjd'], survey_params['max_mjd'], n)
     return time_dist
-
-
-def Build_Sub_SurveyDB(obsdb_path, fields, flag):
-    # For a desired set fields create smaller subset database for queries
-    obs_db = Get_ObsStratDB(obsdb_path, flag)
-    sub_survey_db = deepcopy(obs_db[fields])
-    return sub_survey_db
 
 
 def Gen_SED_dist(SEDdb_path, survey_params, param_priors, gen_flag=None):
@@ -599,7 +568,7 @@ def Get_N_z(All_Sources, Detections, param_priors, fig_num):
     N_z_dist_fig = plt.figure(fig_num)
     plt.hist(x=all_zs, bins=n_bins, range=(z_min, z_max), histtype='step', color='red', label='All Sources', linewidth=3.0)
     plt.hist(x=detect_zs, bins=n_bins, range=(z_min, z_max), histtype='stepfilled', edgecolor='blue', color='blue', alpha=0.3, label='Detected Sources', )
-    #plt.tick_params(which='both', length=10, width=1.5)
+    # plt.tick_params(which='both', length=10, width=1.5)
     plt.yscale('log')
     plt.legend(loc=2)
     plt.xlabel('z')
@@ -615,7 +584,7 @@ def Output_Observations(Detections):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     for i, name in enumerate(Detections.keys()):
-        for j,band in enumerate(Detections[name]['observations'].keys()):
+        for j, band in enumerate(Detections[name]['observations'].keys()):
             df = pd.DataFrame.from_dict(data=Detections[name]['observations'][band])
             file_str = save_path + name + '_' + band + '.dat'
             df.to_csv(file_str)

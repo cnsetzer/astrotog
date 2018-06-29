@@ -18,8 +18,10 @@ db_flag = 'combined'
 # Parameter prior for generating the transient KNe distribution
 param_priors = {'zmin': 0.0, 'zmax': 0.25, 'z_bin_size': 0.02, 'rate': 1000.0,
                 'cosmology': cosmo, 'kappa_min': 1, 'kappa_max': 10,
-                'm_ej_min': 0.01, 'm_ej_max': 0.2, 'v_ej_min': 0.01, 'v_ej_max': 0.5}
-instrument_params = {'Instrument': 'lsst', 'FOV_rad': np.deg2rad(1.75), 'Mag_Sys': 'ab'}
+                'm_ej_min': 0.01, 'm_ej_max': 0.2, 'v_ej_min': 0.01,
+                'v_ej_max': 0.5}
+instrument_params = {'Instrument': 'lsst', 'FOV_rad': np.deg2rad(1.75),
+                     'Mag_Sys': 'ab'}
 # Different selections cuts and corresponding limits
 Cuts = {'SNR': {'upper': inf, 'lower': 5, 'limit': 2.00}}
 # Flag for SED generation to just cycle through SEDs in the database
@@ -31,21 +33,30 @@ fig_num = 1
 print(' ')
 obs_database = tod.Get_ObsStratDB_Summary(paths['survey'], db_flag)
 print(' Done reading in observation databse: {}'.format(paths['survey']))
+
+
 print('\n Getting survey paramters...')
 survey_params = tod.Get_Survey_Params(obs_database)
 print(' Done retreiving survey paramters.')
-# Generate the all mock KNe SEDs
-print('\n Generating mock KNe sources...')
-SEDs = tod.Gen_SED_dist(paths['seds'], survey_params, param_priors, gen_flag)
-print(' Done generating mock KNe sources.')
+
 print(' Getting the LSST throughputs and computing the reference fluxes...')
 instrument_params = tod.Get_Throughputs(instrument_params, paths)
 instrument_params = tod.Get_Reference_Flux(instrument_params, paths)
 print(' Done computing instrument parameters.')
+
+
+# Generate the all mock KNe SEDs
+print('\n Generating mock KNe sources...')
+SEDs = tod.Gen_SED_dist(paths['seds'], survey_params, param_priors, gen_flag)
+print(' Done generating mock KNe sources.')
+
+
 # Apply observation to all mock SEDs
 print('\n Applying simulated observations to mock sources...')
-All_Source_Observations = tod.Gen_Observations(SEDs, obs_database, instrument_params)
+All_Source_Observations = tod.Gen_Observations(SEDs, obs_database,
+                                               instrument_params)
 print(' Done generating simulated observations of mock sources.')
+
 
 # Add quality of observation information, currently just SNR
 All_Source_Observations = tod.Assign_SNR(All_Source_Observations)
