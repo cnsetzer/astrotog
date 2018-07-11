@@ -14,9 +14,7 @@ def Make_Rosswog_SEDS(KNE_parameters, separated=False):
     MNE_parameters = KNE_parameters[0:n]
     read_hrate = KNE_parameters[n]
     heating_rates_file = KNE_parameters[n+1]
-
     luminosity = m2p.calculate_luminosity(n, MNE_parameters, read_hrate, heating_rates_file, Nt)
-
     return SED_timeseries(luminosity, separated)
 
 
@@ -43,7 +41,7 @@ def SED_timeseries(luminosity, separated=False):
     # other parameters #
     ####################
     x_cut = 100.              # cut value for Planck function argument
-    t_start_d = 1.e-5             # start time [d]
+    t_start_d = 1.e-4             # start time [d]
     t_end_d = 30.               # end time [d]
     delta_dex = 0.05              # spacing of time grid in log10 space
 
@@ -56,7 +54,7 @@ def SED_timeseries(luminosity, separated=False):
     Ti = luminosity[:, 2]          # Temperatures
     Ri = luminosity[:, 3]          # radii
     vi = Ri[:]/(clight*(ti[:]+1e-10))          # velocities
-
+    nl = len(ti)
     # allocate regridded arrays
     tim = np.zeros(itmax+1)
     lum = np.zeros(itmax+1)
@@ -97,8 +95,15 @@ def SED_timeseries(luminosity, separated=False):
             f_lm = Coef * Blam(lam_cm, tef[it]) * Ang
             sed_data_struct[it*len(wavelengths)+i, :] = tim[it]/day_in_s, lam_A, f_lm
 
-    if seperated is True:
-        return sed_data_struct[:, 0], sed_data_struct[:, 1], sed_data_struct[:, 2]
+    if separated is True:
+        phase = np.unique(sed_data_struct[:, 0])
+        wave = np.unique(sed_data_struct[:, 1])
+        flux = np.zeros((len(phase), len(wave)))
+        for i, phz in enumerate(phase):
+            for j, wv in enumerate(wave):
+                flux[i, j] = sed_data_struct[i*len(wave) + j, 2]
+
+        return phase, wave, flux
     else:
         return sed_data_struct
 
@@ -107,6 +112,14 @@ def Blam(lam, T):
     # Planck function, lambda[cm] input #
     #####################################
     # argument of Planck function
+    #####################
+    # physics constants #
+    #####################
+    hplanck = 6.62607004e-27     # Planck constant [erg*s]
+    kB = 1.38064852e-16     # Boltzmann constant [erg/K]
+    clight = 2.99792458e10      # speed of light [cm/s]
+    x_cut = 100.0
+
     x = hplanck*clight/(kB*T*lam)
 
     if(x > x_cut):

@@ -101,12 +101,13 @@ def Semi_Analytic_KNe(generating_parameters, new_sed_keys):
         KNE_parameters.append(generating_parameters[key]['Initial_Temp'])
         KNE_parameters.append(False)
         KNE_parameters.append('dummy string')
-        phase, wave, flux = mw.Make_Rosswog_SEDS(KNE_parameters, separated= True)
+        phase, wave, flux = mw.Make_Rosswog_SEDS(KNE_parameters, separated=True)
         source = sncosmo.TimeSeriesSource(phase, wave, flux)
         model = sncosmo.Model(source=source)
         seds_data[key]['model'] = model
         seds_data[key]['parameters'] = generating_parameters[key]
     return seds_data
+
 
 def Pick_Rand_dbSED(N_SEDs, new_sed_keys, SEDdb_loc):
     # Get the SED db
