@@ -13,7 +13,7 @@ SUBROUTINE Calculate_luminosity(n, MNE_parameters, read_hrate, heating_rates_fil
     DOUBLE PRECISION, INTENT(IN)  :: MNE_parameters(n)
     !f2py DOUBLE PRECISION, intent(in), depend(n) :: MNE_parameters
     DOUBLE PRECISION, INTENT(OUT) :: luminosity(Nt+1,4)
-    !f2py DOUBLE PRECISION, intent(out) :: luminosity
+    !f2py DOUBLE PRECISION, intent(out), depend(Nt) :: luminosity
     LOGICAL, INTENT(IN) :: read_hrate
     !f2py intent(in) :: read_hrate
     CHARACTER*255, INTENT(IN) :: heating_rates_file

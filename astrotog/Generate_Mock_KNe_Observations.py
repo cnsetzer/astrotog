@@ -25,7 +25,7 @@ instrument_params = {'Instrument': 'lsst', 'FOV_rad': np.deg2rad(1.75),
 # Different selections cuts and corresponding limits
 Cuts = {'SNR': {'upper': inf, 'lower': 5, 'limit': 0.50}}
 # Flag for SED generation to just cycle through SEDs in the database
-gen_flag = 'cycle'
+gen_flag = 'parametric'
 
 # Initialize the figure number for iterative, functional plotting
 fig_num = 1

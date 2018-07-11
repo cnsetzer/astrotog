@@ -4,9 +4,11 @@ import numpy as np
 from math import *
 import subprocess
 from random import randint as rint
-from astrotog.macronova2py import macronova2py as m2p
+from macronova2py import macronova2py as m2p
+#from astrotog.macronova2py import macronova2py as m2p
 
-def Make_Rosswog_SEDS(KNE_parameters):
+
+def Make_Rosswog_SEDS(KNE_parameters, separated=False):
     Nt = 2000
     n = len(KNE_parameters) - 2
     MNE_parameters = KNE_parameters[0:n]
@@ -15,7 +17,7 @@ def Make_Rosswog_SEDS(KNE_parameters):
 
     luminosity = m2p.calculate_luminosity(n, MNE_parameters, read_hrate, heating_rates_file, Nt)
 
-    return SED_timeseries(luminosity, separated=False)
+    return SED_timeseries(luminosity, separated)
 
 
 def SED_timeseries(luminosity, separated=False):

@@ -11,6 +11,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 import opsimsummary as oss
 import seaborn as sns
+# from astrotog import macronovae_wrapper as mw
+import macronovae_wrapper as mw
+
 # font = {'size': 14}
 # matplotlib.rc('font', **font)
 sns.set_style('whitegrid')  # I personally like this style.
@@ -72,15 +75,38 @@ def Get_ObsStratDB_Summary(surveydb_path, flag):
     return oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag, opsimversion='lsstv3').summary
 
 
-def Gen_SED(N_SEDs, new_sed_keys, SEDdb_loc=None, gen_flag=None):
+def Gen_SED(N_SEDs, new_sed_keys, param_priors, SEDdb_loc=None, gen_flag=None):
     # Given a set of parameters generate an SED
-    if SEDdb_loc:
-        if gen_flag == 'cycle':
+    if gen_flag == 'cycle':
+        if SEDdb_loc:
             return Pick_Rand_dbSED(N_SEDs, new_sed_keys, SEDdb_loc)
-    else:
-        # Space for implementation of a parametric model for SEDs
-        return None
+    elif gen_flag == 'parametric':
+        generating_parameters = Draw_KNe_Params(param_priors, new_sed_keys)
+        return Semi_Analytic_KNe(generating_parameters, new_sed_keys)
 
+
+def Semi_Analytic_KNe(generating_parameters, new_sed_keys):
+    seds_data = {}
+    for key in new_sed_keys:
+        seds_data[key] = {}
+        KNE_parameters = []
+        KNE_parameters.append(generating_parameters[key]['t_0'])
+        KNE_parameters.append(generating_parameters[key]['t_f'])
+        KNE_parameters.append(generating_parameters[key]['m_ej'])
+        KNE_parameters.append(generating_parameters[key]['v_ej'])
+        KNE_parameters.append(generating_parameters[key]['heatingrate_exp'])
+        KNE_parameters.append(generating_parameters[key]['thermalization_factor'])
+        KNE_parameters.append(generating_parameters[key]['DZ_enhancement_factor'])
+        KNE_parameters.append(generating_parameters[key]['kappa'])
+        KNE_parameters.append(generating_parameters[key]['Initial_Temp'])
+        KNE_parameters.append(False)
+        KNE_parameters.append('dummy string')
+        phase, wave, flux = mw.Make_Rosswog_SEDS(KNE_parameters, separated= True)
+        source = sncosmo.TimeSeriesSource(phase, wave, flux)
+        model = sncosmo.Model(source=source)
+        seds_data[key]['model'] = model
+        seds_data[key]['parameters'] = generating_parameters[key]
+    return seds_data
 
 def Pick_Rand_dbSED(N_SEDs, new_sed_keys, SEDdb_loc):
     # Get the SED db
@@ -113,7 +139,7 @@ def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
     for i in np.arange(N_SEDs):
         new_keys.append('Mock_{}'.format(str(i)))
 
-    Dist_SEDs = Gen_SED(N_SEDs, new_keys, seds_path, gen_flag)
+    Dist_SEDs = Gen_SED(N_SEDs, new_keys, param_priors, seds_path, gen_flag)
     # Place the SED at the redshift from the redshift distribution calc.
     Dist_SEDs = Set_SED_Redshift(Dist_SEDs, SED_zlist, param_priors['cosmology'])
     return Dist_SEDs
@@ -137,31 +163,35 @@ def SED_Rate(param_priors):
     return lambda x: rate
 
 
-def Draw_SED_Params(param_priors, n):
+def Draw_SED_Params(param_priors, new_sed_keys):
     # Wrapper for generic SED parameters, note this is dependent on Model
     # Currently returns for KNe
-    return Draw_KNe_Params(param_priors, n)
+    return Draw_KNe_Params(param_priors, new_sed_keys)
 
 
-def Draw_KNe_Params(param_priors, n):
+def Draw_KNe_Params(param_priors, new_sed_keys):
     # Sample the parameter priors
     # Build empty param dicts
     p = {}
-    for i in np.arange(n):
-        p['{}'.format(i)] = {}
     # Set bounds
     kappa_min = param_priors['kappa_min']
     kappa_max = param_priors['kappa_max']
-    kappa_diff = kappa_max-kappa_min
     mej_min = param_priors['m_ej_min']
     mej_max = param_priors['m_ej_max']
     vej_min = param_priors['v_ej_min']
     vej_max = param_priors['v_ej_max']
-    for key in p.keys():
-        p[key]['kappa'] = kappa_min+int(kappa_diff)*int(np.random.binomial(1, 0.5))
+    for key in new_sed_keys:
+        p[key] = {}
+        p[key]['kappa'] = np.random.uniform(low=kappa_min, high=kappa_max)
         p[key]['m_ej'] = np.random.uniform(low=mej_min, high=mej_max)
         p[key]['v_ej'] = np.random.uniform(low=vej_min, high=vej_max*pow(p[key]['m_ej']
                 / mej_min, np.log10(0.25/vej_max) / np.log10(mej_max/mej_min)))
+        p[key]['t_0'] = 0.00001157
+        p[key]['t_f'] = 50.0
+        p[key]['heatingrate_exp'] = 1.3
+        p[key]['thermalization_factor'] = 0.3
+        p[key]['DZ_enhancement_factor'] = 1.0
+        p[key]['Initial_Temp'] = 150.0
     return p
 
 
