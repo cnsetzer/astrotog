@@ -1,9 +1,5 @@
-import sys
-import os
 import numpy as np
 from math import *
-import subprocess
-from random import randint as rint
 from macronova2py import macronova2py as m2p
 #from astrotog.macronova2py import macronova2py as m2p
 

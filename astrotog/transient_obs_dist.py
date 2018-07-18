@@ -238,8 +238,8 @@ def Compute_Obs_Magnitudes(bandflux, bandflux_ref):
 
 
 def Compute_Bandflux(band, throughputs, SED=None, phase=None, ref_model=None):
-    band_wave = deepcopy(throughputs[band]['wavelengths'])
-    band_throughput = deepcopy(throughputs[band]['throughput'])
+    band_wave = throughputs[band]['wavelengths']
+    band_throughput = throughputs[band]['throughput']
     # Get 'reference' SED
     if ref_model:
         flux_per_wave = ref_model.flux(time=2.0, wave=band_wave)
