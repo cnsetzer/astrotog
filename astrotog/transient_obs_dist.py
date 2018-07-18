@@ -1,17 +1,29 @@
 import os
 import re
+import datetime
+import csv
 import numpy as np
 import sncosmo
+import pandas as pd
 from scipy.integrate import simps
 from copy import deepcopy
+import matplotlib
 import matplotlib.pyplot as plt
 import opsimsummary as oss
-import seaborn
+import seaborn as sns
+# from astrotog import macronovae_wrapper as mw
+import macronovae_wrapper as mw
+
+# font = {'size': 14}
+# matplotlib.rc('font', **font)
+sns.set_style('whitegrid')  # I personally like this style.
+sns.set_context('talk')  # Easy to change context from `talk`, `notebook`, `poster`, `paper`. though further fine tuning is human.
+# set seed
+np.random.seed(12345)
 
 def Get_SEDdb(path_to_seds):
     # Import SEDs into a dictionary structure
     # supported format is currently that of Rosswog's SEDS .data
-    # TODO convert all files to json and read from json format
     seds_data = {}
     key_list = []
     # Get the list of SED files
@@ -61,19 +73,41 @@ def Get_SED_header_info(fileio):
 def Get_ObsStratDB_Summary(surveydb_path, flag):
     # Import Observing Strategy Database
     print(' Using OpSimOutput tool to get the database of simulated survey observations.')
-    return oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag).summary
+    return oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag, opsimversion='lsstv3').summary
 
 
-def Gen_SED(N_SEDs, new_sed_keys, params, SEDdb_loc=None, gen_flag=None):
+def Gen_SED(N_SEDs, new_sed_keys, param_priors, SEDdb_loc=None, gen_flag=None):
     # Given a set of parameters generate an SED
-    if SEDdb_loc:
-        if gen_flag == 'cycle':
+    if gen_flag == 'cycle':
+        if SEDdb_loc:
             return Pick_Rand_dbSED(N_SEDs, new_sed_keys, SEDdb_loc)
-        else:
-            return interpolate_SED(N_SEDs, new_sed_keys, params, SEDdb_loc)
-    else:
-        # Space for implementation of a parametric model for SEDs
-        return generated_SED
+    elif gen_flag == 'parametric':
+        generating_parameters = Draw_KNe_Params(param_priors, new_sed_keys)
+        return Semi_Analytic_KNe(generating_parameters, new_sed_keys)
+
+
+def Semi_Analytic_KNe(generating_parameters, new_sed_keys):
+    seds_data = {}
+    for key in new_sed_keys:
+        seds_data[key] = {}
+        KNE_parameters = []
+        KNE_parameters.append(generating_parameters[key]['t_0'])
+        KNE_parameters.append(generating_parameters[key]['t_f'])
+        KNE_parameters.append(generating_parameters[key]['m_ej'])
+        KNE_parameters.append(generating_parameters[key]['v_ej'])
+        KNE_parameters.append(generating_parameters[key]['heatingrate_exp'])
+        KNE_parameters.append(generating_parameters[key]['thermalization_factor'])
+        KNE_parameters.append(generating_parameters[key]['DZ_enhancement_factor'])
+        KNE_parameters.append(generating_parameters[key]['kappa'])
+        KNE_parameters.append(generating_parameters[key]['Initial_Temp'])
+        KNE_parameters.append(False)
+        KNE_parameters.append('dummy string')
+        phase, wave, flux = mw.Make_Rosswog_SEDS(KNE_parameters, separated=True)
+        source = sncosmo.TimeSeriesSource(phase, wave, flux)
+        model = sncosmo.Model(source=source)
+        seds_data[key]['model'] = model
+        seds_data[key]['parameters'] = generating_parameters[key]
+    return seds_data
 
 
 def Pick_Rand_dbSED(N_SEDs, new_sed_keys, SEDdb_loc):
@@ -93,41 +127,6 @@ def Pick_Rand_dbSED(N_SEDs, new_sed_keys, SEDdb_loc):
     return Rand_SED
 
 
-def Interpolate_SED(params, SEDdb_loc):
-    # Given a parameter space of SEDs from numerical simulations
-    # interpolate a new SED that falls within this region.
-    SEDdb = Get_SEDdb(SEDdb_loc)
-    sub_SEDdb = Interpolation_Subspace(SEDdb, params, param_priors)
-    # Find the nearest neighbors for interpolation from the parameters.
-    Neighbor_SEDs = Get_SEDdb_Neighbors(sub_SEDdb)
-    return iSED
-
-
-def Get_SEDdb_Neighbors(sub_SEDdb):
-    # For a n dimensional parameter space spanned by data
-    # return the nearest neighbors
-    Neighbor_SEDs = {}
-    p_space = Build_Param_Space_From_SEDdb(sub_SEDdb)
-    print('This isn\'t working yet')
-    return Neighbor_SEDs
-
-
-def Interpolation_Subspace(SEDdb, params):
-    # Take in the full parameter space and boundary conditions and select the
-    # relevant subspace for interpolation
-    p_space = Build_Param_Space_From_SEDdb(SEDdb)
-    for p in params:
-        print('This isn\'t working yet')
-    return sub_SEDdb
-
-
-def Build_Param_Space_From_SEDdb(SEDdb):
-    # Given the SEDdb build the parameter space for interpolation
-    keys = SEDdb.keys()
-    print('This isn\'t working yet')
-    return p_space
-
-
 def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
     # Internal funciton to generate a redshift distribution
     Dist_SEDs = {}
@@ -140,10 +139,9 @@ def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
     new_keys = list()
     print(' The number of mock SEDs being genereated is {}'.format(N_SEDs))
     for i in np.arange(N_SEDs):
-        new_keys.append('Mock {}'.format(str(i)))
+        new_keys.append('Mock_{}'.format(str(i)))
 
-    SED_params = Draw_SED_Params(param_priors, N_SEDs)
-    Dist_SEDs = Gen_SED(N_SEDs, new_keys, SED_params, seds_path, gen_flag)
+    Dist_SEDs = Gen_SED(N_SEDs, new_keys, param_priors, seds_path, gen_flag)
     # Place the SED at the redshift from the redshift distribution calc.
     Dist_SEDs = Set_SED_Redshift(Dist_SEDs, SED_zlist, param_priors['cosmology'])
     return Dist_SEDs
@@ -167,31 +165,35 @@ def SED_Rate(param_priors):
     return lambda x: rate
 
 
-def Draw_SED_Params(param_priors, n):
+def Draw_SED_Params(param_priors, new_sed_keys):
     # Wrapper for generic SED parameters, note this is dependent on Model
     # Currently returns for KNe
-    return Draw_KNe_Params(param_priors, n)
+    return Draw_KNe_Params(param_priors, new_sed_keys)
 
 
-def Draw_KNe_Params(param_priors, n):
+def Draw_KNe_Params(param_priors, new_sed_keys):
     # Sample the parameter priors
     # Build empty param dicts
     p = {}
-    for i in np.arange(n):
-        p['{}'.format(i)] = {}
     # Set bounds
     kappa_min = param_priors['kappa_min']
     kappa_max = param_priors['kappa_max']
-    kappa_diff = kappa_max-kappa_min
     mej_min = param_priors['m_ej_min']
     mej_max = param_priors['m_ej_max']
     vej_min = param_priors['v_ej_min']
     vej_max = param_priors['v_ej_max']
-    for key in p.keys():
-        p[key]['kappa'] = kappa_min+int(kappa_diff)*int(np.random.binomial(1, 0.5))
+    for key in new_sed_keys:
+        p[key] = {}
+        p[key]['kappa'] = np.random.uniform(low=kappa_min, high=kappa_max)
         p[key]['m_ej'] = np.random.uniform(low=mej_min, high=mej_max)
         p[key]['v_ej'] = np.random.uniform(low=vej_min, high=vej_max*pow(p[key]['m_ej']
                 / mej_min, np.log10(0.25/vej_max) / np.log10(mej_max/mej_min)))
+        p[key]['t_0'] = 0.00001157
+        p[key]['t_f'] = 50.0
+        p[key]['heatingrate_exp'] = 1.3
+        p[key]['thermalization_factor'] = 0.3
+        p[key]['DZ_enhancement_factor'] = 1.0
+        p[key]['Initial_Temp'] = 150.0
     return p
 
 
@@ -203,21 +205,28 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
     throughputs = instrument_params['throughputs']
     bands = deepcopy(matched_db['filter'].unique())
     for band in bands:
-        mags, magnitude_errors, bandflux, fiveSigmaDepth, bandflux_error = [], [], [], [], []
+        mags, magnitude_errors, fiveSigmaDepth = [], [], []
+        true_bandflux, obs_bandflux, bandflux_error = [], [], []
+        true_mags = []
         lsst_band = 'lsst{}'.format(band)
         times = deepcopy(matched_db.query('filter == \'{}\''.format(band))['expMJD'].unique())
         for i, time in enumerate(times):
+            # Get the matched sed for a single observation
             single_obs_db = deepcopy(matched_db.query('expMJD == {}'.format(time)))
             obs_phase = np.asscalar(single_obs_db['expMJD'].values - SED['parameters']['min_MJD'])
-            bandflux.append(Compute_Bandflux(band=lsst_band, throughputs=throughputs, SED=SED, phase=obs_phase))
-            mags.append(Compute_Obs_Magnitudes(bandflux[i], ref_bandflux[lsst_band]))
+            true_bandflux.append(Compute_Bandflux(band=lsst_band, throughputs=throughputs, SED=SED, phase=obs_phase))
             fiveSigmaDepth.append(deepcopy(single_obs_db['fiveSigmaDepth'].values))
             bandflux_error.append(Compute_Band_Flux_Error(fiveSigmaDepth[i], ref_bandflux[lsst_band]))
-            magnitude_errors.append(Get_Magnitude_Error(bandflux[i], bandflux_error[i], ref_bandflux[lsst_band]))
+            obs_bandflux.append(Add_Flux_Noise(true_bandflux[i], bandflux_error[i]))
+            mags.append(Compute_Obs_Magnitudes(obs_bandflux[i], ref_bandflux[lsst_band]))
+            true_mags.append(Compute_Obs_Magnitudes(true_bandflux[i], ref_bandflux[lsst_band]))
+            magnitude_errors.append(Get_Magnitude_Error(obs_bandflux[i], bandflux_error[i], ref_bandflux[lsst_band]))
 
         # Assemble the per band dictionary of lightcurve observations
         lc_samples[lsst_band] = {'times': times, 'magnitudes': mags, 'mag_errors': magnitude_errors,
-                                 'band_flux': bandflux, 'flux_error': bandflux_error, 'five_sigma_depth': fiveSigmaDepth}
+                                 'band_flux': obs_bandflux, 'flux_error': bandflux_error,
+                                 'five_sigma_depth': fiveSigmaDepth, 'true_bandflux': true_bandflux,
+                                 'true_magnitude': true_mags}
     return deepcopy(lc_samples)
 
 
@@ -230,8 +239,8 @@ def Compute_Obs_Magnitudes(bandflux, bandflux_ref):
 
 
 def Compute_Bandflux(band, throughputs, SED=None, phase=None, ref_model=None):
-    band_wave = deepcopy(throughputs[band]['wavelengths'])
-    band_throughput = deepcopy(throughputs[band]['throughput'])
+    band_wave = throughputs[band]['wavelengths']
+    band_throughput = throughputs[band]['throughput']
     # Get 'reference' SED
     if ref_model:
         flux_per_wave = ref_model.flux(time=2.0, wave=band_wave)
@@ -330,21 +339,12 @@ def Get_Throughputs(instrument_params, paths):
     return instrument_params
 
 
-# def Get_BandFlux(SED, single_obs_db):
-#     # Get the bandflux for the given filter and phase
-#     obs_phase = single_obs_db['expMJD'] - SED['parameters']['min_MJD']
-#     band = 'lsst{}'.format(single_obs_db['filter'].unique()[0])
-#     bandflux = deepcopy(SED['model'].bandflux(band, obs_phase))
-#     return np.asscalar(bandflux)
-#
-#
-# def Get_Obs_Magnitudes_from_Model(SED, single_obs_db, instrument_params):
-#     # Get the observed magnitudes for the given band
-#     obs_phase = single_obs_db['expMJD'].unique() - SED['parameters']['min_MJD']
-#     band = 'lsst{}'.format(single_obs_db['filter'].unique()[0])
-#     magsys = instrument_params['Mag_Sys']
-#     bandmag = deepcopy(SED['model'].bandmag(band, magsys, obs_phase))
-#     return np.asscalar(bandmag)
+def Add_Flux_Noise(bandflux, bandflux_error):
+    # Add gaussian noise to the true bandflux
+    new_bandflux = np.random.normal(loc=bandflux, scale=bandflux_error)
+    if new_bandflux < 0.0:
+        new_bandflux = 1.0e-30
+    return new_bandflux
 
 
 def Get_Magnitude_Error(bandflux, bandflux_error, bandflux_ref):
@@ -374,16 +374,30 @@ def Gen_Observations(SEDs, obs_database, instrument_params):
 def Match_Event_to_Obs(SED, obs_database, instrument_params):
     # Function to find  "observations"
     survey_field_hw = instrument_params['FOV_rad']
-    field_ra_hw = survey_field_hw
-    field_dec_hw = survey_field_hw
     min_time = deepcopy(SED['parameters']['min_MJD'])
     max_time = deepcopy(SED['parameters']['max_MJD'])
     ra = deepcopy(SED['parameters']['ra'])
     dec = deepcopy(SED['parameters']['dec'])
     t_overlaps = deepcopy(obs_database.query('{0} < expMJD < {1}'.format(min_time, max_time)))
-    ra_t_overlaps = deepcopy(t_overlaps.query('fieldRA - {0} < {1} < fieldRA + {0}'.format(field_ra_hw, ra)))
-    # Full overlaps (note this doesn't take into account dithering)
-    full_overlap_db = deepcopy(ra_t_overlaps.query('fieldDec - {0} < {1} < fieldDec + {0}'.format(field_dec_hw, dec)))
+    ra_t_overlaps = deepcopy(t_overlaps.query('ditheredRA - 1.25*{0} < {1} < ditheredRA + 1.25*{0}'.format(survey_field_hw, ra)))
+    full_overlaps = deepcopy(ra_t_overlaps.query('ditheredDec - 1.25*{0} < {1} < ditheredDec + 1.25*{0}'.format(survey_field_hw, dec)))
+    overlapped_indexes = []
+    for index, row in full_overlaps.iterrows():
+        pointing_ra = row['ditheredRA']
+        pointing_dec = row['ditheredDec']
+        angdist = np.arccos(np.sin(pointing_dec)*np.sin(dec) +
+                            np.cos(pointing_dec) *
+                            np.cos(dec)*np.cos(ra - pointing_ra))
+        if angdist < survey_field_hw:
+            overlapped_indexes.append(index)
+        else:
+            continue
+
+    if not overlapped_indexes:
+        full_overlap_db = pd.DataFrame(columns=list(full_overlaps.columns.values))
+    else:
+        full_overlap_db = t_overlaps.loc[overlapped_indexes]
+
     return full_overlap_db
 
 
@@ -423,13 +437,6 @@ def Time_Dist(n, survey_params):
     return time_dist
 
 
-def Build_Sub_SurveyDB(obsdb_path, fields, flag):
-    # For a desired set fields create smaller subset database for queries
-    obs_db = Get_ObsStratDB(obsdb_path, flag)
-    sub_survey_db = deepcopy(obs_db[fields])
-    return sub_survey_db
-
-
 def Gen_SED_dist(SEDdb_path, survey_params, param_priors, gen_flag=None):
     # Compile the full parameter space of the generate SEDS
     # First compute the z_dist based on the survey parameters as this sets the
@@ -453,33 +460,50 @@ def Plot_Observations(Observations, fig_num):
     # mock observations.
     obs_key = 'observations'
     source_list = Observations.keys()
+
+    # Plot max lc for talk
+    max_lc_p = 0
     for key in source_list:
         band_keys = Observations[key][obs_key].keys()
-        n_plots = len(band_keys)
-        # Max 6-color lightcurves
-        f = plt.figure(fig_num)
         for i, band in enumerate(band_keys):
-            axes = f.add_subplot(n_plots, 1, i+1)
-            times = deepcopy(Observations[key][obs_key][band]['times'])
-            mags = deepcopy(Observations[key][obs_key][band]['magnitudes'])
-            errs = deepcopy(Observations[key][obs_key][band]['mag_errors'])
-            if n_plots > 1:
-                axes[i].errorbar(x=times, y=mags, yerr=errs, fmt='kx')
-                axes[i].legend(['{}'.format(band)])
-                axes[i].set(xlabel='MJD', ylabel=r'$m_{ab}$')
-                axes[i].set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
-            else:
-                axes.errorbar(x=times, y=mags, yerr=errs, fmt='kx')
-                axes.legend(['{}'.format(band)])
-                axes.set(xlabel='MJD', ylabel=r'$m_{ab}$')
-                axes.set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
-        if n_plots > 1:
-            axes[0].set_title('Source, {}'.format(key))
-        else:
-            axes.set_title('{}'.format(key))
-        # Break to only do one plot at the moment
-        fig_num += 1
-        break
+            num_p_lc = len(Observations[key][obs_key][band]['times'])
+            if num_p_lc > max_lc_p:
+                max_lc_p = num_p_lc
+                max_band = band
+                max_source_key = key
+
+    f = plt.figure(fig_num)
+    axes = f.add_subplot(1, 1, 1)
+    t_0 = Observations[max_source_key]['parameters']['min_MJD']
+    times = deepcopy(Observations[max_source_key][obs_key][max_band]['times'])
+    times = times - t_0
+    mags = deepcopy(Observations[max_source_key][obs_key][max_band]['magnitudes'])
+    errs = deepcopy(Observations[max_source_key][obs_key][max_band]['mag_errors'])
+    axes.errorbar(x=times, y=mags, yerr=errs, fmt='ro')
+    axes.legend(['{0}'.format(max_band)])
+    axes.set(xlabel=r'$t - t_{0}$ MJD', ylabel=r'$m_{ab}$')
+    axes.set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
+    axes.set_title('Simulated Source: {}'.format(max_source_key))
+    #
+    # for key in source_list:
+    #     band_keys = Observations[key][obs_key].keys()
+    #     n_plots = len(band_keys)
+    #     # Max 6-color lightcurves
+    #     f = plt.figure(fig_num)
+    #     for i, band in enumerate(band_keys):
+    #         axes = f.add_subplot(n_plots, 1, i+1)
+    #         times = deepcopy(Observations[key][obs_key][band]['times'])
+    #         mags = deepcopy(Observations[key][obs_key][band]['magnitudes'])
+    #         errs = deepcopy(Observations[key][obs_key][band]['mag_errors'])
+    #         axes.errorbar(x=times, y=mags, yerr=errs, fmt='kx')
+    #         axes.legend(['{}'.format(band)])
+    #         axes.set(xlabel='MJD', ylabel=r'$m_{ab}$')
+    #         axes.set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
+    #
+    #     axes.set_title('{}'.format(key))
+    #     # Break to only do one plot at the moment
+    #     fig_num += 1
+    #     break
     return f, fig_num
 
 
@@ -574,8 +598,9 @@ def Get_N_z(All_Sources, Detections, param_priors, fig_num):
     print('The redshift range of the detected sources is {0:.4f} to {1:.4f}.'.format(min(detect_zs),max(detect_zs)))
     # Create the histogram
     N_z_dist_fig = plt.figure(fig_num)
-    plt.hist(x=all_zs, bins=n_bins, range=(z_min, z_max), histtype='step', color='red', label='All Simulated Sources')
-    plt.hist(x=detect_zs, bins=n_bins, range=(z_min, z_max), histtype='step', color='black', label='Detected Sources')
+    plt.hist(x=all_zs, bins=n_bins, range=(z_min, z_max), histtype='step', color='red', label='All Sources', linewidth=3.0)
+    plt.hist(x=detect_zs, bins=n_bins, range=(z_min, z_max), histtype='stepfilled', edgecolor='blue', color='blue', alpha=0.3, label='Detected Sources', )
+    # plt.tick_params(which='both', length=10, width=1.5)
     plt.yscale('log')
     plt.legend(loc=2)
     plt.xlabel('z')
@@ -583,3 +608,16 @@ def Get_N_z(All_Sources, Detections, param_priors, fig_num):
     plt.title('Number of sources per {0:.3f} redshift bin'.format(bin_size))
     fig_num += 1
     return N_z_dist_fig, fig_num
+
+
+def Output_Observations(Detections):
+    run_dir = 'run_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
+    save_path = '/Users/cnsetzer/Documents/LSST/astrotog_output/' + run_dir + '/'
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    for i, name in enumerate(Detections.keys()):
+        for j, band in enumerate(Detections[name]['observations'].keys()):
+            df = pd.DataFrame.from_dict(data=Detections[name]['observations'][band])
+            file_str = save_path + name + '_' + band + '.dat'
+            df.to_csv(file_str)
+    return
