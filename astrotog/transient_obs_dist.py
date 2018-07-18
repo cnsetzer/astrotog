@@ -18,7 +18,8 @@ import macronovae_wrapper as mw
 # matplotlib.rc('font', **font)
 sns.set_style('whitegrid')  # I personally like this style.
 sns.set_context('talk')  # Easy to change context from `talk`, `notebook`, `poster`, `paper`. though further fine tuning is human.
-
+# set seed
+np.random.seed(12345)
 
 def Get_SEDdb(path_to_seds):
     # Import SEDs into a dictionary structure
