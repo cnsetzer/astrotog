@@ -10,7 +10,8 @@ from astropy.cosmology import Planck15 as cosmo
 # Define directory for locations of SEDS, references, throughputs
 paths = {}
 paths['seds'] = '/Users/cnsetzer/Documents/LSST/sedb/rosswog/NSNS/winds'
-paths['survey'] = '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
+paths['survey'] = \
+    '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
 paths['throughputs'] = '/Users/cnsetzer/Documents/LSST/throughputs'
 paths['references'] = '/Users/cnsetzer/Documents/LSST/throughputs/references'
 # Flag for the survey database retreival to only get a subset of the whole.
@@ -62,11 +63,13 @@ print(' Done generating simulated observations of mock sources.')
 All_Source_Observations = tod.Assign_SNR(All_Source_Observations)
 # Using this quality assignment and predefined selection cut criteria determine
 # 'detections'
-All_Source_Observations, Detections, n_detect, efficiency = tod.Get_Detections(All_Source_Observations, Cuts)
-print('\n The number of detected KNe is {2} for a {0} cut of {1}.\n This is an efficiency of {3:.3f}%'
+All_Source_Observations, Detections, n_detect, efficiency = \
+    tod.Get_Detections(All_Source_Observations, Cuts)
+print('\n The number of detected KNe is {2} for a {0} cut of {1}.\n This is \
+        an efficiency of {3:.3f}%'
       .format('SNR', Cuts['SNR']['lower'], n_detect, 100*efficiency))
-print('The number of mock sources is {0}, and the number of observed sources is \
-        {1}'.format(len(SEDs.keys()), len(Detections.keys())))
+print('The number of mock sources is {0}, and the number of observed sources \
+        is {1}'.format(len(SEDs.keys()), len(Detections.keys())))
 
 
 print('Outputting Observations to files in folder: \'Output\'.')

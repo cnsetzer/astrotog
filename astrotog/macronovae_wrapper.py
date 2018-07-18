@@ -1,7 +1,7 @@
 import numpy as np
 from math import *
 from macronova2py import macronova2py as m2p
-#from astrotog.macronova2py import macronova2py as m2p
+# from astrotog.macronova2py import macronova2py as m2p
 
 
 def Make_Rosswog_SEDS(KNE_parameters, separated=False):
@@ -10,7 +10,8 @@ def Make_Rosswog_SEDS(KNE_parameters, separated=False):
     MNE_parameters = KNE_parameters[0:n]
     read_hrate = KNE_parameters[n]
     heating_rates_file = KNE_parameters[n+1]
-    luminosity = m2p.calculate_luminosity(n, MNE_parameters, read_hrate, heating_rates_file, Nt)
+    luminosity = m2p.calculate_luminosity(n, MNE_parameters, read_hrate,
+                                          heating_rates_file, Nt)
     return SED_timeseries(luminosity, separated)
 
 
@@ -42,7 +43,8 @@ def SED_timeseries(luminosity, separated=False):
     delta_dex = 0.05              # spacing of time grid in log10 space
 
     # time grid parameters
-    (t_begin, t_end) = (t_start_d*day_in_s, t_end_d*day_in_s)  # starting and ending times
+    # starting and ending times
+    (t_begin, t_end) = (t_start_d*day_in_s, t_end_d*day_in_s)
     itmax = int(log10(t_end/t_begin)/delta_dex)               # of iterations
 
     ti = luminosity[:, 0]          # times
@@ -89,7 +91,8 @@ def SED_timeseries(luminosity, separated=False):
         for i, lam_A in enumerate(wavelengths):
             lam_cm = lam_A * Ang
             f_lm = Coef * Blam(lam_cm, tef[it]) * Ang
-            sed_data_struct[it*len(wavelengths)+i, :] = tim[it]/day_in_s, lam_A, f_lm
+            sed_data_struct[it*len(wavelengths)+i, :] = tim[it]/day_in_s, \
+                lam_A, f_lm
 
     if separated is True:
         phase = np.unique(sed_data_struct[:, 0])
@@ -102,6 +105,7 @@ def SED_timeseries(luminosity, separated=False):
         return phase, wave, flux
     else:
         return sed_data_struct
+
 
 def Blam(lam, T):
     #####################################
