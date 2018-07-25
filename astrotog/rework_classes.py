@@ -1,61 +1,82 @@
 import os
 import re
+import datetime
+import csv
 import numpy as np
 import sncosmo
+import pandas as pd
 from scipy.integrate import simps
 from copy import deepcopy
+import matplotlib
+import matplotlib.pyplot as plt
 import opsimsummary as oss
+import seaborn as sns
+# from astrotog import macronovae_wrapper as mw
+import macronovae_wrapper as mw
+
+# font = {'size': 14}
+# matplotlib.rc('font', **font)
+sns.set_style('whitegrid')  # I personally like this style.
+sns.set_context('talk')  # Easy to change context from `talk`, `notebook`, `poster`, `paper`. though further fine tuning is human.
+# set seed
+np.random.seed(12345)
 
 
-class observations:
+class observations(object):
     """
-    This is a class for obsevations from a cadence.
-
-    This handles
-
-
-
-
+    Class for the observations of simulated sources as made by a survey.
     """
 
-    def __init__(self):
-
+    def __init__(self, transients):
         pass
 
-    def match(self, var):
+    def overlap(self):
 
-        return self
+    def snr(self, pandas_table, survey):
+        """
 
-#
-# class database:
-#     """
-#     Base class for cadence, observation, and source database
-#     """
-#     def __init__(self, type, path, flags):
-#         self.type = type
-#         self.path = path
-#         self.flags = flags
-#         if type == 'cadence':
-#             read_cadence()
-#         elif type == 'observation':
-#             build_obs_db()
-#         elif type == 'source':
-#             build_source_db()
-#         else:
-#             raise ValueError('{0} is not a supported database type.'.format(type))
+        """
+        for iter, row in pandas_table.iterrows():
+            for band in survey.filters:
+                fluxes = np.vstack(row[band][flux_key])
+                errs = np.vstack(row[band][err_key])
+                Observations[key][obs_key][band]['SNR'] = np.divide(fluxes, errs)
+        return Observations
 
 
-class transient:
+class transient(object):
     """
     Base class for transients
     """
     def __init__(self):
-        pass
+        source = sncosmo.TimeSeriesSource(self.phase, self.wave, self.flux)
+        self.model = sncosmo.Model(source=source)
+
+    def put_in_universe(self, ra, dec, z, cosmo):
+        self.ra = ra
+        self.dec = dec
+        redshift(z, cosmo)
+
+    def redshift(self, z, cosmo):
+        self.z = z
+        lumdist = cosmo.luminosity_distance(z).value * 1e6  # in pc
+        # Note that it is necessary to scale the amplitude relative to the 10pc
+        # (i.e. 10^2 in the following eqn.) placement of the SED currently
+        self.model.set(z=z, amplitude=pow(np.divide(10.0, lumdist), 2))
+
+
+class kilonovae(transient):
+    """
+    Base class for kilonovae transients
+    """
+    def __init__(self):
+        self.type = 'kne'
+        super().__init__()
 
 
 class survey(object):
-    """ Class for instrument parameters and the simulated cadence which together
-    form the survey.
+    """ Class for instrument parameters and the simulated cadence which
+    together form the survey.
 
     Attributes
     ----------
@@ -70,6 +91,9 @@ class survey(object):
         Dictionary with an entry for each band filter of the intsrument, where
         each entry is the bandflux for the reference system chosen given the
         response of that band filter.
+    survey_parameters : Pandas dataframe
+        Dataframe containing basic information about the survey needed to
+        simulate transient observations.
 
     """
 
@@ -82,6 +106,7 @@ class survey(object):
         get_cadence(cadence_path, cadence_flags)
         get_throughputs(throughputs_path)
         get_reference_flux(reference_path)
+        get_survey_params()
 
     def get_cadence(self, path, flag='combined'):
         """
@@ -172,6 +197,9 @@ class survey(object):
         path : str
             The path to the directory containing the throughputs files for the
             instrument.
+        magsys : str
+            This is the magnitude system used for the instrument. Assumed to be
+            the AB magnitude system.
 
         Returns
         -------
@@ -221,88 +249,72 @@ class survey(object):
                 Compute_Bandflux(band=band, throughputs=self.throughputs,
                                  ref_model=ref_model)
 
+    def get_survey_params(self):
+        """
+        Method to obtain summary features of the given cadence.
+        """
+        # Given a prescribed survey simulation get basic properties of the
+        # simulation. Currently assume a rectangular (in RA,DEC) solid angle on
+        # the sky
+        # Note that the values are assumed to be in radians
+        min_db = self.cadence.min()
+        max_db = self.cadence.max()
+        # Need to extend by FOV
+        self.min_ra = min_db['ditheredRA']
+        self.max_ra = max_db['ditheredRA']
+        self.min_dec = min_db['ditheredDec']
+        self.max_dec = max_db['ditheredDec']
+        # Survey area in degrees squared
+        self.survey_area = np.rad2deg(np.sin(self.max_dec) - np.sin(self.min_dec))*np.rad2deg(self.max_ra - self.min_ra)
+        self.min_mjd = min_db['expMJD']
+        self.max_mjd = max_db['expMJD']
+        self.survey_time = self.max_mjd - self.min_mjd  # Survey time in days
 
-class distribution(object):
+
+class transient_distribution(object):
     """
     Class representing the cosmological distribution of events happening
-    in the universe
+    in the universe.
+    """
+    def __init__(self, survey, rate, cosmo):
+        self.rate = lambda x: rate/pow(1000, 3)
+        redshift_dist(survey, cosmo)
+        sky_location_dist(survey)
+        time_dist(survey)
+
+    def redshift_dist(self, survey, cosmology):
+        # Internal funciton to generate a redshift distribution
+        # Given survey parameters, a SED rate, and a cosmology draw from a Poisson
+        # distribution the distribution of the objects vs. redshift.
+        zlist = list(sncosmo.zdist(zmin=param_priors['zmin'], zmax=param_priors['zmax'],
+                                   time=survey.survey_time, area=survey.survey_area,
+                                   ratefunc=self.rate, cosmo=cosmology))
+        self.redshift_list = zlist
+        self.number_simulated = len(SED_zlist)
+
+    def sky_location_dist(self, survey):
+        # For given survey paramters distribute random points within the (RA,DEC)
+        # space. Again assuming a uniform RA,Dec region
+        self.ra_dist = np.random.uniform(survey.min_ra, survey.max_ra,
+                                         self.number_simulated)
+        self.dec_dist = np.arcsin(np.random.uniform(low=np.sin(survey.min_dec),
+                                  high=np.sin(survey.max_dec),
+                                  size=self.number_simulated))
+
+    def time_dist(self, survey):
+        self.time_dist = np.random.uniform(low=survey.min_mjd,
+                                           high=survey.max_mjd,
+                                           self.number_simulated)
+
+    # def transient_instances(self):
+    #     self.transients = []
+    #     for i in range(self.number_process):
+
+
+class detections(object):
+    """
+    Class for collecting information about transients that are observed and
+    pass the criteria for detection.
     """
     def __init__(self):
         pass
-
-
-def Compute_Bandflux(band, throughputs, SED=None, phase=None, ref_model=None):
-    """This is an example of a module level function.
-
-    Function parameters should be documented in the ``Parameters`` section.
-    The name of each parameter is required. The type and description of each
-    parameter is optional, but should be included if not obvious.
-
-    If ``*args`` or ``**kwargs`` are accepted,
-    they should be listed as ``*args`` and ``**kwargs``.
-
-    The format for a parameter is::
-
-        name : type
-            description
-
-            The description may span multiple lines. Following lines
-            should be indented to match the first line of the description.
-            The ": type" is optional.
-
-            Multiple paragraphs are supported in parameter
-            descriptions.
-
-    Parameters
-    ----------
-    param1 : int
-        The first parameter.
-    param2 : :obj:`str`, optional
-        The second parameter.
-    *args
-        Variable length argument list.
-    **kwargs
-        Arbitrary keyword arguments.
-
-    Returns
-    -------
-    bool
-        True if successful, False otherwise.
-
-        The return type is not optional. The ``Returns`` section may span
-        multiple lines and paragraphs. Following lines should be indented to
-        match the first line of the description.
-
-        The ``Returns`` section supports any reStructuredText formatting,
-        including literal blocks::
-
-            {
-                'param1': param1,
-                'param2': param2
-            }
-
-    Raises
-    ------
-    AttributeError
-        The ``Raises`` section is a list of all exceptions
-        that are relevant to the interface.
-    ValueError
-        If `param2` is equal to `param1`.
-
-    """
-    band_wave = throughputs[band]['wavelengths']
-    band_throughput = throughputs[band]['throughput']
-    # Get 'reference' SED
-    if ref_model:
-        flux_per_wave = ref_model.flux(time=2.0, wave=band_wave)
-
-    # Get SED flux
-    if SED is not None and phase is not None:
-        # For very low i.e. zero registered flux, sncosmo sometimes returns
-        # negative values so use absolute value to work around this issue.
-        flux_per_wave = abs(SED['model'].flux(phase, band_wave))
-
-    # Now integrate the combination of the SED flux and the bandpass
-    response_flux = flux_per_wave*band_throughput
-    bandflux = simps(response_flux, band_wave)
-    return np.asscalar(bandflux)
