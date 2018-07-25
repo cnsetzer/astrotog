@@ -69,11 +69,11 @@ def Get_SED_header_info(fileio):
             break
     return kappa, m_ej, v_ej
 
-
-def Get_ObsStratDB_Summary(surveydb_path, flag):
-    # Import Observing Strategy Database
-    print(' Using OpSimOutput tool to get the database of simulated survey observations.')
-    return oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag, opsimversion='lsstv3').summary
+#
+# def Get_ObsStratDB_Summary(surveydb_path, flag):
+#     # Import Observing Strategy Database
+#     print(' Using OpSimOutput tool to get the database of simulated survey observations.')
+#     return oss.OpSimOutput.fromOpSimDB(surveydb_path, subset=flag, opsimversion='lsstv3').summary
 
 
 def Gen_SED(N_SEDs, new_sed_keys, param_priors, SEDdb_loc=None, gen_flag=None):
@@ -238,105 +238,105 @@ def Compute_Obs_Magnitudes(bandflux, bandflux_ref):
     return np.asscalar(magnitude)
 
 
-def Compute_Bandflux(band, throughputs, SED=None, phase=None, ref_model=None):
-    band_wave = throughputs[band]['wavelengths']
-    band_throughput = throughputs[band]['throughput']
-    # Get 'reference' SED
-    if ref_model:
-        flux_per_wave = ref_model.flux(time=2.0, wave=band_wave)
+# def Compute_Bandflux(band, throughputs, SED=None, phase=None, ref_model=None):
+#     band_wave = throughputs[band]['wavelengths']
+#     band_throughput = throughputs[band]['throughput']
+#     # Get 'reference' SED
+#     if ref_model:
+#         flux_per_wave = ref_model.flux(time=2.0, wave=band_wave)
+#
+#     # Get SED flux
+#     if SED is not None and phase is not None:
+#         # For very low i.e. zero registered flux, sncosmo sometimes returns
+#         # negative values so use absolute value to work around this issue.
+#         flux_per_wave = abs(deepcopy(SED['model'].flux(phase, band_wave)))
+#
+#     # Now integrate the convolution of the SED and the bandpass
+#     convolution = flux_per_wave*band_throughput
+#     bandflux = simps(convolution, band_wave)
+#     return np.asscalar(bandflux)
 
-    # Get SED flux
-    if SED is not None and phase is not None:
-        # For very low i.e. zero registered flux, sncosmo sometimes returns
-        # negative values so use absolute value to work around this issue.
-        flux_per_wave = abs(deepcopy(SED['model'].flux(phase, band_wave)))
+#
+# def Get_Reference_Flux(instrument_params, paths):
+#     magsys = instrument_params['Mag_Sys']
+#     ref_wave = list()
+#     ref_flux_per_wave = list()
+#     # Add a line to the phase object too to use with sncosmo
+#     phase_for_ref = np.arange(0.5, 5.0, step=0.5)
+#     ref_filepath = os.path.join(paths['references'], '{0}.dat'.format(magsys))
+#     ref_file = open(ref_filepath, 'r')
+#     for line in ref_file:
+#         # Strip header comments
+#         if line.strip().startswith("#"):
+#             continue
+#         else:
+#             # Strip per line comments
+#             comment_match = re.match(r'^([^#]*)#(.*)$', line)
+#             if comment_match:  # The line contains a hash / comment
+#                 line = comment_match.group(1)
+#             line = line.strip()
+#             split_fields = re.split(r'[ ,|;"]+', line)
+#             ref_wave.append(float(split_fields[0]))
+#             ref_flux_per_wave.append(float(split_fields[1]))
+#
+#     ref_file.close()
+#     # Convert to arrays for use with the sncosmo model
+#     phase_for_ref = np.asarray(phase_for_ref)
+#     ref_wave = np.asarray(ref_wave)
+#     ref_flux_per_wave = np.asarray(ref_flux_per_wave)
+#     ref_flux_per_wave_for_model = np.empty([len(phase_for_ref), len(ref_wave)])
+#
+#     # Fake multi-phase observations to exploit the sncosmo model
+#     for i, phase in enumerate(phase_for_ref):
+#             ref_flux_per_wave_for_model[i, :] = ref_flux_per_wave
+#     # Put throughput and reference on the same wavelength grid
+#     # Exploit sncosmo functionality to do this
+#     ref_source = sncosmo.TimeSeriesSource(phase_for_ref, ref_wave, ref_flux_per_wave_for_model)
+#     ref_model = sncosmo.Model(source=ref_source)
+#     ref_bandflux = {}
+#     for band in instrument_params['throughputs'].keys():
+#         ref_bandflux[band] = Compute_Bandflux(band=band, throughputs=instrument_params['throughputs'], ref_model=ref_model)
+#     instrument_params['Bandflux_References'] = ref_bandflux
+#     return instrument_params
 
-    # Now integrate the convolution of the SED and the bandpass
-    convolution = flux_per_wave*band_throughput
-    bandflux = simps(convolution, band_wave)
-    return np.asscalar(bandflux)
-
-
-def Get_Reference_Flux(instrument_params, paths):
-    magsys = instrument_params['Mag_Sys']
-    ref_wave = list()
-    ref_flux_per_wave = list()
-    # Add a line to the phase object too to use with sncosmo
-    phase_for_ref = np.arange(0.5, 5.0, step=0.5)
-    ref_filepath = os.path.join(paths['references'], '{0}.dat'.format(magsys))
-    ref_file = open(ref_filepath, 'r')
-    for line in ref_file:
-        # Strip header comments
-        if line.strip().startswith("#"):
-            continue
-        else:
-            # Strip per line comments
-            comment_match = re.match(r'^([^#]*)#(.*)$', line)
-            if comment_match:  # The line contains a hash / comment
-                line = comment_match.group(1)
-            line = line.strip()
-            split_fields = re.split(r'[ ,|;"]+', line)
-            ref_wave.append(float(split_fields[0]))
-            ref_flux_per_wave.append(float(split_fields[1]))
-
-    ref_file.close()
-    # Convert to arrays for use with the sncosmo model
-    phase_for_ref = np.asarray(phase_for_ref)
-    ref_wave = np.asarray(ref_wave)
-    ref_flux_per_wave = np.asarray(ref_flux_per_wave)
-    ref_flux_per_wave_for_model = np.empty([len(phase_for_ref), len(ref_wave)])
-
-    # Fake multi-phase observations to exploit the sncosmo model
-    for i, phase in enumerate(phase_for_ref):
-            ref_flux_per_wave_for_model[i, :] = ref_flux_per_wave
-    # Put throughput and reference on the same wavelength grid
-    # Exploit sncosmo functionality to do this
-    ref_source = sncosmo.TimeSeriesSource(phase_for_ref, ref_wave, ref_flux_per_wave_for_model)
-    ref_model = sncosmo.Model(source=ref_source)
-    ref_bandflux = {}
-    for band in instrument_params['throughputs'].keys():
-        ref_bandflux[band] = Compute_Bandflux(band=band, throughputs=instrument_params['throughputs'], ref_model=ref_model)
-    instrument_params['Bandflux_References'] = ref_bandflux
-    return instrument_params
-
-
-def Get_Throughputs(instrument_params, paths):
-    throughputs = {}
-    instrument = instrument_params['Instrument']
-    throughputs_path = os.path.join(paths['throughputs'], '{0}'.format(instrument))
-    tp_filelist = os.listdir(throughputs_path)
-    for band_file_name in tp_filelist:
-        band = band_file_name.strip('.dat')
-        throughputs[band] = {}
-        conversion = 1.0  # Conversion factor for the wavelength unit to Angstrom
-        throughput_file = throughputs_path + '/' + band_file_name
-        band_wave = list()
-        band_throughput = list()
-        # Get the particular band throughput
-        band_file = open(throughput_file, 'r')
-        for line in band_file:
-            # Strip header comments
-            if line.strip().startswith("#"):
-                nano_match = re.search(r'nm|nanometer', line)
-                if nano_match:
-                    conversion = 10.0  # conversion for nanometers to Angstrom
-                continue
-            else:
-                # Strip per line comments
-                comment_match = re.match(r'^([^#]*)#(.*)$', line)
-                if comment_match:  # The line contains a hash / comment
-                    line = comment_match.group(1)
-                line = line.strip()
-                split_fields = re.split(r'[ ,|;"]+', line)
-                band_wave.append(conversion*float(split_fields[0]))
-                band_throughput.append(float(split_fields[1]))
-        band_file.close()
-        band_wave = np.asarray(band_wave)
-        band_throughput = np.asarray(band_throughput)
-        throughputs[band]['wavelengths'] = band_wave
-        throughputs[band]['throughput'] = band_throughput
-        instrument_params['throughputs'] = throughputs
-    return instrument_params
+#
+# def Get_Throughputs(instrument_params, paths):
+#     throughputs = {}
+#     instrument = instrument_params['Instrument']
+#     throughputs_path = os.path.join(paths['throughputs'], '{0}'.format(instrument))
+#     tp_filelist = os.listdir(throughputs_path)
+#     for band_file_name in tp_filelist:
+#         band = band_file_name.strip('.dat')
+#         throughputs[band] = {}
+#         conversion = 1.0  # Conversion factor for the wavelength unit to Angstrom
+#         throughput_file = throughputs_path + '/' + band_file_name
+#         band_wave = list()
+#         band_throughput = list()
+#         # Get the particular band throughput
+#         band_file = open(throughput_file, 'r')
+#         for line in band_file:
+#             # Strip header comments
+#             if line.strip().startswith("#"):
+#                 nano_match = re.search(r'nm|nanometer', line)
+#                 if nano_match:
+#                     conversion = 10.0  # conversion for nanometers to Angstrom
+#                 continue
+#             else:
+#                 # Strip per line comments
+#                 comment_match = re.match(r'^([^#]*)#(.*)$', line)
+#                 if comment_match:  # The line contains a hash / comment
+#                     line = comment_match.group(1)
+#                 line = line.strip()
+#                 split_fields = re.split(r'[ ,|;"]+', line)
+#                 band_wave.append(conversion*float(split_fields[0]))
+#                 band_throughput.append(float(split_fields[1]))
+#         band_file.close()
+#         band_wave = np.asarray(band_wave)
+#         band_throughput = np.asarray(band_throughput)
+#         throughputs[band]['wavelengths'] = band_wave
+#         throughputs[band]['throughput'] = band_throughput
+#         instrument_params['throughputs'] = throughputs
+#     return instrument_params
 
 
 def Add_Flux_Noise(bandflux, bandflux_error):
