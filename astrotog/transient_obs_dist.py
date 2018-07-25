@@ -11,8 +11,12 @@ import matplotlib
 import matplotlib.pyplot as plt
 import opsimsummary as oss
 import seaborn as sns
+
 # from astrotog import macronovae_wrapper as mw
 import macronovae_wrapper as mw
+import multiprocessing as mp
+
+import sfdmap.SFDMap as sfd
 
 # font = {'size': 14}
 # matplotlib.rc('font', **font)
@@ -608,6 +612,40 @@ def Get_N_z(All_Sources, Detections, param_priors, fig_num):
     plt.title('Number of sources per {0:.3f} redshift bin'.format(bin_size))
     fig_num += 1
     return N_z_dist_fig, fig_num
+
+
+def Add_Dust(Observations):
+    obs_key = 'observations'
+    param_key = 'parameters'
+    for source in Observations.keys():
+        ra = Observations[source][param_key]['ra']
+        dec = Observations[source][param_key]['dec']
+        # Convert to the proper astropy format for the query.
+
+        uncorr_ebv = sfd.ebv(ra, dec, unit='radian')
+        for band in Observations[source][obs_key].keys():
+            if band = 'lsstu':
+                    bcor_ebv =
+            elif band = 'lsstg':
+                    bcor_ebv =
+            elif band = 'lsstr':
+                    bcor_ebv =
+            elif band = 'lssti':
+                    bcor_ebv =
+            elif band = 'lsstz':
+                    bcor_ebv =
+            elif band = 'lssty':
+                    bcor_ebv =
+            for i in range(len(Observations[source][obs_key][band][times])):
+                Observations[source][obs_key][band]['magnitudes'][i] += bcor_ebv
+
+    return Observations
+
+def Add_Peculiar_Velos(SEDs,):
+
+    SEDs[]
+
+    return
 
 
 def Output_Observations(Detections):
