@@ -1,7 +1,5 @@
 import os
 import re
-import datetime
-import csv
 import numpy as np
 import sncosmo
 import pandas as pd
@@ -11,18 +9,15 @@ import matplotlib
 import matplotlib.pyplot as plt
 import opsimsummary as oss
 import seaborn as sns
-# from astrotog import macronovae_wrapper as mw
-import macronovae_wrapper as mw
 
 # font = {'size': 14}
 # matplotlib.rc('font', **font)
 sns.set_style('whitegrid')  # I personally like this style.
 sns.set_context('talk')  # Easy to change context from `talk`, `notebook`, `poster`, `paper`. though further fine tuning is human.
 # set seed
-np.random.seed(12345)
 
 
-def Compute_Bandflux(band_throughput, SED_model=None, phase=None, ref_model=None):
+def bandflux(band_throughput, SED_model=None, phase=None, ref_model=None):
     """This is wrapper function to compute either the reference system bandflux
        or the bandflux of a source.
 
@@ -64,7 +59,7 @@ def Compute_Bandflux(band_throughput, SED_model=None, phase=None, ref_model=None
     return np.asscalar(bandflux)
 
 
-def Compute_Obs_Magnitudes(bandflux, bandflux_ref):
+def observed_magnitude(bandflux, bandflux_ref):
     # Definte the flux reference based on the magnitude system reference to
     # compute the associated maggi
     maggi = bandflux/bandflux_ref
@@ -72,7 +67,7 @@ def Compute_Obs_Magnitudes(bandflux, bandflux_ref):
     return np.asscalar(magnitude)
 
 
-def Add_Flux_Noise(bandflux, bandflux_error):
+def flux_noise(bandflux, bandflux_error):
     # Add gaussian noise to the true bandflux
     new_bandflux = np.random.normal(loc=bandflux, scale=bandflux_error)
     if new_bandflux < 0.0:
@@ -80,19 +75,28 @@ def Add_Flux_Noise(bandflux, bandflux_error):
     return new_bandflux
 
 
-def Get_Magnitude_Error(bandflux, bandflux_error, bandflux_ref):
+def magnitude_error(bandflux, bandflux_error, bandflux_ref):
     # Compute the per-band magnitude errors
     magnitude_error = abs(-2.5/(bandflux*np.log(10)))*bandflux_error
     return np.asscalar(magnitude_error)
 
 
-def Compute_Band_Flux_Error(fiveSigmaDepth, bandflux_ref):
+def band_flux_error(fiveSigmaDepth, bandflux_ref):
     # Compute the integrated bandflux error
     # Note this is trivial since the five sigma depth incorporates the
     # integrated time of the exposures.
     Flux_five_sigma = bandflux_ref*pow(10, -0.4*fiveSigmaDepth)
     bandflux_error = Flux_five_sigma/5
     return np.asscalar(bandflux_error)
+
+
+def observe(transients, survey):
+
+    return
+
+
+def class_method_in_pool(class_instance, method, method_args):
+    return = getattr(class_instance, method)(method_args)
 
 
 # def Output_Observations(Detections):
@@ -199,6 +203,15 @@ def compile_transients():
 def run_simulation():
     """
     Wrapper function to run the full simulation set of functions like a script.
+    """
+
+    return
+
+
+def run_parallel(simulation, survey, transient_distribution):
+    """
+    This is the wrapper function needed to run in parallel with the python
+    multiprocess framework.
     """
 
     return

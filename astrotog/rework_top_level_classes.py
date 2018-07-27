@@ -1,49 +1,41 @@
 import os
 import re
-import datetime
-import csv
 import numpy as np
 import sncosmo
 import pandas as pd
 from scipy.integrate import simps
-from copy import deepcopy
-import matplotlib
-import matplotlib.pyplot as plt
-import opsimsummary as oss
-import seaborn as sns
 # from astrotog import macronovae_wrapper as mw
 import macronovae_wrapper as mw
-
-# font = {'size': 14}
-# matplotlib.rc('font', **font)
-sns.set_style('whitegrid')  # I personally like this style.
-sns.set_context('talk')  # Easy to change context from `talk`, `notebook`, `poster`, `paper`. though further fine tuning is human.
-# set seed
-np.random.seed(12345)
 
 
 class simulation(object):
     """
     Top-level class that represents the desired run_simulation
     """
-    def __init__(self):
-        self.cadence_path =
-        self.throughputs_path =
-        self.reference_path =
-        self.output_path =
-        self.cadence_flags =
-        self.z_min =
-        self.z_max =
-        self.z_bin_size =
-        self.multiprocess =
+    def __init__(self, cadence_path, throughputs_path, reference_path, z_max,
+                 output_path=os.getcwd(), cadence_flags='combined', z_min=0.0,
+                 z_bin_size=0.01, multiproc=False, num_processes=1,
+                 batch_size='all', cosmology=cosmo, rate_gpc=1000):
+        self.cadence_path = cadence_path
+        self.throughputs_path = throughputs_path
+        self.reference_path = reference_path
+        self.output_path = output_path
+        self.cadence_flags = cadence_flags
+        self.z_min = z_min
+        self.z_max = z_max
+        self.z_bin_size = z_bin_size
+        self.multiprocess = multiproc
+        self.batch_size = batch_size
+        self.cosmology = cosmology
+        self.num_processes = num_processes
+        self.rate = rate
 
 
 class LSST(survey):
     """
     Top-level class for the LSST instrument and survey.
     """
-    def __init__(self, cadence_path, throughputs_path, reference_path,
-                 cadence_flags, instrument_params=None):
+    def __init__(self, simulation, instrument_params=None):
         if instrument_params is None:
             self.FOV_radius = np.deg2rad(1.75)
             self.instrument = 'lsst'
@@ -56,8 +48,7 @@ class LSST(survey):
             self.magsys = instrument_params['magsys']
             self.filters = instrument_params['filters']
 
-        super().__init__(cadence_path, throughputs_path, reference_path,
-                         cadence_flags)
+        super().__init__(simulation)
 
 
 class rosswog_kilonovae(kilonovae):
@@ -66,19 +57,33 @@ class rosswog_kilonovae(kilonovae):
     semi-analytic model for kilonovae spectral energy distributions.
     """
     def __init__(self, mej=None, vej=None, kappa=None, bounds=None,
-                 uniform_v=False, KNE_parameters=None):
-        if (mej and vej and kappa):
-            self.m_ej = mej
-            self.v_ej = vej
-            self.kappa = kappa
-        elif KNE_parameters:
-            pass
+                 uniform_v=False, KNE_parameters=None, parameter_dist=False,
+                 num_samples=1):
+        if parameter_dist is True:
+            if num_samples > 1:
+                self.number_of_samples = num_samples
+                draw_parameters(bounds, uniform_v)
+            else:
+                print('To generate a parameter distribution you need to supply\
+                        a number of samples greater than one.')
+                exit()
+            self.subtype = 'rosswog semi-analytic'
+            self.type = 'parameter distribution'
         else:
-            draw_parameters(bounds, uniform_v)
-        make_sed(KNE_parameters)
-        self.subtype = 'rosswog semi-analytic'
-        super().__init__()
+            self.number_of_samples = num_samples
+            if (mej and vej and kappa):
+                self.m_ej = mej
+                self.v_ej = vej
+                self.kappa = kappa
+            elif KNE_parameters:
+                pass
+            else:
+                draw_parameters(bounds, uniform_v)
+            make_sed(KNE_parameters)
+            self.subtype = 'rosswog semi-analytic'
+            super().__init__()
 
+    @method
     def draw_parameters(self, bounds=None, uniform_v=False):
         if bounds is not None:
             kappa_min = min(bounds['kappa'])
@@ -96,14 +101,25 @@ class rosswog_kilonovae(kilonovae):
             vej_min = 0.01
             vej_max = 0.5
 
-        self.kappa = np.random.uniform(low=kappa_min, high=kappa_max)
-        self.m_ej = np.random.uniform(low=mej_min, high=mej_max)
+        # Determine output shape for parameters based on size
+        if self.number_of_samples > 1:
+            out_shape = (self.number_of_samples, 1)
+        else:
+            out_shape = self.number_of_samples
+
+        self.kappa = np.random.uniform(low=kappa_min, high=kappa_max,
+                                       size=out_shape)
+        self.m_ej = np.random.uniform(low=mej_min, high=mej_max,
+                                      size=out_shape)
         if uniform_v is False:
             self.v_ej = np.random.uniform(low=vej_min, high=vej_max*pow(p[key]['m_ej']
-                                          / mej_min, np.log10(0.25/vej_max) / np.log10(mej_max/mej_min)))
+                                          / mej_min, np.log10(0.25/vej_max) / np.log10(mej_max/mej_min)),
+                                          size=out_shape)
         else:
-            self.v_ej = np.random.uniform(low=vej_min, high=vej_max)
+            self.v_ej = np.random.uniform(low=vej_min, high=vej_max,
+                                          size=out_shape)
 
+    @method
     def make_sed(self, KNE_parameters=None):
         if KNE_parameters is None:
             KNE_parameters = []

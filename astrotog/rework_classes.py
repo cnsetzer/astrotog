@@ -1,25 +1,10 @@
 import os
 import re
-import datetime
-import csv
 import numpy as np
 import sncosmo
 import pandas as pd
 from scipy.integrate import simps
-from copy import deepcopy
-import matplotlib
-import matplotlib.pyplot as plt
 import opsimsummary as oss
-import seaborn as sns
-# from astrotog import macronovae_wrapper as mw
-import macronovae_wrapper as mw
-
-# font = {'size': 14}
-# matplotlib.rc('font', **font)
-sns.set_style('whitegrid')  # I personally like this style.
-sns.set_context('talk')  # Easy to change context from `talk`, `notebook`, `poster`, `paper`. though further fine tuning is human.
-# set seed
-np.random.seed(12345)
 
 
 class observations(object):
@@ -51,11 +36,15 @@ class transient(object):
     def __init__(self):
         source = sncosmo.TimeSeriesSource(self.phase, self.wave, self.flux)
         self.model = sncosmo.Model(source=source)
+        return self
 
-    def put_in_universe(self, ra, dec, z, cosmo):
+    def put_in_universe(self, t, ra, dec, z, cosmo):
+        self.t0 = t
         self.ra = ra
         self.dec = dec
         redshift(z, cosmo)
+        self.tmax = t + self.model.maxtime()
+        return self
 
     def redshift(self, z, cosmo):
         self.z = z
@@ -97,15 +86,14 @@ class survey(object):
 
     """
 
-    def __init__(self, cadence_path, throughputs_path, reference_path,
-                 cadence_flags):
+    def __init__(self, simulation):
         """
         Builds the survey object calling the methods to set the base attributes
         of the class.
         """
-        get_cadence(cadence_path, cadence_flags)
-        get_throughputs(throughputs_path)
-        get_reference_flux(reference_path)
+        get_cadence(simulation.cadence_path, simulation.cadence_flags)
+        get_throughputs(simulation.throughputs_path)
+        get_reference_flux(simulation.reference_path)
         get_survey_params()
 
     def get_cadence(self, path, flag='combined'):
@@ -276,35 +264,38 @@ class transient_distribution(object):
     Class representing the cosmological distribution of events happening
     in the universe.
     """
-    def __init__(self, survey, rate, cosmo):
-        self.rate = lambda x: rate/pow(1000, 3)
-        redshift_dist(survey, cosmo)
+    def __init__(self, survey, sim, parameter_distribution=None):
+        self.rate = lambda x: sim.rate/pow(1000, 3)
+        redshift_distribution(survey, sim.cosmology)
         sky_location_dist(survey)
         time_dist(survey)
 
-    def redshift_dist(self, survey, cosmology):
+    def redshift_distribution(self, survey, cosmology):
         # Internal funciton to generate a redshift distribution
         # Given survey parameters, a SED rate, and a cosmology draw from a Poisson
         # distribution the distribution of the objects vs. redshift.
-        zlist = list(sncosmo.zdist(zmin=param_priors['zmin'], zmax=param_priors['zmax'],
-                                   time=survey.survey_time, area=survey.survey_area,
-                                   ratefunc=self.rate, cosmo=cosmology))
-        self.redshift_list = zlist
-        self.number_simulated = len(SED_zlist)
+        zlist = np.asarray(list(sncosmo.zdist(zmin=param_priors['zmin'],
+                                              zmax=param_priors['zmax'],
+                                              time=survey.survey_time,
+                                              area=survey.survey_area,
+                                              ratefunc=self.rate,
+                                              cosmo=cosmology)))
+        self.redshift_dist = zlist.reshape((len(zlist), 1))
+        self.number_simulated = len(zlist)
 
     def sky_location_dist(self, survey):
         # For given survey paramters distribute random points within the (RA,DEC)
         # space. Again assuming a uniform RA,Dec region
-        self.ra_dist = np.random.uniform(survey.min_ra, survey.max_ra,
-                                         self.number_simulated)
+        self.ra_dist = np.random.uniform(low=survey.min_ra, high=survey.max_ra,
+                                         size=(self.number_simulated, 1))
         self.dec_dist = np.arcsin(np.random.uniform(low=np.sin(survey.min_dec),
                                   high=np.sin(survey.max_dec),
-                                  size=self.number_simulated))
+                                  size=(self.number_simulated, 1)))
 
     def time_dist(self, survey):
         self.time_dist = np.random.uniform(low=survey.min_mjd,
                                            high=survey.max_mjd,
-                                           self.number_simulated)
+                                           size=(self.number_simulated, 1))
 
     # def transient_instances(self):
     #     self.transients = []

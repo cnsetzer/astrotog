@@ -1,29 +1,29 @@
-import numpy as np
-from math import inf
-import matplotlib.pyplot as plt
-from astrotog import transient_obs_dist as tod
-import seaborn
-# Import a cosmology, comment out if you want to define your own per the
-# astropy cosmology class
-from astropy.cosmology import Planck15 as cosmo
-
-# Define directory for locations of SEDS, references, throughputs
-paths = {}
-paths['seds'] = '/Users/cnsetzer/Documents/LSST/sedb/rosswog/NSNS/winds'
-paths['survey'] = \
-    '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
-paths['throughputs'] = '/Users/cnsetzer/Documents/LSST/throughputs'
-paths['references'] = '/Users/cnsetzer/Documents/LSST/throughputs/references'
-# Flag for the survey database retreival to only get a subset of the whole.
-db_flag = 'combined'
-# Parameter prior for generating the transient KNe distribution
-param_priors = {'zmin': 0.0, 'zmax': 0.1, 'z_bin_size': 0.02, 'rate': 1000.0,
-                'cosmology': cosmo, 'kappa_min': 1, 'kappa_max': 15,
-                'm_ej_min': 0.01, 'm_ej_max': 0.2, 'v_ej_min': 0.01,
-                'v_ej_max': 0.5}
-# instrument_params = {'Instrument': 'lsst', 'FOV_rad': np.deg2rad(1.75),
-#                      'Mag_Sys': 'ab'}
-# Different selections cuts and corresponding limits
+# import numpy as np
+# from math import inf
+# import matplotlib.pyplot as plt
+# from astrotog import transient_obs_dist as tod
+# import seaborn
+# # Import a cosmology, comment out if you want to define your own per the
+# # astropy cosmology class
+# from astropy.cosmology import Planck15 as cosmo
+#
+# # Define directory for locations of SEDS, references, throughputs
+# paths = {}
+# paths['seds'] = '/Users/cnsetzer/Documents/LSST/sedb/rosswog/NSNS/winds'
+# paths['survey'] = \
+#     '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
+# paths['throughputs'] = '/Users/cnsetzer/Documents/LSST/throughputs'
+# paths['references'] = '/Users/cnsetzer/Documents/LSST/throughputs/references'
+# # Flag for the survey database retreival to only get a subset of the whole.
+# db_flag = 'combined'
+# # Parameter prior for generating the transient KNe distribution
+# param_priors = {'zmin': 0.0, 'zmax': 0.1, 'z_bin_size': 0.02, 'rate': 1000.0,
+#                 'cosmology': cosmo, 'kappa_min': 1, 'kappa_max': 15,
+#                 'm_ej_min': 0.01, 'm_ej_max': 0.2, 'v_ej_min': 0.01,
+#                 'v_ej_max': 0.5}
+# # instrument_params = {'Instrument': 'lsst', 'FOV_rad': np.deg2rad(1.75),
+# #                      'Mag_Sys': 'ab'}
+# # Different selections cuts and corresponding limits
 Cuts = {'SNR': {'upper': inf, 'lower': 5, 'limit': 0.50}}
 # Flag for SED generation to just cycle through SEDs in the database
 # gen_flag = 'parametric'
@@ -31,25 +31,25 @@ Cuts = {'SNR': {'upper': inf, 'lower': 5, 'limit': 0.50}}
 # Initialize the figure number for iterative, functional plotting
 fig_num = 1
 # Setup the basic running structure
-print(' ')
-obs_database = tod.Get_ObsStratDB_Summary(paths['survey'], db_flag)
-print(' Done reading in observation databse: {}'.format(paths['survey']))
+# print(' ')
+# obs_database = tod.Get_ObsStratDB_Summary(paths['survey'], db_flag)
+# print(' Done reading in observation databse: {}'.format(paths['survey']))
 
 
-print('\n Getting survey paramters...')
-survey_params = tod.Get_Survey_Params(obs_database)
-print(' Done retreiving survey paramters.')
+# print('\n Getting survey paramters...')
+# survey_params = tod.Get_Survey_Params(obs_database)
+# print(' Done retreiving survey paramters.')
+#
+# print(' Getting the LSST throughputs and computing the reference fluxes...')
+# instrument_params = tod.Get_Throughputs(instrument_params, paths)
+# instrument_params = tod.Get_Reference_Flux(instrument_params, paths)
+# print(' Done computing instrument parameters.')
 
-print(' Getting the LSST throughputs and computing the reference fluxes...')
-instrument_params = tod.Get_Throughputs(instrument_params, paths)
-instrument_params = tod.Get_Reference_Flux(instrument_params, paths)
-print(' Done computing instrument parameters.')
 
-
-# Generate the all mock KNe SEDs
-print('\n Generating mock KNe sources...')
-SEDs = tod.Gen_SED_dist(paths['seds'], survey_params, param_priors, gen_flag)
-print(' Done generating mock KNe sources.')
+# # Generate the all mock KNe SEDs
+# print('\n Generating mock KNe sources...')
+# SEDs = tod.Gen_SED_dist(paths['seds'], survey_params, param_priors, gen_flag)
+# print(' Done generating mock KNe sources.')
 
 
 # Apply observation to all mock SEDs

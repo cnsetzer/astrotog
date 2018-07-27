@@ -127,24 +127,24 @@
 #     return Rand_SED
 
 
-def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
-    # Internal funciton to generate a redshift distribution
-    Dist_SEDs = {}
-    # Given survey parameters, a SED rate, and a cosmology draw from a Poisson
-    # distribution the distribution of the objects vs. redshift.
-    SED_zlist = list(sncosmo.zdist(zmin=param_priors['zmin'], zmax=param_priors['zmax'],
-                                   time=survey_params['survey_time'], area=survey_params['survey_area'],
-                                   ratefunc=SED_Rate(param_priors), cosmo=param_priors['cosmology']))
-    N_SEDs = len(SED_zlist)
-    new_keys = list()
-    print(' The number of mock SEDs being genereated is {}'.format(N_SEDs))
-    for i in np.arange(N_SEDs):
-        new_keys.append('Mock_{}'.format(str(i)))
-
-    Dist_SEDs = Gen_SED(N_SEDs, new_keys, param_priors, seds_path, gen_flag)
-    # Place the SED at the redshift from the redshift distribution calc.
-    Dist_SEDs = Set_SED_Redshift(Dist_SEDs, SED_zlist, param_priors['cosmology'])
-    return Dist_SEDs
+# def Gen_zDist_SEDs(seds_path, survey_params, param_priors, gen_flag=None):
+#     # Internal funciton to generate a redshift distribution
+#     Dist_SEDs = {}
+#     # Given survey parameters, a SED rate, and a cosmology draw from a Poisson
+#     # distribution the distribution of the objects vs. redshift.
+#     SED_zlist = list(sncosmo.zdist(zmin=param_priors['zmin'], zmax=param_priors['zmax'],
+#                                    time=survey_params['survey_time'], area=survey_params['survey_area'],
+#                                    ratefunc=SED_Rate(param_priors), cosmo=param_priors['cosmology']))
+#     N_SEDs = len(SED_zlist)
+#     new_keys = list()
+#     print(' The number of mock SEDs being genereated is {}'.format(N_SEDs))
+#     for i in np.arange(N_SEDs):
+#         new_keys.append('Mock_{}'.format(str(i)))
+#
+#     Dist_SEDs = Gen_SED(N_SEDs, new_keys, param_priors, seds_path, gen_flag)
+#     # Place the SED at the redshift from the redshift distribution calc.
+#     Dist_SEDs = Set_SED_Redshift(Dist_SEDs, SED_zlist, param_priors['cosmology'])
+#     return Dist_SEDs
 
 
 # def Set_SED_Redshift(SEDs, redshifts, cosmology):
@@ -437,22 +437,22 @@ def Match_Event_to_Obs(SED, obs_database, instrument_params):
 #     return time_dist
 
 
-def Gen_SED_dist(SEDdb_path, survey_params, param_priors, gen_flag=None):
-    # Compile the full parameter space of the generate SEDS
-    # First compute the z_dist based on the survey parameters as this sets the
-    # Number of SEDs
-    SEDs = Gen_zDist_SEDs(SEDdb_path, survey_params, param_priors, gen_flag)
-    key_list = SEDs.keys()
-    N_SEDs = len(SEDs)
-    RA_dist, Dec_dist = Ra_Dec_Dist(N_SEDs, survey_params)
-    t_dist = Time_Dist(N_SEDs, survey_params)
-    for i, key in enumerate(key_list):
-        SEDs[key]['parameters']['z'] = deepcopy(SEDs[key]['model'].get('z'))
-        SEDs[key]['parameters']['ra'] = RA_dist[i]
-        SEDs[key]['parameters']['dec'] = Dec_dist[i]
-        SEDs[key]['parameters']['min_MJD'] = t_dist[i]
-        SEDs[key]['parameters']['max_MJD'] = t_dist[i] + SEDs[key]['model'].maxtime()
-    return SEDs
+# def Gen_SED_dist(SEDdb_path, survey_params, param_priors, gen_flag=None):
+#     # Compile the full parameter space of the generate SEDS
+#     # First compute the z_dist based on the survey parameters as this sets the
+#     # Number of SEDs
+#     SEDs = Gen_zDist_SEDs(SEDdb_path, survey_params, param_priors, gen_flag)
+#     key_list = SEDs.keys()
+#     N_SEDs = len(SEDs)
+#     RA_dist, Dec_dist = Ra_Dec_Dist(N_SEDs, survey_params)
+#     t_dist = Time_Dist(N_SEDs, survey_params)
+#     for i, key in enumerate(key_list):
+#         SEDs[key]['parameters']['z'] = deepcopy(SEDs[key]['model'].get('z'))
+#         SEDs[key]['parameters']['ra'] = RA_dist[i]
+#         SEDs[key]['parameters']['dec'] = Dec_dist[i]
+#         SEDs[key]['parameters']['min_MJD'] = t_dist[i]
+#         SEDs[key]['parameters']['max_MJD'] = t_dist[i] + SEDs[key]['model'].maxtime()
+#     return SEDs
 
 
 # def Plot_Observations(Observations, fig_num):
