@@ -10,6 +10,7 @@ from itertools import repeat
 from time import time
 import datetime
 from copy import copy, deepcopy
+import pandas as pd
 np.random.seed(12345)
 
 
