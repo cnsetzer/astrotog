@@ -91,7 +91,7 @@ def band_flux_error(fiveSigmaDepth, bandflux_ref):
 
 
 def observe(transients, survey):
-
+    
     return
 
 

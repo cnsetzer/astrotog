@@ -117,7 +117,9 @@ if __name__ == "__main__":
     else:
         num_batches = int(ceil(num_params_pprocess/batch_size))
 
-    param_index = 0
+    # Create pandas table
+    stored_data = pd.DataFrame(columns=['ID',])
+
     # Launch 2 threads per MPI worker
     p = mp.Pool(2)
     for i in range(num_batches):
@@ -140,5 +142,5 @@ if __name__ == "__main__":
                                               batch_sky_loc, repeat(cosmo)))
         transient_batch = p.starmap(class_method_in_pool,
                                     batch_method_iter_for_pool)
-        observation_batch_iter = list(zip(transient_batch, repeat(LSST_survey)))
+        observation_batch_iter = list(zip(transient_batch, repeat(LSST_survey.copy())))
         observations = p.starmap(observe, observation_batch_iter)
