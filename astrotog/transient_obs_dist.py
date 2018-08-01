@@ -11,8 +11,12 @@ import matplotlib
 import matplotlib.pyplot as plt
 import opsimsummary as oss
 import seaborn as sns
+
 # from astrotog import macronovae_wrapper as mw
 import macronovae_wrapper as mw
+import multiprocessing as mp
+
+import sfdmap.SFDMap as sfd
 
 # font = {'size': 14}
 # matplotlib.rc('font', **font)
@@ -204,10 +208,13 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
     ref_bandflux = deepcopy(instrument_params['Bandflux_References'])
     throughputs = instrument_params['throughputs']
     bands = deepcopy(matched_db['filter'].unique())
+    ra = deepcopy(SED['parameters']['ra'])
+    dec = deepcopy(SED['parameters']['dec'])
     for band in bands:
         mags, magnitude_errors, fiveSigmaDepth = [], [], []
         true_bandflux, obs_bandflux, bandflux_error = [], [], []
-        true_mags = []
+        extincted_bandflux = []
+        true_mags, extinct_mags = [], []
         lsst_band = 'lsst{}'.format(band)
         times = deepcopy(matched_db.query('filter == \'{}\''.format(band))['expMJD'].unique())
         for i, time in enumerate(times):
@@ -215,19 +222,28 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
             single_obs_db = deepcopy(matched_db.query('expMJD == {}'.format(time)))
             obs_phase = np.asscalar(single_obs_db['expMJD'].values - SED['parameters']['min_MJD'])
             true_bandflux.append(Compute_Bandflux(band=lsst_band, throughputs=throughputs, SED=SED, phase=obs_phase))
+            true_mags.append(Compute_Obs_Magnitudes(true_bandflux[i], ref_bandflux[lsst_band]))
+            extinct_mags.append(Add_Dust(true_mags[i], ra, dec, lsst_band))
+            extincted_bandflux.append(Mag_to_Flux(extinct_mags[i], ref_bandflux[lsst_band]))
             fiveSigmaDepth.append(deepcopy(single_obs_db['fiveSigmaDepth'].values))
             bandflux_error.append(Compute_Band_Flux_Error(fiveSigmaDepth[i], ref_bandflux[lsst_band]))
-            obs_bandflux.append(Add_Flux_Noise(true_bandflux[i], bandflux_error[i]))
+            obs_bandflux.append(Add_Flux_Noise(extincted_bandflux[i], bandflux_error[i]))
             mags.append(Compute_Obs_Magnitudes(obs_bandflux[i], ref_bandflux[lsst_band]))
-            true_mags.append(Compute_Obs_Magnitudes(true_bandflux[i], ref_bandflux[lsst_band]))
             magnitude_errors.append(Get_Magnitude_Error(obs_bandflux[i], bandflux_error[i], ref_bandflux[lsst_band]))
 
         # Assemble the per band dictionary of lightcurve observations
         lc_samples[lsst_band] = {'times': times, 'magnitudes': mags, 'mag_errors': magnitude_errors,
                                  'band_flux': obs_bandflux, 'flux_error': bandflux_error,
                                  'five_sigma_depth': fiveSigmaDepth, 'true_bandflux': true_bandflux,
-                                 'true_magnitude': true_mags}
-    return deepcopy(lc_samples)
+                                 'true_magnitude': true_mags, 'extincted_bandflux': extincted_bandflux,
+                                 'extincted_magnitude': extinct_mags}
+    return lc_samples
+
+
+def Mag_to_Flux(mag, ref_flux):
+    maggi = pow(10.0, mag/(-2.5))
+    flux = maggi*ref_flux
+    return flux
 
 
 def Compute_Obs_Magnitudes(bandflux, bandflux_ref):
@@ -608,6 +624,34 @@ def Get_N_z(All_Sources, Detections, param_priors, fig_num):
     plt.title('Number of sources per {0:.3f} redshift bin'.format(bin_size))
     fig_num += 1
     return N_z_dist_fig, fig_num
+
+
+def Add_Dust(mag, ra, dec, band, Rv=3.1):
+    # Convert to the proper astropy format for the query.
+    uncorr_ebv = sfd.ebv(ra, dec, unit='radian')
+
+    if band = 'lsstu':
+            factor = 4.145
+    elif band = 'lsstg':
+            factor = 3.237
+    elif band = 'lsstr':
+            factor = 2.273
+    elif band = 'lssti':
+            factor = 1.684
+    elif band = 'lsstz':
+            factor = 1.323
+    elif band = 'lssty':
+            factor = 1.088
+
+    extinct_mag = mag + factor*Rv*uncorr_ebv
+
+    return extinct_mag
+
+def Add_Peculiar_Velos(z):
+
+    SEDs[]
+
+    return
 
 
 def Output_Observations(Detections):
