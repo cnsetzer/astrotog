@@ -38,17 +38,17 @@ def bandflux(band_throughput, SED_model=None, phase=None, ref_model=None):
         The computed bandflux that is measured by the instrument for a source.
 
     """
-    band_wave = band_throughputs['wavelengths']
-    band_tp = band_throughputs['throughput']
+    band_wave = band_throughput['wavelengths']
+    band_tp = band_throughput['throughput']
     # Get 'reference' SED
     if ref_model:
         flux_per_wave = ref_model.flux(time=2.0, wave=band_wave)
 
     # Get SED flux
-    if SED is not None and phase is not None:
+    if SED_model is not None and phase is not None:
         # For very low i.e. zero registered flux, sncosmo sometimes returns
         # negative values so use absolute value to work around this issue.
-        flux_per_wave = abs(SED['model'].flux(phase, band_wave))
+        flux_per_wave = abs(SED_model.flux(phase, band_wave))
 
     # Now integrate the combination of the SED flux and the bandpass
     response_flux = flux_per_wave*band_tp
@@ -214,7 +214,14 @@ def detect(pandas_df):
 
 
 def class_method_in_pool(class_instance, method, method_args):
-    return getattr(class_instance, method)(method_args)
+    return getattr(class_instance, method)(*method_args)
+
+
+def extend_args_list(list1, list2):
+    print('List 1 is: {}'.format(list1))
+    print('List 2 is: {}'.format(list2))
+    exit()
+    return list1.extend(list2)
 
 
 # def Output_Observations(Detections):

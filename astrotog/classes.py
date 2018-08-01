@@ -248,21 +248,21 @@ class transient_distribution(object):
     """
     def __init__(self, survey, sim, parameter_distribution=None):
         self.rate = lambda x: sim.rate/pow(1000, 3)
-        self.redshift_distribution(survey, sim.cosmology)
+        self.redshift_distribution(survey, sim)
         self.sky_location_dist(survey)
         self.time_dist(survey)
         self.ids_for_distribution()
 
-    def redshift_distribution(self, survey, cosmology):
+    def redshift_distribution(self, survey, sim):
         # Internal funciton to generate a redshift distribution
         # Given survey parameters, a SED rate, and a cosmology draw from a Poisson
         # distribution the distribution of the objects vs. redshift.
-        zlist = np.asarray(list(sncosmo.zdist(zmin=param_priors['zmin'],
-                                              zmax=param_priors['zmax'],
+        zlist = np.asarray(list(sncosmo.zdist(zmin=sim.z_min,
+                                              zmax=sim.z_max,
                                               time=survey.survey_time,
                                               area=survey.survey_area,
                                               ratefunc=self.rate,
-                                              cosmo=cosmology)))
+                                              cosmo=sim.cosmology)))
         self.redshift_dist = zlist.reshape((len(zlist), 1))
         self.number_simulated = len(zlist)
 

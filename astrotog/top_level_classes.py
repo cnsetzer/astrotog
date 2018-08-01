@@ -67,6 +67,7 @@ class rosswog_kilonovae(classes.kilonovae):
                 print('To generate a parameter distribution you need to supply\
                         a number of samples greater than one.')
                 exit()
+            self.num_params = 3
             self.subtype = 'rosswog semi-analytic'
             self.type = 'parameter distribution'
         else:
@@ -111,7 +112,7 @@ class rosswog_kilonovae(classes.kilonovae):
         self.m_ej = np.random.uniform(low=mej_min, high=mej_max,
                                       size=out_shape)
         if uniform_v is False:
-            self.v_ej = np.random.uniform(low=vej_min, high=vej_max*pow(p[key]['m_ej']
+            self.v_ej = np.random.uniform(low=vej_min, high=vej_max*pow(self.m_ej
                                           / mej_min, np.log10(0.25/vej_max) / np.log10(mej_max/mej_min)),
                                           size=out_shape)
         else:
