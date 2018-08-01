@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.integrate import simps
 from copy import deepcopy
-import sfdmap.SFDMap as sfd
+from sfdmap import SFDMap as sfd
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -189,17 +189,17 @@ def dust(ra, dec, band, Rv=3.1):
     # Convert to the proper astropy format for the query.
     uncorr_ebv = sfd.ebv(ra, dec, unit='radian')
 
-    if band = 'lsstu':
+    if band == 'lsstu':
             factor = 4.145
-    elif band = 'lsstg':
+    elif band == 'lsstg':
             factor = 3.237
-    elif band = 'lsstr':
+    elif band == 'lsstr':
             factor = 2.273
-    elif band = 'lssti':
+    elif band == 'lssti':
             factor = 1.684
-    elif band = 'lsstz':
+    elif band == 'lsstz':
             factor = 1.323
-    elif band = 'lssty':
+    elif band == 'lssty':
             factor = 1.088
 
     A_x = factor*Rv*uncorr_ebv
@@ -207,12 +207,14 @@ def dust(ra, dec, band, Rv=3.1):
 
 
 def detect(pandas_df):
+    """
 
-    return pass
+    """
+    return None
 
 
 def class_method_in_pool(class_instance, method, method_args):
-    return = getattr(class_instance, method)(method_args)
+    return getattr(class_instance, method)(method_args)
 
 
 # def Output_Observations(Detections):

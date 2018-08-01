@@ -2,9 +2,10 @@ import os
 import re
 import numpy as np
 import sncosmo
+from astropy.cosmology import Planck15 as cosmo
 # from astrotog import macronovae_wrapper as mw
-import macronovae_wrapper as mw
-import classes
+from . import macronovae_wrapper as mw
+from . import classes
 
 
 class simulation(object):
@@ -27,7 +28,7 @@ class simulation(object):
         self.batch_size = batch_size
         self.cosmology = cosmology
         self.num_processes = num_processes
-        self.rate = rate
+        self.rate = rate_gpc
 
 
 class LSST(classes.survey):
@@ -61,7 +62,7 @@ class rosswog_kilonovae(classes.kilonovae):
         if parameter_dist is True:
             if num_samples > 1:
                 self.number_of_samples = num_samples
-                draw_parameters(bounds, uniform_v)
+                self.draw_parameters(bounds, uniform_v)
             else:
                 print('To generate a parameter distribution you need to supply\
                         a number of samples greater than one.')
@@ -77,12 +78,11 @@ class rosswog_kilonovae(classes.kilonovae):
             elif KNE_parameters:
                 pass
             else:
-                draw_parameters(bounds, uniform_v)
-            make_sed(KNE_parameters)
+                self.draw_parameters(bounds, uniform_v)
+            self.make_sed(KNE_parameters)
             self.subtype = 'rosswog semi-analytic'
             super().__init__()
 
-    @method
     def draw_parameters(self, bounds=None, uniform_v=False):
         if bounds is not None:
             kappa_min = min(bounds['kappa'])
@@ -118,7 +118,6 @@ class rosswog_kilonovae(classes.kilonovae):
             self.v_ej = np.random.uniform(low=vej_min, high=vej_max,
                                           size=out_shape)
 
-    @method
     def make_sed(self, KNE_parameters=None):
         if KNE_parameters is None:
             KNE_parameters = []
@@ -145,7 +144,7 @@ class rosswog_numerical_kilonovae(classes.kilonovae):
     numerically generated kilonovae spectral energy distributions.
     """
     def __init__(self, path):
-        make_sed(path)
+        self.make_sed(path)
         self.subtype = 'rosswog numerical'
         super().__init__()
 
@@ -157,7 +156,7 @@ class rosswog_numerical_kilonovae(classes.kilonovae):
         filei = fl[rindex]
         filename = path_to_seds + '/' + filei
         fileio = open(filename, 'r')
-        SED_header_params(fileio)
+        self.SED_header_params(fileio)
         # Read in SEDS data with sncosmo tools
         self.phase, self.wave, self.flux = sncosmo.read_griddata_ascii(filename)
 

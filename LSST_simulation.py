@@ -4,7 +4,7 @@ from math import ceil
 from astropy.cosmology import Planck15 as cosmo
 from astrotog import functions as afunc
 from astrotog import classes as aclasses
-from astrotog import top_classes as atopclass
+from astrotog import top_level_classes as atopclass
 from mpi4py import MPI
 import multiprocessing as mp
 from itertools import repeat
@@ -25,7 +25,8 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------
     # Section that user can edit to tailor simulation on global level
     # ---------------------------------------------------------------
-    batch_size = 'all'
+    batch_size = 100
+    # batch_size = 'all'
 
     if rank == 0:
         # -------------------------------------------------------------------

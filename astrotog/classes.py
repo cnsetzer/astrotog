@@ -3,7 +3,7 @@ import re
 import numpy as np
 import sncosmo
 import opsimsummary as oss
-import functions as func
+from . import functions as func
 
 
 class transient(object):
@@ -13,7 +13,7 @@ class transient(object):
     def __init__(self):
         source = sncosmo.TimeSeriesSource(self.phase, self.wave, self.flux)
         self.model = sncosmo.Model(source=source)
-        peculiar_velocity()
+        self.peculiar_velocity()
         return self
 
     def put_in_universe(self, id, t, ra, dec, z, cosmo):
@@ -21,7 +21,7 @@ class transient(object):
         self.t0 = t
         self.ra = ra
         self.dec = dec
-        redshift(z, cosmo)
+        self.redshift(z, cosmo)
         self.tmax = t + self.model.maxtime()
         return self
 
@@ -73,10 +73,10 @@ class survey(object):
         Builds the survey object calling the methods to set the base attributes
         of the class.
         """
-        get_cadence(simulation.cadence_path, simulation.cadence_flags)
-        get_throughputs(simulation.throughputs_path)
-        get_reference_flux(simulation.reference_path)
-        get_survey_params()
+        self.get_cadence(simulation.cadence_path, simulation.cadence_flags)
+        self.get_throughputs(simulation.throughputs_path)
+        self.get_reference_flux(simulation.reference_path)
+        self.get_survey_params()
 
     def get_cadence(self, path, flag='combined'):
         """
@@ -248,10 +248,10 @@ class transient_distribution(object):
     """
     def __init__(self, survey, sim, parameter_distribution=None):
         self.rate = lambda x: sim.rate/pow(1000, 3)
-        redshift_distribution(survey, sim.cosmology)
-        sky_location_dist(survey)
-        time_dist(survey)
-        ids_for_distribution()
+        self.redshift_distribution(survey, sim.cosmology)
+        self.sky_location_dist(survey)
+        self.time_dist(survey)
+        self.ids_for_distribution()
 
     def redshift_distribution(self, survey, cosmology):
         # Internal funciton to generate a redshift distribution
