@@ -51,18 +51,18 @@ fig_num = 1
 # SEDs = tod.Gen_SED_dist(paths['seds'], survey_params, param_priors, gen_flag)
 # print(' Done generating mock KNe sources.')
 
-
-# Apply observation to all mock SEDs
-print('\n Applying simulated observations to mock sources...')
-All_Source_Observations = tod.Gen_Observations(SEDs, obs_database,
-                                               instrument_params)
-print(' Done generating simulated observations of mock sources.')
-
-
-# Add quality of observation information, currently just SNR
-All_Source_Observations = tod.Assign_SNR(All_Source_Observations)
-# Using this quality assignment and predefined selection cut criteria determine
-# 'detections'
+#
+# # Apply observation to all mock SEDs
+# print('\n Applying simulated observations to mock sources...')
+# All_Source_Observations = tod.Gen_Observations(SEDs, obs_database,
+#                                                instrument_params)
+# print(' Done generating simulated observations of mock sources.')
+#
+#
+# # Add quality of observation information, currently just SNR
+# All_Source_Observations = tod.Assign_SNR(All_Source_Observations)
+# # Using this quality assignment and predefined selection cut criteria determine
+# # 'detections'
 All_Source_Observations, Detections, n_detect, efficiency = \
     tod.Get_Detections(All_Source_Observations, Cuts)
 print('\n The number of detected KNe is {2} for a {0} cut of {1}.\n This is \
@@ -72,8 +72,8 @@ print('The number of mock sources is {0}, and the number of observed sources \
         is {1}'.format(len(SEDs.keys()), len(Detections.keys())))
 
 
-print('Outputting Observations to files in folder: \'Output\'.')
-tod.Output_Observations(Detections)
+# print('Outputting Observations to files in folder: \'Output\'.')
+# tod.Output_Observations(Detections)
 
 # Plot histogram of detected vs genereated mock KNe
 N_z_fig, fig_num = tod.Get_N_z(SEDs, Detections, param_priors, fig_num)

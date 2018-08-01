@@ -4,7 +4,7 @@ from setuptools import find_packages
 
 
 setup(name='astrotog',
-      version='0.0.6',
+      version='0.1.0',
       description='Functions for generating mock observations of astrophysical transients',
       url='http://github.com/cnsetzer/astrotog',
       author='Christian Setzer',
@@ -25,6 +25,6 @@ setup(name='astrotog',
 
           # Specify the Python versions you support here. In particular, ensure
           # that you indicate whether you support Python 2, Python 3 or both.
-          'Programming Language :: Python :: 3.6',
+          'Programming Language :: Python :: 3.5',
       ],
       packages=find_packages())

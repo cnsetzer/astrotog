@@ -2,31 +2,8 @@ import os
 import re
 import numpy as np
 import sncosmo
-import pandas as pd
-from scipy.integrate import simps
 import opsimsummary as oss
-
-
-class observations(object):
-    """
-    Class for the observations of simulated sources as made by a survey.
-    """
-
-    def __init__(self, transients):
-        pass
-
-    def overlap(self):
-
-    def snr(self, pandas_table, survey):
-        """
-
-        """
-        for iter, row in pandas_table.iterrows():
-            for band in survey.filters:
-                fluxes = np.vstack(row[band][flux_key])
-                errs = np.vstack(row[band][err_key])
-                Observations[key][obs_key][band]['SNR'] = np.divide(fluxes, errs)
-        return Observations
+import functions as func
 
 
 class transient(object):
@@ -36,9 +13,11 @@ class transient(object):
     def __init__(self):
         source = sncosmo.TimeSeriesSource(self.phase, self.wave, self.flux)
         self.model = sncosmo.Model(source=source)
+        peculiar_velocity()
         return self
 
-    def put_in_universe(self, t, ra, dec, z, cosmo):
+    def put_in_universe(self, id, t, ra, dec, z, cosmo):
+        self.id = id
         self.t0 = t
         self.ra = ra
         self.dec = dec
@@ -52,6 +31,9 @@ class transient(object):
         # Note that it is necessary to scale the amplitude relative to the 10pc
         # (i.e. 10^2 in the following eqn.) placement of the SED currently
         self.model.set(z=z, amplitude=pow(np.divide(10.0, lumdist), 2))
+
+    def peculiar_velocity(self):
+        self.peculiar_vel = 0.0
 
 
 class kilonovae(transient):
@@ -234,8 +216,8 @@ class survey(object):
         self.reference_flux_response = {}
         for band in self.throughputs.keys():
             self.reference_flux_response[band] = \
-                Compute_Bandflux(band=band, throughputs=self.throughputs,
-                                 ref_model=ref_model)
+                func.bandflux(band_throughput=self.throughputs[band],
+                              ref_model=ref_model)
 
     def get_survey_params(self):
         """
@@ -269,6 +251,7 @@ class transient_distribution(object):
         redshift_distribution(survey, sim.cosmology)
         sky_location_dist(survey)
         time_dist(survey)
+        ids_for_distribution()
 
     def redshift_distribution(self, survey, cosmology):
         # Internal funciton to generate a redshift distribution
@@ -297,15 +280,18 @@ class transient_distribution(object):
                                            high=survey.max_mjd,
                                            size=(self.number_simulated, 1))
 
+    def ids_for_distribution(self):
+        self.ids = np.arange(start=1, stop=self.number_simulated+1,
+                             dtype=np.int).reshape((self.number_simulated, 1))
     # def transient_instances(self):
     #     self.transients = []
     #     for i in range(self.number_process):
-
-
-class detections(object):
-    """
-    Class for collecting information about transients that are observed and
-    pass the criteria for detection.
-    """
-    def __init__(self):
-        pass
+#
+#
+# class detections(object):
+#     """
+#     Class for collecting information about transients that are observed and
+#     pass the criteria for detection.
+#     """
+#     def __init__(self):
+#         pass

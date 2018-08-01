@@ -195,39 +195,39 @@
 #         p[key]['DZ_enhancement_factor'] = 1.0
 #         p[key]['Initial_Temp'] = 150.0
 #     return p
-
-
-def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
-    # Go from SED to multi-band lightcurves for a given instrument
-    lc_samples = {}
-    # Gather observations by band to build the separate lightcurves
-    ref_bandflux = deepcopy(instrument_params['Bandflux_References'])
-    throughputs = instrument_params['throughputs']
-    bands = deepcopy(matched_db['filter'].unique())
-    for band in bands:
-        mags, magnitude_errors, fiveSigmaDepth = [], [], []
-        true_bandflux, obs_bandflux, bandflux_error = [], [], []
-        true_mags = []
-        lsst_band = 'lsst{}'.format(band)
-        times = deepcopy(matched_db.query('filter == \'{}\''.format(band))['expMJD'].unique())
-        for i, time in enumerate(times):
-            # Get the matched sed for a single observation
-            single_obs_db = deepcopy(matched_db.query('expMJD == {}'.format(time)))
-            obs_phase = np.asscalar(single_obs_db['expMJD'].values - SED['parameters']['min_MJD'])
-            true_bandflux.append(Compute_Bandflux(band=lsst_band, throughputs=throughputs, SED=SED, phase=obs_phase))
-            fiveSigmaDepth.append(deepcopy(single_obs_db['fiveSigmaDepth'].values))
-            bandflux_error.append(Compute_Band_Flux_Error(fiveSigmaDepth[i], ref_bandflux[lsst_band]))
-            obs_bandflux.append(Add_Flux_Noise(true_bandflux[i], bandflux_error[i]))
-            mags.append(Compute_Obs_Magnitudes(obs_bandflux[i], ref_bandflux[lsst_band]))
-            true_mags.append(Compute_Obs_Magnitudes(true_bandflux[i], ref_bandflux[lsst_band]))
-            magnitude_errors.append(Get_Magnitude_Error(obs_bandflux[i], bandflux_error[i], ref_bandflux[lsst_band]))
-
-        # Assemble the per band dictionary of lightcurve observations
-        lc_samples[lsst_band] = {'times': times, 'magnitudes': mags, 'mag_errors': magnitude_errors,
-                                 'band_flux': obs_bandflux, 'flux_error': bandflux_error,
-                                 'five_sigma_depth': fiveSigmaDepth, 'true_bandflux': true_bandflux,
-                                 'true_magnitude': true_mags}
-    return deepcopy(lc_samples)
+#
+#
+# def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
+#     # Go from SED to multi-band lightcurves for a given instrument
+#     lc_samples = {}
+#     # Gather observations by band to build the separate lightcurves
+#     ref_bandflux = deepcopy(instrument_params['Bandflux_References'])
+#     throughputs = instrument_params['throughputs']
+#     bands = deepcopy(matched_db['filter'].unique())
+#     for band in bands:
+#         mags, magnitude_errors, fiveSigmaDepth = [], [], []
+#         true_bandflux, obs_bandflux, bandflux_error = [], [], []
+#         true_mags = []
+#         lsst_band = 'lsst{}'.format(band)
+#         times = deepcopy(matched_db.query('filter == \'{}\''.format(band))['expMJD'].unique())
+#         for i, time in enumerate(times):
+#             # Get the matched sed for a single observation
+#             single_obs_db = deepcopy(matched_db.query('expMJD == {}'.format(time)))
+#             obs_phase = np.asscalar(single_obs_db['expMJD'].values - SED['parameters']['min_MJD'])
+#             true_bandflux.append(Compute_Bandflux(band=lsst_band, throughputs=throughputs, SED=SED, phase=obs_phase))
+#             fiveSigmaDepth.append(deepcopy(single_obs_db['fiveSigmaDepth'].values))
+#             bandflux_error.append(Compute_Band_Flux_Error(fiveSigmaDepth[i], ref_bandflux[lsst_band]))
+#             obs_bandflux.append(Add_Flux_Noise(true_bandflux[i], bandflux_error[i]))
+#             mags.append(Compute_Obs_Magnitudes(obs_bandflux[i], ref_bandflux[lsst_band]))
+#             true_mags.append(Compute_Obs_Magnitudes(true_bandflux[i], ref_bandflux[lsst_band]))
+#             magnitude_errors.append(Get_Magnitude_Error(obs_bandflux[i], bandflux_error[i], ref_bandflux[lsst_band]))
+#
+#         # Assemble the per band dictionary of lightcurve observations
+#         lc_samples[lsst_band] = {'times': times, 'magnitudes': mags, 'mag_errors': magnitude_errors,
+#                                  'band_flux': obs_bandflux, 'flux_error': bandflux_error,
+#                                  'five_sigma_depth': fiveSigmaDepth, 'true_bandflux': true_bandflux,
+#                                  'true_magnitude': true_mags}
+#     return deepcopy(lc_samples)
 
 
 # def Compute_Obs_Magnitudes(bandflux, bandflux_ref):
@@ -362,43 +362,43 @@ def SED_to_Sample_Lightcurves(SED, matched_db, instrument_params):
 #     return np.asscalar(bandflux_error)
 
 
-def Gen_Observations(SEDs, obs_database, instrument_params):
-    key_list = SEDs.keys()
-    for key in key_list:
-        matched_obs_db = Match_Event_to_Obs(SEDs[key], obs_database, instrument_params)
-        mock_lc_obs = SED_to_Sample_Lightcurves(SEDs[key], matched_obs_db, instrument_params)
-        SEDs[key]['observations'] = mock_lc_obs
-    return SEDs
+# def Gen_Observations(SEDs, obs_database, instrument_params):
+#     key_list = SEDs.keys()
+#     for key in key_list:
+#         matched_obs_db = Match_Event_to_Obs(SEDs[key], obs_database, instrument_params)
+#         mock_lc_obs = SED_to_Sample_Lightcurves(SEDs[key], matched_obs_db, instrument_params)
+#         SEDs[key]['observations'] = mock_lc_obs
+#     return SEDs
 
 
-def Match_Event_to_Obs(SED, obs_database, instrument_params):
-    # Function to find  "observations"
-    survey_field_hw = instrument_params['FOV_rad']
-    min_time = deepcopy(SED['parameters']['min_MJD'])
-    max_time = deepcopy(SED['parameters']['max_MJD'])
-    ra = deepcopy(SED['parameters']['ra'])
-    dec = deepcopy(SED['parameters']['dec'])
-    t_overlaps = deepcopy(obs_database.query('{0} < expMJD < {1}'.format(min_time, max_time)))
-    ra_t_overlaps = deepcopy(t_overlaps.query('ditheredRA - 1.25*{0} < {1} < ditheredRA + 1.25*{0}'.format(survey_field_hw, ra)))
-    full_overlaps = deepcopy(ra_t_overlaps.query('ditheredDec - 1.25*{0} < {1} < ditheredDec + 1.25*{0}'.format(survey_field_hw, dec)))
-    overlapped_indexes = []
-    for index, row in full_overlaps.iterrows():
-        pointing_ra = row['ditheredRA']
-        pointing_dec = row['ditheredDec']
-        angdist = np.arccos(np.sin(pointing_dec)*np.sin(dec) +
-                            np.cos(pointing_dec) *
-                            np.cos(dec)*np.cos(ra - pointing_ra))
-        if angdist < survey_field_hw:
-            overlapped_indexes.append(index)
-        else:
-            continue
-
-    if not overlapped_indexes:
-        full_overlap_db = pd.DataFrame(columns=list(full_overlaps.columns.values))
-    else:
-        full_overlap_db = t_overlaps.loc[overlapped_indexes]
-
-    return full_overlap_db
+# def Match_Event_to_Obs(SED, obs_database, instrument_params):
+#     # Function to find  "observations"
+#     survey_field_hw = instrument_params['FOV_rad']
+#     min_time = deepcopy(SED['parameters']['min_MJD'])
+#     max_time = deepcopy(SED['parameters']['max_MJD'])
+#     ra = deepcopy(SED['parameters']['ra'])
+#     dec = deepcopy(SED['parameters']['dec'])
+#     t_overlaps = deepcopy(obs_database.query('{0} < expMJD < {1}'.format(min_time, max_time)))
+#     ra_t_overlaps = deepcopy(t_overlaps.query('ditheredRA - 1.25*{0} < {1} < ditheredRA + 1.25*{0}'.format(survey_field_hw, ra)))
+#     full_overlaps = deepcopy(ra_t_overlaps.query('ditheredDec - 1.25*{0} < {1} < ditheredDec + 1.25*{0}'.format(survey_field_hw, dec)))
+#     overlapped_indexes = []
+#     for index, row in full_overlaps.iterrows():
+#         pointing_ra = row['ditheredRA']
+#         pointing_dec = row['ditheredDec']
+#         angdist = np.arccos(np.sin(pointing_dec)*np.sin(dec) +
+#                             np.cos(pointing_dec) *
+#                             np.cos(dec)*np.cos(ra - pointing_ra))
+#         if angdist < survey_field_hw:
+#             overlapped_indexes.append(index)
+#         else:
+#             continue
+#
+#     if not overlapped_indexes:
+#         full_overlap_db = pd.DataFrame(columns=list(full_overlaps.columns.values))
+#     else:
+#         full_overlap_db = t_overlaps.loc[overlapped_indexes]
+#
+#     return full_overlap_db
 
 
 # def Get_Survey_Params(obs_db):
@@ -567,19 +567,19 @@ def Get_Detections(All_Observations, Selection_Cuts):
     return All_Observations, Detections, n_detections, efficiency
 
 
-def Assign_SNR(Observations):
-    obs_key = 'observations'
-    flux_key = 'band_flux'
-    err_key = 'flux_error'
-    key_list = Observations.keys()
-    for key in key_list:
-        band_keys = Observations[key][obs_key].keys()
-        for band in band_keys:
-            fluxes = np.vstack(deepcopy(Observations[key][obs_key][band][flux_key]))
-            errs = np.vstack(deepcopy(Observations[key][obs_key][band][err_key]))
-            Observations[key][obs_key][band]['SNR'] = np.divide(fluxes, errs)
-    return Observations
-
+# def Assign_SNR(Observations):
+#     obs_key = 'observations'
+#     flux_key = 'band_flux'
+#     err_key = 'flux_error'
+#     key_list = Observations.keys()
+#     for key in key_list:
+#         band_keys = Observations[key][obs_key].keys()
+#         for band in band_keys:
+#             fluxes = np.vstack(deepcopy(Observations[key][obs_key][band][flux_key]))
+#             errs = np.vstack(deepcopy(Observations[key][obs_key][band][err_key]))
+#             Observations[key][obs_key][band]['SNR'] = np.divide(fluxes, errs)
+#     return Observations
+#
 
 # def Get_N_z(All_Sources, Detections, param_priors, fig_num):
 #     param_key = 'parameters'

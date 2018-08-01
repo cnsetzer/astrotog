@@ -1,19 +1,16 @@
-import os
-import re
 import numpy as np
-import sncosmo
 import pandas as pd
 from scipy.integrate import simps
 from copy import deepcopy
-import matplotlib
-import matplotlib.pyplot as plt
-import opsimsummary as oss
-import seaborn as sns
+import sfdmap.SFDMap as sfd
 
+import matplotlib.pyplot as plt
+import seaborn as sns
 # font = {'size': 14}
 # matplotlib.rc('font', **font)
 sns.set_style('whitegrid')  # I personally like this style.
-sns.set_context('talk')  # Easy to change context from `talk`, `notebook`, `poster`, `paper`. though further fine tuning is human.
+# Easy to change context from `talk`, `notebook`, `poster`, `paper`.
+sns.set_context('talk')
 # set seed
 
 
@@ -59,7 +56,7 @@ def bandflux(band_throughput, SED_model=None, phase=None, ref_model=None):
     return np.asscalar(bandflux)
 
 
-def observed_magnitude(bandflux, bandflux_ref):
+def flux_to_mag(bandflux, bandflux_ref):
     # Definte the flux reference based on the magnitude system reference to
     # compute the associated maggi
     maggi = bandflux/bandflux_ref
@@ -81,7 +78,7 @@ def magnitude_error(bandflux, bandflux_error, bandflux_ref):
     return np.asscalar(magnitude_error)
 
 
-def band_flux_error(fiveSigmaDepth, bandflux_ref):
+def bandflux_error(fiveSigmaDepth, bandflux_ref):
     # Compute the integrated bandflux error
     # Note this is trivial since the five sigma depth incorporates the
     # integrated time of the exposures.
@@ -90,9 +87,128 @@ def band_flux_error(fiveSigmaDepth, bandflux_ref):
     return np.asscalar(bandflux_error)
 
 
-def observe(transients, survey):
-    
-    return
+def observe(table_columns, transient, survey):
+    pd_df = pd.DataFrame(columns=table_columns)
+    # Begin matching of survey points to event positional overlaps
+    positional_overlaps = deepcopy(survey.cadence.query('(ditheredRA - {0} <= {1} <= ditheredRA + {0}) & (ditheredDec - {0} <= {2} <= ditheredDec + {0})'.format(survey.FOV_radius,
+                                                              transient.ra,
+                                                              transient.dec)))
+    t_overlaps = deepcopy(survey.cadence.query('{0} <= expMJD <= {1}'.format(transient.t0, transient.tmax)))
+
+    overlap_indices = []
+    for index, row in t_overlaps.iterrows():
+        pointing_ra = row['ditheredRA']
+        pointing_dec = row['ditheredDec']
+        angdist = np.arccos(np.sin(pointing_dec)*np.sin(transient.dec) +
+                            np.cos(pointing_dec) *
+                            np.cos(transient.dec)*np.cos(transient.ra - pointing_ra))
+        if angdist < survey.FOV_radius:
+            overlap_indices.append(index)
+    if not overlap_indices:
+        pd_df.at[0, 'transient id'] = transient.id
+        pd_df.at[0, 'm_ej'] = transient.m_ej
+        pd_df.at[0, 'v_ej'] = transient.v_ej
+        pd_df.at[0, 'kappa'] = transient.kappa
+        pd_df.at[0, 'true redshift'] = transient.z
+        pd_df.at[0, 'explosion time'] = transient.t0
+        pd_df.at[0, 'max time'] = transient.tmax
+        pd_df.at[0, 'ra'] = transient.ra
+        pd_df.at[0, 'dec'] = transient.dec
+        pd_df.at[index, 'peculiar velocity'] = transient.peculiar_vel
+        pd_df.at[0, 'observed'] = False
+        pd_df.fillna(value='-')
+    else:
+        survey_overlap = t_overlaps.loc[overlap_indices]
+
+        for index, row in survey_overlap.iterrows():
+            band = 'lsst{}'.format(row['filter'])
+            obs_phase = row['expMJD'] - transient.t0
+            A_x = dust(ra=transient.ra, dec=transient.dec, band=band)
+            source_bandflux = bandflux(survey.throughputs[band], SED_model=transient.model, phase=obs_phase)
+            source_mag = flux_to_mag(source_bandflux, survey.reference_flux_response[band])
+            extinct_mag = source_mag + A_x
+            extinct_bandflux = mag_to_flux(extinct_mag, survey.reference_flux_response[band])
+            fivesigma = row['fiveSigmaDepth']
+            flux_error = bandflux_error(fivesigma, survey.reference_flux_response[band])
+            source_mag_error = magnitude_error(source_bandflux, flux_error, survey.reference_flux_response[band])
+            extinct_mag_error = magnitude_error(extinct_bandflux, flux_error, survey.reference_flux_response[band])
+            inst_flux = flux_noise(extinct_bandflux, flux_error)
+            inst_mag = flux_to_mag(inst_flux, survey.reference_flux_response[band])
+            inst_mag_error = magnitude_error(inst_flux, flux_error, survey.reference_flux_response[band])
+
+            pd_df.at[index, 'transient id'] = transient.id
+            pd_df.at[index, 'm_ej'] = transient.m_ej
+            pd_df.at[index, 'v_ej'] = transient.v_ej
+            pd_df.at[index, 'kappa'] = transient.kappa
+            pd_df.at[index, 'true redshift'] = transient.z
+            pd_df.at[index, 'explosion time'] = transient.t0
+            pd_df.at[index, 'max time'] = transient.tmax
+            pd_df.at[index, 'ra'] = transient.ra
+            pd_df.at[index, 'dec'] = transient.dec
+            pd_df.at[index, 'peculiar velocity'] = transient.peculiar_vel
+            pd_df.at[index, 'observed'] = True
+            pd_df.at[index, 'mjd'] = row['expMJD']
+            pd_df.at[index, 'bandfilter'] = row['filter']
+            pd_df.at[index, 'instrument magnitude'] = inst_mag
+            pd_df.at[index, 'instrument mag one sigma'] = inst_mag_error
+            pd_df.at[index, 'instrument flux'] = inst_flux
+            pd_df.at[index, 'instrument flux one sigma'] = flux_error
+            pd_df.at[index, 'extincted magnitude'] = extinct_mag
+            pd_df.at[index, 'extincted mag one sigma'] = extinct_mag_error
+            pd_df.at[index, 'extincted flux'] = extinct_bandflux
+            pd_df.at[index, 'extincted flux one sigma'] = flux_error
+            pd_df.at[index, 'A_x'] = A_x
+            pd_df.at[index, 'source magnitude'] = source_mag
+            pd_df.at[index, 'source mag one sigma'] = source_mag_error
+            pd_df.at[index, 'source flux'] = source_bandflux
+            pd_df.at[index, 'source flux one sigma'] = flux_error
+            pd_df.at[index, 'seeing'] = row['seeing']
+            pd_df.at[index, 'five sigma depth'] = row['fiveSigmaDepth']
+            pd_df.at[index, 'lightcurve phase'] = obs_phase
+            pd_df.at[index, 'signal to noise'] = inst_flux/flux_error
+
+        if (survey.cadence.query('expMJD < {0} - 1.0'.format(transient.t0)).dropna().empty):
+            pd_df[:, 'field previously observed'] = False
+        else:
+            pd_df[:, 'field previously observed'] = True
+        if (survey.cadence.query('expMJD > {0} + 1.0'.format(transient.tmax)).dropna().empty):
+            pd_df[:, 'field observed after'] = False
+        else:
+            pd_df[:, 'field observed after'] = True
+
+    return pd_df
+
+
+def mag_to_flux(mag, ref_flux):
+    maggi = pow(10.0, mag/(-2.5))
+    flux = maggi*ref_flux
+    return flux
+
+
+def dust(ra, dec, band, Rv=3.1):
+    # Convert to the proper astropy format for the query.
+    uncorr_ebv = sfd.ebv(ra, dec, unit='radian')
+
+    if band = 'lsstu':
+            factor = 4.145
+    elif band = 'lsstg':
+            factor = 3.237
+    elif band = 'lsstr':
+            factor = 2.273
+    elif band = 'lssti':
+            factor = 1.684
+    elif band = 'lsstz':
+            factor = 1.323
+    elif band = 'lssty':
+            factor = 1.088
+
+    A_x = factor*Rv*uncorr_ebv
+    return A_x
+
+
+def detect(pandas_df):
+
+    return pass
 
 
 def class_method_in_pool(class_instance, method, method_args):

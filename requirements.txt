@@ -4,12 +4,13 @@ dependencies:
   - astropy>=3.0
   - jupyter>=1.0.0
   - matplotlib>=2.1.2
-  - numpy>=1.13.3
-  - pandas>=0.22.0
+  - numpy>=1.14
+  - pandas>=0.23.0
   - scipy>=1.0.0
   - opsimsummary
   - seaborn>=0.8.1
 
   - pip:
     - sncosmo>=1.5.3
-
+    - sfdmap
+    - mpi4py

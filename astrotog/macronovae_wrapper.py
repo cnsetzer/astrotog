@@ -1,7 +1,6 @@
 import numpy as np
 from math import *
 from macronova2py import macronova2py as m2p
-# from astrotog.macronova2py import macronova2py as m2p
 
 
 def Make_Rosswog_SEDS(KNE_parameters, separated=False):

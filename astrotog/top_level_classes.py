@@ -2,10 +2,9 @@ import os
 import re
 import numpy as np
 import sncosmo
-import pandas as pd
-from scipy.integrate import simps
 # from astrotog import macronovae_wrapper as mw
 import macronovae_wrapper as mw
+import classes
 
 
 class simulation(object):
@@ -31,7 +30,7 @@ class simulation(object):
         self.rate = rate
 
 
-class LSST(survey):
+class LSST(classes.survey):
     """
     Top-level class for the LSST instrument and survey.
     """
@@ -51,7 +50,7 @@ class LSST(survey):
         super().__init__(simulation)
 
 
-class rosswog_kilonovae(kilonovae):
+class rosswog_kilonovae(classes.kilonovae):
     """
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     semi-analytic model for kilonovae spectral energy distributions.
@@ -140,7 +139,7 @@ class rosswog_kilonovae(kilonovae):
                                                                 separated=True)
 
 
-class rosswog_numerical_kilonovae(kilonovae):
+class rosswog_numerical_kilonovae(classes.kilonovae):
     """
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     numerically generated kilonovae spectral energy distributions.
