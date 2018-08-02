@@ -26,7 +26,7 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------
     # Section that user can edit to tailor simulation on global level
     # ---------------------------------------------------------------
-    batch_size = 100
+    batch_size = 70
     batch_mp_workers = 4
     # batch_size = 'all'
 
@@ -199,7 +199,7 @@ if __name__ == "__main__":
 
             print('Batch {0} complete of {1} batches.'.format(i+1, num_batches))
             t1 = time.time()
-            delta_t = ((t1-t0)/(i+1))*(num_batches-i-1) + 15.0  # estimated write time
+            delta_t = int(((t1-t0)/(i+1))*(num_batches-i-1) + 15.0)  # estimated write time
             print('Estimated time remaining is: {}'.format(datetime.timedelta(seconds=delta_t)))
     # Now process observations for detections and other information
     transient_batch = None
