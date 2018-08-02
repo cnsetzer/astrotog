@@ -17,7 +17,7 @@ class transient(object):
         return self
 
     def put_in_universe(self, id, t, ra, dec, z, cosmo):
-        self.id = id
+        self.id = int(id)
         self.t0 = t
         self.ra = ra
         self.dec = dec

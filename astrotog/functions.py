@@ -12,6 +12,7 @@ sns.set_style('whitegrid')  # I personally like this style.
 # Easy to change context from `talk`, `notebook`, `poster`, `paper`.
 sns.set_context('talk')
 # set seed
+sfdmap = sfd()
 
 
 def bandflux(band_throughput, SED_model=None, phase=None, ref_model=None):
@@ -75,7 +76,7 @@ def flux_noise(bandflux, bandflux_error):
 def magnitude_error(bandflux, bandflux_error, bandflux_ref):
     # Compute the per-band magnitude errors
     magnitude_error = abs(-2.5/(bandflux*np.log(10)))*bandflux_error
-    return np.asscalar(magnitude_error)
+    return magnitude_error
 
 
 def bandflux_error(fiveSigmaDepth, bandflux_ref):
@@ -84,7 +85,7 @@ def bandflux_error(fiveSigmaDepth, bandflux_ref):
     # integrated time of the exposures.
     Flux_five_sigma = bandflux_ref*pow(10, -0.4*fiveSigmaDepth)
     bandflux_error = Flux_five_sigma/5
-    return np.asscalar(bandflux_error)
+    return bandflux_error
 
 
 def observe(table_columns, transient, survey):
@@ -162,19 +163,20 @@ def observe(table_columns, transient, survey):
             pd_df.at[index, 'source mag one sigma'] = source_mag_error
             pd_df.at[index, 'source flux'] = source_bandflux
             pd_df.at[index, 'source flux one sigma'] = flux_error
-            pd_df.at[index, 'seeing'] = row['seeing']
+            pd_df.at[index, 'seeing'] = row['rawSeeing']
+            pd_df.at[index, 'airmass'] = row['airmass']
             pd_df.at[index, 'five sigma depth'] = row['fiveSigmaDepth']
             pd_df.at[index, 'lightcurve phase'] = obs_phase
             pd_df.at[index, 'signal to noise'] = inst_flux/flux_error
 
         if (survey.cadence.query('expMJD < {0} - 1.0'.format(transient.t0)).dropna().empty):
-            pd_df[:, 'field previously observed'] = False
+            pd_df['field previously observed'] = False
         else:
-            pd_df[:, 'field previously observed'] = True
+            pd_df['field previously observed'] = True
         if (survey.cadence.query('expMJD > {0} + 1.0'.format(transient.tmax)).dropna().empty):
-            pd_df[:, 'field observed after'] = False
+            pd_df['field observed after'] = False
         else:
-            pd_df[:, 'field observed after'] = True
+            pd_df['field observed after'] = True
 
     return pd_df
 
@@ -186,8 +188,8 @@ def mag_to_flux(mag, ref_flux):
 
 
 def dust(ra, dec, band, Rv=3.1):
-    # Convert to the proper astropy format for the query.
-    uncorr_ebv = sfd.ebv(ra, dec, unit='radian')
+
+    uncorr_ebv = sfdmap.ebv(ra, dec, frame='icrs', unit='radian')
 
     if band == 'lsstu':
             factor = 4.145
@@ -218,10 +220,8 @@ def class_method_in_pool(class_instance, method, method_args):
 
 
 def extend_args_list(list1, list2):
-    print('List 1 is: {}'.format(list1))
-    print('List 2 is: {}'.format(list2))
-    exit()
-    return list1.extend(list2)
+    list1.extend(list2)
+    return list1
 
 
 # def Output_Observations(Detections):

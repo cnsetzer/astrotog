@@ -27,11 +27,11 @@ if __name__ == "__main__":
     # Section that user can edit to tailor simulation on global level
     # ---------------------------------------------------------------
     batch_size = 100
-    batch_mp_workers = 2
+    batch_mp_workers = 4
     # batch_size = 'all'
 
     if rank == 0:
-        print('We are using {0} MPI processes with {1} multiprocess workers per process.'.format(size,batch_mp_workers))
+        print('\nWe are using {0} MPI workers with {1} multiprocess threads per process.'.format(size,batch_mp_workers))
         # -------------------------------------------------------------------
         # Section that user can edit to tailor simulation on primary process
         # -------------------------------------------------------------------
@@ -44,7 +44,7 @@ if __name__ == "__main__":
         output_path = '/Users/cnsetzer/Documents/LSST/astrotog_output/' + run_dir + '/'
         if not os.path.exists(output_path):
             os.makedirs(output_path)
-        z_max = 0.25
+        z_max = 0.1
         num_processes = size
         z_bin_size = 0.02
         if size >= 1:
@@ -131,7 +131,7 @@ if __name__ == "__main__":
         # There is definitely a problem here. Might need a virtual server...
         # ----------------------------------------------
         comm.barrier()
-        LSST_survey = comm.bcast(LSST_survey, root=0)
+        LSST_survey = comm.bcast(copy(LSST_survey), root=0)
         # ----------------------------------------------`
 
     if batch_size == 'all':
@@ -150,13 +150,13 @@ if __name__ == "__main__":
                       'source mag one sigma', 'source flux',
                       'source flux one sigma', 'extincted magnitude',
                       'extincted mag one sigma', 'extincted flux',
-                      'extincted flux one sigma', 'seeing', 'five sigma depth',
-                      'lightcurve phase', 'field previously observed',
-                      'field observed after']
+                      'extincted flux one sigma', 'airmass', 'seeing',
+                      'five sigma depth', 'lightcurve phase',
+                      'field previously observed', 'field observed after']
     stored_obs_data = pd.DataFrame(columns=pandas_columns)
 
     if rank == 0:
-        print('Launching multiprocess pool of {} workers per MPI core'.format(batch_mp_workers))
+        print('\nLaunching multiprocess pool of {} workers per MPI core.'.format(batch_mp_workers))
         print('The batch processing will now begin.')
         t0 = time.time()
     # Launch 2 threads per MPI worker
@@ -177,38 +177,48 @@ if __name__ == "__main__":
         transient_batch = p.starmap(atopclass.rosswog_kilonovae, batch_params)
         args_for_method = list(zip(batch_sky_loc.tolist(), repeat([cosmo])))
 
-        #print(args_for_method)
-
         extended_args = p.starmap(afunc.extend_args_list, args_for_method)
 
-        #print(extended_args)
-        exit()
         batch_method_iter_for_pool = list(zip(transient_batch,
                                               repeat('put_in_universe'),
                                               extended_args))
 
         transient_batch = p.starmap(afunc.class_method_in_pool,
                                     batch_method_iter_for_pool)
-        observation_batch_iter = list(zip(repeat(columns), transient_batch,
-                                          repeat(LSST_survey.copy())))
+        observation_batch_iter = list(zip(repeat(pandas_columns),
+                                          transient_batch,
+                                          repeat(LSST_survey)))
         observations = p.starmap(afunc.observe, observation_batch_iter)
-        stored_obs_data = stored_obs_data.append(observations, ignore_index=True)
+        stored_obs_data = stored_obs_data.append(observations,
+                                                 ignore_index=True)
 
         if rank == 0:
+            if i == 0:
+                print('Debug Check of Pandas Dataframe:')
+                print(stored_obs_data)
+
             print('Batch {0} complete of {1} batches.'.format(i+1, num_batches))
             t1 = time.time()
-            print('Estimated time remaining is: {}'.format(((t1-t0)/(i+1))*(num_batches-i-1)))
+            delta_t = ((t1-t0)/(i+1))*(num_batches-i-1) + 15.0  # estimated write time
+            print('Estimated time remaining is: {}'.format(datetime.timedelta(seconds=delta_t)))
     # Now process observations for detections and other information
     transient_batch = None
     observation_batch_iter = None
 
     # Join all batches and mpi workers and write the dataFrame to file
-    comm.barrier()
-    all_observations = comm.gather(stored_obs_data, root=0)
+    if size > 1:
+        comm.barrier()
+        all_observations = comm.gather(stored_obs_data, root=0)
+    else:
+        all_observations = stored_obs_data
 
     print('Writing out observations to {}'.format(output_path))
     if rank == 0:
         all_observations.to_csv(output_path + 'observations.csv')
+        print('Finished writing observation results.')
 
 #    comm.barrier()
     # detections = p.starmap()
+
+    if rank == 0:
+        print('\nSimulation completed successfully.')
