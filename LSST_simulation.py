@@ -4,11 +4,12 @@ from math import ceil
 from astropy.cosmology import Planck15 as cosmo
 from astrotog import functions as afunc
 from astrotog import classes as aclasses
-from astrotog import top_classes as atopclass
+from astrotog import top_level_classes as atopclass
 from mpi4py import MPI
 import multiprocessing as mp
 from itertools import repeat
 import datetime
+import time
 from copy import copy
 import pandas as pd
 
@@ -25,22 +26,25 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------
     # Section that user can edit to tailor simulation on global level
     # ---------------------------------------------------------------
-    batch_size = 'all'
+    batch_size = 50
+    batch_mp_workers = 4
+    # batch_size = 'all'
 
     if rank == 0:
+        print('\nWe are using {0} MPI workers with {1} multiprocess threads per process.'.format(size,batch_mp_workers))
         # -------------------------------------------------------------------
         # Section that user can edit to tailor simulation on primary process
         # -------------------------------------------------------------------
         seds_path = '/Users/cnsetzer/Documents/LSST/sedb/rosswog/NSNS/winds'
         cadence_path = \
             '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
-        throughputs_path = '/Users/cnsetzer/Documents/LSST/throughputs'
+        throughputs_path = '/Users/cnsetzer/Documents/LSST/throughputs/lsst'
         reference_flux_path = '/Users/cnsetzer/Documents/LSST/throughputs/references'
-        run_dir = 'LSST_sim_run_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
+        run_dir = 'LSST_sim_run_minion1016_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
         output_path = '/Users/cnsetzer/Documents/LSST/astrotog_output/' + run_dir + '/'
         if not os.path.exists(output_path):
             os.makedirs(output_path)
-        z_max = 0.3
+        z_max = 0.05
         num_processes = size
         z_bin_size = 0.02
         if size >= 1:
@@ -68,49 +72,67 @@ if __name__ == "__main__":
         tran_param_dist = atopclass.rosswog_kilonovae(parameter_dist=True,
                                             num_samples=transient_dist.number_simulated)
         num_params_pprocess = int(ceil(transient_dist.number_simulated/size))
+        num_transient_params = tran_param_dist.num_params
+        print('The number of transients is: {}'.format(transient_dist.number_simulated))
+        print('The number of parameters per transient is: {}'.format(num_transient_params))
     else:
+        num_transient_params = None
         num_params_pprocess = None
         LSST_survey = None
 
     if size > 1:
-        num_transient_params = comm.bcast(tran_param_dist.num_params, root=0)
+        comm.barrier()
+        num_transient_params = comm.bcast(num_transient_params, root=0)
         num_params_pprocess = comm.bcast(num_params_pprocess, root=0)
 
+    total_array = None
     if rank == 0:
-        sky_loc_array = np.vstack((transient_dist.ids,
+        sky_loc_array = np.hstack((transient_dist.ids,
                                    transient_dist.time_dist,
                                    transient_dist.ra_dist,
-                                   transient_dist.de_dist,
+                                   transient_dist.dec_dist,
                                    transient_dist.redshift_dist))
-        param_array = np.vstack(tran_param_dist.m_ej, tran_param_dist.v_ej,
-                                tran_param_dist.kappa)
-    else:
-        sky_loc_array = np.empty((num_params_pprocess, 5))
-        param_array = np.empty((num_params_pprocess, num_transient_params))
+        param_array = np.hstack((tran_param_dist.m_ej, tran_param_dist.v_ej,
+                                tran_param_dist.kappa))
 
     if size > 1:
-        comm.Scatter([sky_loc_array, 5*num_params_pprocess, MPI.DOUBLE],
-                 [sky_loc_array, 5*num_params_pprocess, MPI.DOUBLE], root=0)
-        comm.Scatter([param_array, num_transient_params*num_params_pprocess,
-                     MPI.DOUBLE], [param_array,
-                     num_transient_params*num_params_pprocess, MPI.DOUBLE],
-                     root=0)
+        if rank == 0:
+            total_array = np.hstack((sky_loc_array, param_array))
+
+        sky_loc_array = None
+        param_array = None
+        receive_array = np.empty((num_params_pprocess, 5 + num_transient_params))
+        comm.barrier()
+        comm.Scatter([total_array, (5+num_transient_params)*num_params_pprocess, MPI.DOUBLE],
+                 [receive_array, (5+num_transient_params)*num_params_pprocess, MPI.DOUBLE], root=0)
+        sky_loc_array = receive_array[:, 0:5]
+        param_array = receive_array[:, 5:]
 
     # Trim the nonsense from the process arrays
+    sky_del = []
+    param_del = []
     for i in range(num_params_pprocess):
-        if any(sky_loc_array[i] < 1e-250):
-            sky_loc_array = np.delete(sky_loc_array, i, 0)
-        if any(param_array[i] < 1e-250):
-            param_array = np.delete(param_array, i, 0)
+        if any(abs(sky_loc_array[i]) < 1e-250):
+            sky_del.append(i)
+        if any(abs(param_array[i]) < 1e-250):
+            param_del.append(i)
+
+    sky_loc_array = np.delete(sky_loc_array, sky_del, 0)
+    param_array = np.delete(param_array, param_del, 0)
+
+    assert len(param_array[:]) == len(sky_loc_array[:])
+    num_params_pprocess = len(param_array[:])
+
+    if rank == 0:
+        print('The split of parameters between processes is:')
+    print('Process rank = {0} has {1} transients assigned to it.'.format(rank, num_params_pprocess))
 
     if size > 1:
         # There is definitely a problem here. Might need a virtual server...
         # ----------------------------------------------
-        LSST_survey = comm.bcast(LSST_survey.copy(), root=0)
+        comm.barrier()
+        LSST_survey = comm.bcast(copy(LSST_survey), root=0)
         # ----------------------------------------------`
-
-    assert len(param_array[:]) == len(sky_loc_array[:])
-    num_params_pprocess = len(param_array[:])
 
     if batch_size == 'all':
         batch_size = num_params_pprocess
@@ -119,22 +141,30 @@ if __name__ == "__main__":
         num_batches = int(ceil(num_params_pprocess/batch_size))
 
     # Create pandas table
-    pandas_columns = ['transient id', 'm_ej', 'v_ej', 'kappa', 'true redshift',
-                      'explosion time', 'max time', 'ra', 'dec', 'observed',
-                      'mjd', 'bandfilter', 'instrument magnitude',
+    param_columns = ['transient id', 'm_ej', 'v_ej', 'kappa', 'true redshift',
+                     'explosion time', 'max time', 'ra', 'dec',
+                     'peculiar velocity']
+
+    stored_param_data = pd.DataFrame(columns=param_columns)
+
+    obs_columns = ['transient id', 'mjd', 'bandfilter', 'instrument magnitude',
                       'instrument mag one sigma', 'instrument flux',
-                      'instrument flux one sigma', 'A_x', 'peculiar velocity',
+                      'instrument flux one sigma', 'A_x',
                       'signal to noise', 'source magnitude',
                       'source mag one sigma', 'source flux',
                       'source flux one sigma', 'extincted magnitude',
                       'extincted mag one sigma', 'extincted flux',
-                      'extincted flux one sigma', 'seeing', 'five sigma depth',
-                      'lightcurve phase', 'field previously observed',
-                      'field observed after']
-    stored_obs_data = pd.DataFrame(columns=pandas_columns)
+                      'extincted flux one sigma', 'airmass', 'seeing',
+                      'five sigma depth', 'lightcurve phase',
+                      'field previously observed', 'field observed after']
+    stored_obs_data = pd.DataFrame(columns=obs_columns)
 
+    if rank == 0:
+        print('\nLaunching multiprocess pool of {} workers per MPI core.'.format(batch_mp_workers))
+        print('The batch processing will now begin.')
+        t0 = time.time()
     # Launch 2 threads per MPI worker
-    p = mp.Pool(2)
+    p = mp.Pool(batch_mp_workers)
     for i in range(num_batches):
         # Handle uneven batch sizes
         if i == num_batches-1:
@@ -144,31 +174,66 @@ if __name__ == "__main__":
 
         transient_batch = []
         batch_params = param_array[i*batch_size:i*batch_size +
-                                   current_batch_size-1, :]
+                                   current_batch_size, :]
         batch_sky_loc = sky_loc_array[i*batch_size:i*batch_size +
-                                      current_batch_size-1, :]
+                                      current_batch_size, :]
 
         transient_batch = p.starmap(atopclass.rosswog_kilonovae, batch_params)
+        args_for_method = list(zip(batch_sky_loc.tolist(), repeat([cosmo])))
+
+        extended_args = p.starmap(afunc.extend_args_list, args_for_method)
 
         batch_method_iter_for_pool = list(zip(transient_batch,
                                               repeat('put_in_universe'),
-                                              batch_sky_loc, repeat(cosmo)))
+                                              extended_args))
+
         transient_batch = p.starmap(afunc.class_method_in_pool,
                                     batch_method_iter_for_pool)
-        observation_batch_iter = list(zip(repeat(columns), transient_batch,
-                                          repeat(LSST_survey.copy())))
-        observations = p.starmap(afunc.observe, observation_batch_iter)
-        stored_obs_data = stored_obs_data.append(observations, ignore_index=True)
 
+        parameter_batch_iter = list(zip(repeat(param_columns),
+                                        transient_batch))
+
+        parameter_df = p.starmap(afunc.write_params, parameter_batch_iter)
+        stored_param_data = stored_param_data.append(parameter_df,
+                                                     ignore_index=True)
+
+        observation_batch_iter = list(zip(repeat(obs_columns),
+                                          transient_batch,
+                                          repeat(LSST_survey)))
+        observation_df = p.starmap(afunc.observe, observation_batch_iter)
+        stored_obs_data = stored_obs_data.append(observation_df,
+                                                 ignore_index=True)
+
+        if rank == 0:
+            if i == 0:
+                print('Debug Check of Pandas Dataframe:')
+                print(stored_obs_data)
+
+            print('Batch {0} complete of {1} batches.'.format(i+1, num_batches))
+            t1 = time.time()
+            delta_t = int(((t1-t0)/(i+1))*(num_batches-i-1) + 15.0)  # estimated write time
+            print('Estimated time remaining is: {}'.format(datetime.timedelta(seconds=delta_t)))
     # Now process observations for detections and other information
     transient_batch = None
     observation_batch_iter = None
 
     # Join all batches and mpi workers and write the dataFrame to file
-    all_observations = comm.gather(stored_obs_data, root=0)
+    if size > 1:
+        comm.barrier()
+        all_observations = comm.gather(stored_obs_data.dropna(), root=0)
+        all_parameters = comm.gather(stored_param_data.dropna(), root=0)
+    else:
+        all_observations = stored_obs_data.dropna()
+        all_parameters = stored_param_data.dropna()
+
+    print('\nWriting out parameters and observations to {}'.format(output_path))
+    if rank == 0:
+        all_parameters.to_csv(output_path + 'parameters.csv')
+        all_observations.to_csv(output_path + 'observations.csv')
+        print('Finished writing observation results.')
+
+#    comm.barrier()
+    # detections = p.starmap()
 
     if rank == 0:
-        all_observations.to_csv(output_path + 'observations.csv')
-
-    comm.barrier()
-    # detections = p.starmap()
+        print('\nSimulation completed successfully.')

@@ -3,7 +3,7 @@ import re
 import numpy as np
 import sncosmo
 import opsimsummary as oss
-import functions as func
+from . import functions as func
 
 
 class transient(object):
@@ -13,24 +13,32 @@ class transient(object):
     def __init__(self):
         source = sncosmo.TimeSeriesSource(self.phase, self.wave, self.flux)
         self.model = sncosmo.Model(source=source)
-        peculiar_velocity()
+        self.peculiar_velocity()
         return self
 
     def put_in_universe(self, id, t, ra, dec, z, cosmo):
-        self.id = id
+        self.id = int(id)
         self.t0 = t
         self.ra = ra
         self.dec = dec
-        redshift(z, cosmo)
+        self.redshift(z, cosmo)
         self.tmax = t + self.model.maxtime()
         return self
 
     def redshift(self, z, cosmo):
         self.z = z
         lumdist = cosmo.luminosity_distance(z).value * 1e6  # in pc
+        amp = pow(np.divide(10.0, lumdist), 2)
         # Note that it is necessary to scale the amplitude relative to the 10pc
         # (i.e. 10^2 in the following eqn.) placement of the SED currently
-        self.model.set(z=z, amplitude=pow(np.divide(10.0, lumdist), 2))
+        self.model.set(z=z)
+        #self.model.set(amplitude=amp)
+
+        # Current working around for issue with amplitude...
+        mapp = cosmo.distmod(z).value + self.model.source_peakmag('lsstz', 'ab', sampling=0.1)
+        self.model.set_source_peakmag(m=mapp, band='lsstz', magsys='ab', sampling=0.1)
+
+        return self
 
     def peculiar_velocity(self):
         self.peculiar_vel = 0.0
@@ -73,10 +81,10 @@ class survey(object):
         Builds the survey object calling the methods to set the base attributes
         of the class.
         """
-        get_cadence(simulation.cadence_path, simulation.cadence_flags)
-        get_throughputs(simulation.throughputs_path)
-        get_reference_flux(simulation.reference_path)
-        get_survey_params()
+        self.get_cadence(simulation.cadence_path, simulation.cadence_flags)
+        self.get_throughputs(simulation.throughputs_path)
+        self.get_reference_flux(simulation.reference_path)
+        self.get_survey_params()
 
     def get_cadence(self, path, flag='combined'):
         """
@@ -248,21 +256,21 @@ class transient_distribution(object):
     """
     def __init__(self, survey, sim, parameter_distribution=None):
         self.rate = lambda x: sim.rate/pow(1000, 3)
-        redshift_distribution(survey, sim.cosmology)
-        sky_location_dist(survey)
-        time_dist(survey)
-        ids_for_distribution()
+        self.redshift_distribution(survey, sim)
+        self.sky_location_dist(survey)
+        self.time_dist(survey)
+        self.ids_for_distribution()
 
-    def redshift_distribution(self, survey, cosmology):
+    def redshift_distribution(self, survey, sim):
         # Internal funciton to generate a redshift distribution
         # Given survey parameters, a SED rate, and a cosmology draw from a Poisson
         # distribution the distribution of the objects vs. redshift.
-        zlist = np.asarray(list(sncosmo.zdist(zmin=param_priors['zmin'],
-                                              zmax=param_priors['zmax'],
+        zlist = np.asarray(list(sncosmo.zdist(zmin=sim.z_min,
+                                              zmax=sim.z_max,
                                               time=survey.survey_time,
                                               area=survey.survey_area,
                                               ratefunc=self.rate,
-                                              cosmo=cosmology)))
+                                              cosmo=sim.cosmology)))
         self.redshift_dist = zlist.reshape((len(zlist), 1))
         self.number_simulated = len(zlist)
 
