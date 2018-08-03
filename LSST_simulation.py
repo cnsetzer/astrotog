@@ -26,7 +26,7 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------
     # Section that user can edit to tailor simulation on global level
     # ---------------------------------------------------------------
-    batch_size = 70
+    batch_size = 50
     batch_mp_workers = 4
     # batch_size = 'all'
 
@@ -40,11 +40,11 @@ if __name__ == "__main__":
             '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
         throughputs_path = '/Users/cnsetzer/Documents/LSST/throughputs/lsst'
         reference_flux_path = '/Users/cnsetzer/Documents/LSST/throughputs/references'
-        run_dir = 'LSST_sim_run_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
+        run_dir = 'LSST_sim_run_minion1016_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
         output_path = '/Users/cnsetzer/Documents/LSST/astrotog_output/' + run_dir + '/'
         if not os.path.exists(output_path):
             os.makedirs(output_path)
-        z_max = 0.1
+        z_max = 0.05
         num_processes = size
         z_bin_size = 0.02
         if size >= 1:
@@ -141,11 +141,15 @@ if __name__ == "__main__":
         num_batches = int(ceil(num_params_pprocess/batch_size))
 
     # Create pandas table
-    pandas_columns = ['transient id', 'm_ej', 'v_ej', 'kappa', 'true redshift',
-                      'explosion time', 'max time', 'ra', 'dec', 'observed',
-                      'mjd', 'bandfilter', 'instrument magnitude',
+    param_columns = ['transient id', 'm_ej', 'v_ej', 'kappa', 'true redshift',
+                     'explosion time', 'max time', 'ra', 'dec',
+                     'peculiar velocity']
+
+    stored_param_data = pd.DataFrame(columns=param_columns)
+
+    obs_columns = ['transient id', 'mjd', 'bandfilter', 'instrument magnitude',
                       'instrument mag one sigma', 'instrument flux',
-                      'instrument flux one sigma', 'A_x', 'peculiar velocity',
+                      'instrument flux one sigma', 'A_x',
                       'signal to noise', 'source magnitude',
                       'source mag one sigma', 'source flux',
                       'source flux one sigma', 'extincted magnitude',
@@ -153,7 +157,7 @@ if __name__ == "__main__":
                       'extincted flux one sigma', 'airmass', 'seeing',
                       'five sigma depth', 'lightcurve phase',
                       'field previously observed', 'field observed after']
-    stored_obs_data = pd.DataFrame(columns=pandas_columns)
+    stored_obs_data = pd.DataFrame(columns=obs_columns)
 
     if rank == 0:
         print('\nLaunching multiprocess pool of {} workers per MPI core.'.format(batch_mp_workers))
@@ -185,11 +189,19 @@ if __name__ == "__main__":
 
         transient_batch = p.starmap(afunc.class_method_in_pool,
                                     batch_method_iter_for_pool)
-        observation_batch_iter = list(zip(repeat(pandas_columns),
+
+        parameter_batch_iter = list(zip(repeat(param_columns),
+                                        transient_batch))
+
+        parameter_df = p.starmap(afunc.write_params, parameter_batch_iter)
+        stored_param_data = stored_param_data.append(parameter_df,
+                                                     ignore_index=True)
+
+        observation_batch_iter = list(zip(repeat(obs_columns),
                                           transient_batch,
                                           repeat(LSST_survey)))
-        observations = p.starmap(afunc.observe, observation_batch_iter)
-        stored_obs_data = stored_obs_data.append(observations,
+        observation_df = p.starmap(afunc.observe, observation_batch_iter)
+        stored_obs_data = stored_obs_data.append(observation_df,
                                                  ignore_index=True)
 
         if rank == 0:
@@ -208,12 +220,15 @@ if __name__ == "__main__":
     # Join all batches and mpi workers and write the dataFrame to file
     if size > 1:
         comm.barrier()
-        all_observations = comm.gather(stored_obs_data, root=0)
+        all_observations = comm.gather(stored_obs_data.dropna(), root=0)
+        all_parameters = comm.gather(stored_param_data.dropna(), root=0)
     else:
-        all_observations = stored_obs_data
+        all_observations = stored_obs_data.dropna()
+        all_parameters = stored_param_data.dropna()
 
-    print('Writing out observations to {}'.format(output_path))
+    print('\nWriting out parameters and observations to {}'.format(output_path))
     if rank == 0:
+        all_parameters.to_csv(output_path + 'parameters.csv')
         all_observations.to_csv(output_path + 'observations.csv')
         print('Finished writing observation results.')
 

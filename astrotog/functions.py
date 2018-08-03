@@ -94,7 +94,7 @@ def observe(table_columns, transient, survey):
     positional_overlaps = deepcopy(survey.cadence.query('(ditheredRA - {0} <= {1} <= ditheredRA + {0}) & (ditheredDec - {0} <= {2} <= ditheredDec + {0})'.format(survey.FOV_radius,
                                                               transient.ra,
                                                               transient.dec)))
-    t_overlaps = deepcopy(survey.cadence.query('{0} <= expMJD <= {1}'.format(transient.t0, transient.tmax)))
+    t_overlaps = deepcopy(positional_overlaps.query('{0} <= expMJD <= {1}'.format(transient.t0, transient.tmax)))
 
     overlap_indices = []
     for index, row in t_overlaps.iterrows():
@@ -106,18 +106,7 @@ def observe(table_columns, transient, survey):
         if angdist < survey.FOV_radius:
             overlap_indices.append(index)
     if not overlap_indices:
-        pd_df.at[0, 'transient id'] = transient.id
-        pd_df.at[0, 'm_ej'] = transient.m_ej
-        pd_df.at[0, 'v_ej'] = transient.v_ej
-        pd_df.at[0, 'kappa'] = transient.kappa
-        pd_df.at[0, 'true redshift'] = transient.z
-        pd_df.at[0, 'explosion time'] = transient.t0
-        pd_df.at[0, 'max time'] = transient.tmax
-        pd_df.at[0, 'ra'] = transient.ra
-        pd_df.at[0, 'dec'] = transient.dec
-        pd_df.at[index, 'peculiar velocity'] = transient.peculiar_vel
-        pd_df.at[0, 'observed'] = False
-        pd_df.fillna(value='-')
+        return pd_df
     else:
         survey_overlap = t_overlaps.loc[overlap_indices]
 
@@ -135,19 +124,9 @@ def observe(table_columns, transient, survey):
             extinct_mag_error = magnitude_error(extinct_bandflux, flux_error, survey.reference_flux_response[band])
             inst_flux = flux_noise(extinct_bandflux, flux_error)
             inst_mag = flux_to_mag(inst_flux, survey.reference_flux_response[band])
-            inst_mag_error = magnitude_error(inst_flux, flux_error, survey.reference_flux_response[band])
-
+            inst_mag_error = magnitude_error(inst_flux, flux_error,
+                                             survey.reference_flux_response[band])
             pd_df.at[index, 'transient id'] = transient.id
-            pd_df.at[index, 'm_ej'] = transient.m_ej
-            pd_df.at[index, 'v_ej'] = transient.v_ej
-            pd_df.at[index, 'kappa'] = transient.kappa
-            pd_df.at[index, 'true redshift'] = transient.z
-            pd_df.at[index, 'explosion time'] = transient.t0
-            pd_df.at[index, 'max time'] = transient.tmax
-            pd_df.at[index, 'ra'] = transient.ra
-            pd_df.at[index, 'dec'] = transient.dec
-            pd_df.at[index, 'peculiar velocity'] = transient.peculiar_vel
-            pd_df.at[index, 'observed'] = True
             pd_df.at[index, 'mjd'] = row['expMJD']
             pd_df.at[index, 'bandfilter'] = row['filter']
             pd_df.at[index, 'instrument magnitude'] = inst_mag
@@ -169,16 +148,31 @@ def observe(table_columns, transient, survey):
             pd_df.at[index, 'lightcurve phase'] = obs_phase
             pd_df.at[index, 'signal to noise'] = inst_flux/flux_error
 
-        if (survey.cadence.query('expMJD < {0} - 1.0'.format(transient.t0)).dropna().empty):
+        if (positional_overlaps.query('expMJD < {0} - 1.0'.format(transient.t0)).dropna().empty):
             pd_df['field previously observed'] = False
         else:
             pd_df['field previously observed'] = True
-        if (survey.cadence.query('expMJD > {0} + 1.0'.format(transient.tmax)).dropna().empty):
+        if (positional_overlaps.query('expMJD > {0} + 1.0'.format(transient.tmax)).dropna().empty):
             pd_df['field observed after'] = False
         else:
             pd_df['field observed after'] = True
 
     return pd_df
+
+
+def write_params(table_columns, transient):
+    pandas_df = pd.DataFrame(columns=table_columns)
+    pandas_df.at[0, 'transient id'] = transient.id
+    pandas_df.at[0, 'm_ej'] = transient.m_ej
+    pandas_df.at[0, 'v_ej'] = transient.v_ej
+    pandas_df.at[0, 'kappa'] = transient.kappa
+    pandas_df.at[0, 'true redshift'] = transient.z
+    pandas_df.at[0, 'explosion time'] = transient.t0
+    pandas_df.at[0, 'max time'] = transient.tmax
+    pandas_df.at[0, 'ra'] = transient.ra
+    pandas_df.at[0, 'dec'] = transient.dec
+    pandas_df.at[0, 'peculiar velocity'] = transient.peculiar_vel
+    return pandas_df
 
 
 def mag_to_flux(mag, ref_flux):
@@ -208,11 +202,11 @@ def dust(ra, dec, band, Rv=3.1):
     return A_x
 
 
-def detect(pandas_df):
-    """
-
-    """
-    return None
+# def detect(pandas_df):
+#     """
+#
+#     """
+#     return None
 
 
 def class_method_in_pool(class_instance, method, method_args):
@@ -316,27 +310,27 @@ def extend_args_list(list1, list2):
 #     #     fig_num += 1
 #     #     break
 #     return f, fig_num
-
-def compile_transients():
-    """
-    Wrapper function to put together a set of transient instances
-    """
-
-    return transient_dict
-
-
-def run_simulation():
-    """
-    Wrapper function to run the full simulation set of functions like a script.
-    """
-
-    return
-
-
-def run_parallel(simulation, survey, transient_distribution):
-    """
-    This is the wrapper function needed to run in parallel with the python
-    multiprocess framework.
-    """
-
-    return
+#
+# def compile_transients():
+#     """
+#     Wrapper function to put together a set of transient instances
+#     """
+#
+#     return transient_dict
+#
+#
+# def run_simulation():
+#     """
+#     Wrapper function to run the full simulation set of functions like a script.
+#     """
+#
+#     return
+#
+#
+# def run_parallel(simulation, survey, transient_distribution):
+#     """
+#     This is the wrapper function needed to run in parallel with the python
+#     multiprocess framework.
+#     """
+#
+#     return
