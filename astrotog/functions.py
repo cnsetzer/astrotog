@@ -3,9 +3,11 @@ import pandas as pd
 from scipy.integrate import simps
 from copy import deepcopy
 from sfdmap import SFDMap as sfd
-
 import matplotlib.pyplot as plt
 import seaborn as sns
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 # font = {'size': 14}
 # matplotlib.rc('font', **font)
 sns.set_style('whitegrid')  # I personally like this style.
