@@ -28,9 +28,9 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------
     # Section that user can edit to tailor simulation on global level
     # ---------------------------------------------------------------
-    batch_size = 50
+    batch_size = 200
     batch_mp_workers = 2
-    verbose = True
+    verbose = False
     # batch_size = 'all'
 
     if rank == 0:
@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
         if not os.path.exists(output_path):
             os.makedirs(output_path)
-        z_max = 0.045
+        z_max = 0.5
         num_processes = size
         z_bin_size = 0.02
         if size >= 1:
