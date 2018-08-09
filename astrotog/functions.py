@@ -146,7 +146,6 @@ def observe(table_columns, transient, survey):
             pd_df.at[index, 'source mag one sigma'] = source_mag_error
             pd_df.at[index, 'source flux'] = source_bandflux
             pd_df.at[index, 'source flux one sigma'] = flux_error
-            pd_df.at[index, 'seeing'] = row['rawSeeing']
             pd_df.at[index, 'airmass'] = row['airmass']
             pd_df.at[index, 'five sigma depth'] = row['fiveSigmaDepth']
             pd_df.at[index, 'lightcurve phase'] = obs_phase

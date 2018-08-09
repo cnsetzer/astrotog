@@ -82,12 +82,12 @@ class survey(object):
         of the class.
         """
         self.dithered = simulation.dithers
-        self.get_cadence(simulation.cadence_path, simulation.cadence_flags)
+        self.get_cadence(simulation)
         self.get_throughputs(simulation.throughputs_path)
         self.get_reference_flux(simulation.reference_path)
         self.get_survey_params()
 
-    def get_cadence(self, path, flag='combined'):
+    def get_cadence(self, simulation):
         """
         Method to get the survey cadence from an OpSim database.
 
@@ -105,7 +105,13 @@ class survey(object):
             Dataframe containing the summary elements of each visit that is
             simulated in OpSim for the chosen survey.
         """
-        self.cadence = oss.OpSimOutput.fromOpSimDB(path, subset=flag).summary
+        path = simulation.cadence_path
+        flag = simulation.cadence_flags
+        vers = simulation.version
+        add_dith = simulation.add_dithers
+        self.cadence = oss.OpSimOutput.fromOpSimDB(path, subset=flag,
+                                                   opsimversion=vers,
+                                                   add_dithers=add_dith).summary
 
     def get_throughputs(self, path):
         """
@@ -233,11 +239,11 @@ class survey(object):
         Method to obtain summary features of the given cadence.
         """
         if self.dithered is True:
-            self.col_dec = 'ditheredDec'
-            self.col_ra = 'ditheredRA'
+            self.col_dec = '_dec'
+            self.col_ra = '_ra'
         else:
-            self.col_dec = 'fieldDec'
-            self.col_ra = 'fieldRA'
+            self.col_dec = '_dec'
+            self.col_ra = '_ra'
 
         # Given a prescribed survey simulation get basic properties of the
         # simulation. Currently assume a rectangular (in RA,DEC) solid angle on

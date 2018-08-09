@@ -30,21 +30,24 @@ if __name__ == "__main__":
     # ---------------------------------------------------------------
     batch_size = 50
     batch_mp_workers = 2
+    verbose = False
     # batch_size = 'all'
 
     if rank == 0:
         t_start = time.time()
         os.system('clear')
-        print('\nWe are using {0} MPI workers with {1} multiprocess threads per process.'.format(size, batch_mp_workers))
+        if verbose:
+            print('\nWe are using {0} MPI workers with {1} multiprocess threads per process.'.format(size, batch_mp_workers))
         # -------------------------------------------------------------------
         # Section that user can edit to tailor simulation on primary process
         # -------------------------------------------------------------------
         dithers = False
-
+        survey_version = 'lsstv4'
+        add_dithers = False
 
         seds_path = '/Users/cnsetzer/Documents/LSST/sedb/rosswog/NSNS/winds'
         cadence_path = \
-            '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
+            '/Users/cnsetzer/Documents/LSST/surveydbs/kraken_2036.db'
         throughputs_path = '/Users/cnsetzer/Documents/LSST/throughputs/lsst'
         reference_flux_path = '/Users/cnsetzer/Documents/LSST/throughputs/references'
         run_dir = 'LSST_sim_run_minion1016_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
@@ -74,15 +77,17 @@ if __name__ == "__main__":
                               num_processes=num_processes,
                               batch_size=batch_size, cosmology=cosmo,
                               rate_gpc=rate,
-                              dithers=dithers)
+                              dithers=dithers, version=survey_version,
+                              add_dithers=add_dithers)
         LSST_survey = atopclass.LSST(sim_inst)
         transient_dist = aclasses.transient_distribution(LSST_survey, sim_inst)
         tran_param_dist = atopclass.rosswog_kilonovae(parameter_dist=True,
                                             num_samples=transient_dist.number_simulated)
         num_params_pprocess = int(ceil(transient_dist.number_simulated/size))
         num_transient_params = tran_param_dist.num_params
-        print('The number of transients is: {}'.format(transient_dist.number_simulated))
-        print('The number of parameters per transient is: {}'.format(num_transient_params))
+        if verbose:
+            print('The number of transients is: {}'.format(transient_dist.number_simulated))
+            print('The number of parameters per transient is: {}'.format(num_transient_params))
     else:
         num_transient_params = None
         num_params_pprocess = None
@@ -131,9 +136,10 @@ if __name__ == "__main__":
     assert len(param_array[:]) == len(sky_loc_array[:])
     num_params_pprocess = len(param_array[:])
 
-    if rank == 0:
+    if rank == 0 and verbose:
         print('The split of parameters between processes is:')
-    print('Process rank = {0} has {1} transients assigned to it.'.format(rank, num_params_pprocess))
+    if verbose:
+        print('Process rank = {0} has {1} transients assigned to it.'.format(rank, num_params_pprocess))
 
     if size > 1:
         # There is definitely a problem here. Might need a virtual server...
@@ -162,15 +168,18 @@ if __name__ == "__main__":
                       'source mag one sigma', 'source flux',
                       'source flux one sigma', 'extincted magnitude',
                       'extincted mag one sigma', 'extincted flux',
-                      'extincted flux one sigma', 'airmass', 'seeing',
+                      'extincted flux one sigma', 'airmass',
                       'five sigma depth', 'lightcurve phase',
                       'field previously observed', 'field observed after']
     stored_obs_data = pd.DataFrame(columns=obs_columns)
 
-    if rank == 0:
+    if rank == 0 and verbose:
         print('\nLaunching multiprocess pool of {} workers per MPI core.'.format(batch_mp_workers))
         print('The batch processing will now begin.')
         t0 = time.time()
+
+    if size > 1:
+        comm.barrier()
     # Launch x threads per MPI worker
     p = mp.Pool(batch_mp_workers)
     for i in range(num_batches):
@@ -212,7 +221,7 @@ if __name__ == "__main__":
         stored_obs_data = stored_obs_data.append(observation_df,
                                                  ignore_index=True, sort=False)
 
-        if rank == 0:
+        if rank == 0 and verbose:
             # if i == 0:
             #     print('Debug Check of Pandas Dataframe:')
             #     print(stored_obs_data)
@@ -250,10 +259,12 @@ if __name__ == "__main__":
         output_params = stored_param_data
 
     if rank == 0:
-        print('\nWriting out parameters and observations to {}'.format(output_path))
+        if verbose:
+            print('\nWriting out parameters and observations to {}'.format(output_path))
         output_params.to_csv(output_path + 'parameters.csv')
         output_observations.to_csv(output_path + 'observations.csv')
-        print('Finished writing observation results.')
+        if verbose:
+            print('Finished writing observation results.')
 
     stored_obs_data = output_observations
     stored_param_data = stored_param_data
@@ -265,6 +276,6 @@ if __name__ == "__main__":
     comm.barrier()
     # detections = p.starmap()
 
-    if rank == 0:
+    if rank == 0 and verbose:
         t_end = time.time()
         print('\nSimulation completed successfully with elapsed time: {}.'.format(datetime.timedelta(seconds=int(t_end-t_start))))

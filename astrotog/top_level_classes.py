@@ -16,7 +16,7 @@ class simulation(object):
                  output_path=os.getcwd(), cadence_flags='combined', z_min=0.0,
                  z_bin_size=0.01, multiproc=False, num_processes=1,
                  batch_size='all', cosmology=cosmo, rate_gpc=1000,
-                 dithers=True):
+                 dithers=True, version='lsstv4', add_dithers=False):
         self.cadence_path = cadence_path
         self.throughputs_path = throughputs_path
         self.reference_path = reference_path
@@ -31,6 +31,8 @@ class simulation(object):
         self.num_processes = num_processes
         self.rate = rate_gpc
         self.dithers = dithers
+        self.version = version
+        self.add_dithers = add_dithers
 
 
 class LSST(classes.survey):
