@@ -8,4 +8,4 @@
 #PBS -l nodes=1:ppn=12,walltime=99:00:00
 #PBS -r n
 #PBS -q cores12
-mpirun -np 12 -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH -f $PBS_NODEFILE python LSST_hypatia_sim_kraken2026.py
+mpirun -np 12 python LSST_hypatia_sim_kraken2026.py
