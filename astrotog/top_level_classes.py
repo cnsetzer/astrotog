@@ -15,7 +15,8 @@ class simulation(object):
     def __init__(self, cadence_path, throughputs_path, reference_path, z_max,
                  output_path=os.getcwd(), cadence_flags='combined', z_min=0.0,
                  z_bin_size=0.01, multiproc=False, num_processes=1,
-                 batch_size='all', cosmology=cosmo, rate_gpc=1000):
+                 batch_size='all', cosmology=cosmo, rate_gpc=1000,
+                 dithers=True):
         self.cadence_path = cadence_path
         self.throughputs_path = throughputs_path
         self.reference_path = reference_path
@@ -29,6 +30,7 @@ class simulation(object):
         self.cosmology = cosmology
         self.num_processes = num_processes
         self.rate = rate_gpc
+        self.dithers = dithers
 
 
 class LSST(classes.survey):

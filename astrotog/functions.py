@@ -93,15 +93,17 @@ def bandflux_error(fiveSigmaDepth, bandflux_ref):
 def observe(table_columns, transient, survey):
     pd_df = pd.DataFrame(columns=table_columns)
     # Begin matching of survey points to event positional overlaps
-    positional_overlaps = deepcopy(survey.cadence.query('(ditheredRA - {0} <= {1} <= ditheredRA + {0}) & (ditheredDec - {0} <= {2} <= ditheredDec + {0})'.format(survey.FOV_radius,
+    positional_overlaps = deepcopy(survey.cadence.query('({3} - {0} <= {1} <= {3} + {0}) & ({4} - {0} <= {2} <= {4} + {0})'.format(survey.FOV_radius,
                                                               transient.ra,
-                                                              transient.dec)))
+                                                              transient.dec,
+                                                              survey.col_ra,
+                                                              survey.col_dec)))
     t_overlaps = deepcopy(positional_overlaps.query('{0} <= expMJD <= {1}'.format(transient.t0, transient.tmax)))
 
     overlap_indices = []
     for index, row in t_overlaps.iterrows():
-        pointing_ra = row['ditheredRA']
-        pointing_dec = row['ditheredDec']
+        pointing_ra = row[survey.col_ra]
+        pointing_dec = row[survey.col_dec]
         angdist = np.arccos(np.sin(pointing_dec)*np.sin(transient.dec) +
                             np.cos(pointing_dec) *
                             np.cos(transient.dec)*np.cos(transient.ra - pointing_ra))

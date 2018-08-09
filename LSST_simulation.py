@@ -39,6 +39,9 @@ if __name__ == "__main__":
         # -------------------------------------------------------------------
         # Section that user can edit to tailor simulation on primary process
         # -------------------------------------------------------------------
+        dithers = False
+
+
         seds_path = '/Users/cnsetzer/Documents/LSST/sedb/rosswog/NSNS/winds'
         cadence_path = \
             '/Users/cnsetzer/Documents/LSST/surveydbs/minion_1016_sqlite.db'
@@ -70,7 +73,8 @@ if __name__ == "__main__":
                               z_bin_size=z_bin_size, multiproc=multiprocess,
                               num_processes=num_processes,
                               batch_size=batch_size, cosmology=cosmo,
-                              rate_gpc=rate)
+                              rate_gpc=rate,
+                              dithers=dithers)
         LSST_survey = atopclass.LSST(sim_inst)
         transient_dist = aclasses.transient_distribution(LSST_survey, sim_inst)
         tran_param_dist = atopclass.rosswog_kilonovae(parameter_dist=True,

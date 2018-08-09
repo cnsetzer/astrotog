@@ -81,6 +81,7 @@ class survey(object):
         Builds the survey object calling the methods to set the base attributes
         of the class.
         """
+        self.dithered = simulation.dithers
         self.get_cadence(simulation.cadence_path, simulation.cadence_flags)
         self.get_throughputs(simulation.throughputs_path)
         self.get_reference_flux(simulation.reference_path)
@@ -231,6 +232,13 @@ class survey(object):
         """
         Method to obtain summary features of the given cadence.
         """
+        if self.dithered is True:
+            self.col_dec = 'ditheredDec'
+            self.col_ra = 'ditheredRA'
+        else:
+            self.col_dec = 'fieldDec'
+            self.col_ra = 'fieldRA'
+
         # Given a prescribed survey simulation get basic properties of the
         # simulation. Currently assume a rectangular (in RA,DEC) solid angle on
         # the sky
@@ -238,10 +246,10 @@ class survey(object):
         min_db = self.cadence.min()
         max_db = self.cadence.max()
         # Need to extend by FOV
-        self.min_ra = min_db['ditheredRA']
-        self.max_ra = max_db['ditheredRA']
-        self.min_dec = min_db['ditheredDec']
-        self.max_dec = max_db['ditheredDec']
+        self.min_ra = min_db[self.col_ra]
+        self.max_ra = max_db[self.col_ra]
+        self.min_dec = min_db[self.col_dec]
+        self.max_dec = max_db[self.col_dec]
         # Survey area in degrees squared
         self.survey_area = np.rad2deg(np.sin(self.max_dec) - np.sin(self.min_dec))*np.rad2deg(self.max_ra - self.min_ra)
         self.min_mjd = min_db['expMJD']

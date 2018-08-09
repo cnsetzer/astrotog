@@ -1,6 +1,10 @@
 import numpy as np
 from math import *
-from . import macronova2py.macronova2py as m2p
+# Import this way for Hypatia
+import macronova2py as macp
+m2p = macp.macronova2py
+# Import this way for normal unix based personal computer
+#from .macronova2py import macronova2py as m2p
 
 
 def Make_Rosswog_SEDS(KNE_parameters, separated=False):
