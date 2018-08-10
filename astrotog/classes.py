@@ -3,7 +3,7 @@ import re
 import numpy as np
 import sncosmo
 import opsimsummary as oss
-from . import functions as func
+from .functions import bandflux
 
 
 class transient(object):
@@ -231,7 +231,7 @@ class survey(object):
         self.reference_flux_response = {}
         for band in self.throughputs.keys():
             self.reference_flux_response[band] = \
-                func.bandflux(band_throughput=self.throughputs[band],
+                bandflux(band_throughput=self.throughputs[band],
                               ref_model=ref_model)
 
     def get_survey_params(self):

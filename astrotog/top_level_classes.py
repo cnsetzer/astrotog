@@ -4,8 +4,9 @@ import numpy as np
 import sncosmo
 from astropy.cosmology import Planck15 as cosmo
 # from astrotog import macronovae_wrapper as mw
-from . import macronovae_wrapper as mw
-from . import classes
+from .macronovae_wrapper import Make_Rosswog_SEDS as mw
+from .classes import kilonovae
+from .classes import survey
 
 
 class simulation(object):
@@ -35,7 +36,7 @@ class simulation(object):
         self.add_dithers = add_dithers
 
 
-class LSST(classes.survey):
+class LSST(survey):
     """
     Top-level class for the LSST instrument and survey.
     """
@@ -55,7 +56,7 @@ class LSST(classes.survey):
         super().__init__(simulation)
 
 
-class rosswog_kilonovae(classes.kilonovae):
+class rosswog_kilonovae(kilonovae):
     """
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     semi-analytic model for kilonovae spectral energy distributions.
@@ -139,11 +140,11 @@ class rosswog_kilonovae(classes.kilonovae):
             # variables
             KNE_parameters.append(False)
             KNE_parameters.append('dummy string')
-        self.phase, self.wave, self.flux = mw.Make_Rosswog_SEDS(KNE_parameters,
-                                                                separated=True)
+        self.phase, self.wave, self.flux = mw(KNE_parameters,
+                                              separated=True)
 
 
-class rosswog_numerical_kilonovae(classes.kilonovae):
+class rosswog_numerical_kilonovae(kilonovae):
     """
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     numerically generated kilonovae spectral energy distributions.

@@ -17,7 +17,6 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 # Set seed for reproduceability
 np.random.seed(12345)
-
 # Execute parallel script only if used as the main script
 if __name__ == "__main__":
     # MPI.Init_thread(int required=THREAD_MULTIPLE)
@@ -78,7 +77,7 @@ if __name__ == "__main__":
                               num_processes=num_processes,
                               batch_size=batch_size, cosmology=cosmo,
                               rate_gpc=rate,
-                              dithers=dithers, version=survey_version,
+                              dithers=dithers, simversion=survey_version,
                               add_dithers=add_dithers)
         LSST_survey = atopclass.LSST(sim_inst)
         transient_dist = aclasses.transient_distribution(LSST_survey, sim_inst)

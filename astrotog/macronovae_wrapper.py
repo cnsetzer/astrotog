@@ -1,10 +1,6 @@
 import numpy as np
 from math import *
-# Import this way for Hypatia
-import macronova2py as macp
-m2p = macp.macronova2py
-# Import this way for normal unix based personal computer
-#from .macronova2py import macronova2py as m2p
+from .macronova2py import calculate_luminosity as m2p
 
 
 def Make_Rosswog_SEDS(KNE_parameters, separated=False):
@@ -13,7 +9,7 @@ def Make_Rosswog_SEDS(KNE_parameters, separated=False):
     MNE_parameters = KNE_parameters[0:n]
     read_hrate = KNE_parameters[n]
     heating_rates_file = KNE_parameters[n+1]
-    luminosity = m2p.calculate_luminosity(n, MNE_parameters, read_hrate,
+    luminosity = m2p(n, MNE_parameters, read_hrate,
                                           heating_rates_file, Nt)
     return SED_timeseries(luminosity, separated)
 
