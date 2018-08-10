@@ -8,5 +8,7 @@
 #PBS -V
 #PBS -l nodes=1:ppn=24,walltime=99:00:00
 #PBS -r n
+ HEAD
 #PBS -q cores24
 mpirun test_bash -n 24
+ 915c80e08a7c016611b61f22705d74dee987c8c1
