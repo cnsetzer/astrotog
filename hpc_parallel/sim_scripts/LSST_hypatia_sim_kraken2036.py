@@ -47,10 +47,10 @@ if __name__ == "__main__":
         seds_path = '/Users/cnsetzer/Documents/LSST/sedb/rosswog/NSNS/winds'
         cadence_path = \
             '/home/csetzer/LSST/OpSim_outputs/kraken_2036.db'
-        throughputs_path = '/home/csetzer/LSST/throughputs/lsst'
-        reference_flux_path = '/home/csetzer/LSST/throughputs/references'
-        run_dir = 'LSST_sim_run_kraken2036_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
-        output_path = '/home/csetzer/LSST/astrotog_output/' + run_dir + '/'
+        throughputs_path = '/home/csetzer/lsst/throughputs/lsst'
+        reference_flux_path = '/home/csetzer/lsst/throughputs/references'
+        run_dir = 'lsst_kne_sim_kraken2036_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
+        output_path = '/home/csetzer/lsst/astrotog_output/' + run_dir + '/'
 
         if not os.path.exists(output_path):
             os.makedirs(output_path)
