@@ -26,6 +26,4 @@ echo `cat $PBS_NODEFILE | uniq`
 cat $PBS_NODEFILE | uniq > hpc_parallel/scripts/machine.file.$PBS_JOBID
 echo PBS_NODEFILE=$PBS_NODEFILE
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/csetzer/astrotog/astrotog
-
 mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH --machinefile $PBS_NODEFILE bash /home/csetzer/astrotog/hpc_parallel/shell_scripts/test_bash.sh

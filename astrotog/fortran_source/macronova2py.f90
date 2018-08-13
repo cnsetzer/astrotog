@@ -19,7 +19,7 @@ SUBROUTINE calculate_luminosity(n, MNE_parameters, read_hrate, heating_rates_fil
     CHARACTER*255, INTENT(IN) :: heating_rates_file
     !f2py intent(in) :: heating_rates_file
 
-    CALL Macronova(n, MNE_parameters, read_hrate, heating_rates_file, Nt, luminosity)
+    CALL macronova(n, MNE_parameters, read_hrate, heating_rates_file, Nt, luminosity)
 
 END SUBROUTINE calculate_luminosity
 
