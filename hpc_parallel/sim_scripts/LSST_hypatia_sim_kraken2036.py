@@ -44,9 +44,9 @@ if __name__ == "__main__":
         survey_version = 'lsstv4'
         add_dithers = False
 
-        seds_path = '/Users/cnsetzer/Documents/LSST/sedb/rosswog/NSNS/winds'
+        seds_path = '/home/csetzer/lsst/seds/rosswog/NSNS/winds'
         cadence_path = \
-            '/home/csetzer/LSST/OpSim_outputs/kraken_2036.db'
+            '/home/csetzer/lsst/OpSim_outputs/kraken_2036.db'
         throughputs_path = '/home/csetzer/lsst/throughputs/lsst'
         reference_flux_path = '/home/csetzer/lsst/throughputs/references'
         run_dir = 'lsst_kne_sim_kraken2036_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
