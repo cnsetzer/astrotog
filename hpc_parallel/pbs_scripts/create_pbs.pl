@@ -15,7 +15,7 @@ $ppn = @ARGV[3];
 $path = $dir;
 $exe = basename($code);
 
-open(Fout,">./scripts/script_pbs");
+open(Fout,">./script_pbs");
 print Fout <<EMP;
 #!/bin/bash -l
 #PBS -V
@@ -39,14 +39,13 @@ echo This jobs runs on the following machines:
 echo \`cat \$PBS_NODEFILE | uniq\`
 
 #! Create a machine file
-cat \$PBS_NODEFILE | uniq > scripts/machine.file.\$PBS_JOBID
+cat \$PBS_NODEFILE | uniq > ../job_files/machine.file.\$PBS_JOBID
 
-mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH, --machinefile \$PBS_NODEFILE /share/apps/anaconda/python3.6/bin/python ./$code 
+mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH, --machinefile \$PBS_NODEFILE /share/apps/anaconda/python3.6/bin/python ../sim_scripts/$code
 
 EMP
 close(Fout);
 
-chdir("./scripts");
 @args=("qsub","./script_pbs");
 system(@args);
 chdir("../");
