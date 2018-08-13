@@ -1,0 +1,26 @@
+#!/bin/bash -l
+#PBS -V
+#PBS -N run_LSST_hypatia_sim_kraken2036.py
+#PBS -q cores24
+#PBS -l nodes=1:ppn=24
+#PBS -r n
+#PBS -j oe
+#PBS -k oe
+module purge
+module load python
+module load mpi/mvapich/2-2.3b
+source activate astrotog
+cd /home/csetzer/astrotog/hpc_parallel
+
+echo Running on host `hostname`
+echo Time is `date`
+echo Directory is `pwd`
+echo PBS job ID is $PBS_JOBID
+echo This jobs runs on the following machines:
+echo `cat $PBS_NODEFILE | uniq`
+
+#! Create a machine file
+cat $PBS_NODEFILE | uniq > scripts/machine.file.$PBS_JOBID
+
+mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH, --machinefile $PBS_NODEFILE /share/apps/anaconda/python3.6/bin/python ./LSST_hypatia_sim_kraken2036.py 
+

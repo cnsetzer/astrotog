@@ -1,0 +1,5 @@
+#!/bin/env python
+#!/bin/bash -l
+#PBS -k oe
+
+echo hello world

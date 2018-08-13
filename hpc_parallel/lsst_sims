@@ -1,0 +1,31 @@
+#!/bin/bash -l
+#PBS -S /bin/bash
+#PBS -N lsst_kilonovae
+#PBS -j oe
+#PBS -k oe /home/csetzer/LSST/astrotog_output/myjob.oe
+#PBS -M christian.setzer@fysik.su.se
+#PBS -m be
+#PBS -V
+#PBS -l nodes=1:ppn=24,walltime=99:00:00
+#PBS -r n
+#PBS -q cores24
+module purge
+module load python
+module load mpi/mvapich/2-2.3b
+source activate astrotog
+cd /home/csetzer/astrotog
+echo $PBS_O_WORKDIR
+echo Running on host `hostname`
+echo Time is `date`
+echo Directory is `pwd`
+echo PBS job ID is $PBS_JOBID
+echo This jobs runs on the following machines:
+echo `cat $PBS_NODEFILE | uniq`
+
+#!Create a machine file
+cat $PBS_NODEFILE | uniq > hpc_parallel/scripts/machine.file.$PBS_JOBID
+echo PBS_NODEFILE=$PBS_NODEFILE
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/csetzer/astrotog/astrotog
+
+mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH --machinefile $PBS_NODEFILE bash /home/csetzer/astrotog/hpc_parallel/shell_scripts/test_bash.sh
