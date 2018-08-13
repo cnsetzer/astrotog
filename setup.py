@@ -11,7 +11,7 @@ ext = Extension(name='macronova2py',
                                         '-Wall', '-fbacktrace', '-fimplicit-none',
                                         '-fdefault-double-8', '-fdefault-real-8',
                                         '-fopenmp'],
-                library_dirs=['/Users/cnsetzer/software/lib/lapack-3.8.0'],
+                library_dirs=['/usr/lib64/'],
                 #f2py_options=['c', 'only:', 'calculate_luminosity', ':', 'm'],
                 f2py_options=['c', 'm'],
                 libraries=['lapack', 'blas'])

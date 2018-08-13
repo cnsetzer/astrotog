@@ -1,6 +1,6 @@
 #!/bin/bash -l
 #PBS -V
-#PBS -N lsst_kilonovae
+#PBS -N run_lsst_kne_kraken2036
 #PBS -q cores24
 #PBS -l nodes=1:ppn=24,walltime=99:00:00
 #PBS -r n
@@ -11,7 +11,7 @@
 module purge
 module load python
 module load mpi/mvapich/2-2.3b
-source activate astrotog
+source activate astrotog_hpc
 cd /home/csetzer/astrotog/hpc_parallel/pbs_scripts
 
 echo $PBS_O_WORKDIR
@@ -22,9 +22,9 @@ echo PBS job ID is $PBS_JOBID
 echo This jobs runs on the following machines:
 
 #!Create a machine file
-cat $PBS_NODEFILE | uniq > ../jobs_files/machine.file.$PBS_JOBID
+cat $PBS_NODEFILE | uniq > ../job_files/machine.file.$PBS_JOBID
 echo PBS_NODEFILE=$PBS_NODEFILE
 
-export PYTHONPATH=\$PYTHONPATH:~/.conda/envs/astrotog/bin/python
+export PYTHONPATH=\$PYTHONPATH:/home/csetzer/.conda/envs/astrotog/bin/python
 
 mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH --machinefile $PBS_NODEFILE bash ../shell_scripts/kraken2036.sh
