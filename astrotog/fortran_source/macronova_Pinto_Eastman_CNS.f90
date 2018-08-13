@@ -37,7 +37,7 @@ MODULE macronova_Pinto_eastman_CNS
 
   CONTAINS
 
-  SUBROUTINE Macronova(np, parameters, read_hrate, heating_rates_file, Nt, luminosity)
+  SUBROUTINE macronova(np, parameters, read_hrate, heating_rates_file, Nt, luminosity)
 
       IMPLICIT NONE
       !--------------------------!
@@ -655,7 +655,7 @@ MODULE macronova_Pinto_eastman_CNS
       !******************************************************************************
 
 
-  END SUBROUTINE Macronova
+  END SUBROUTINE macronova
 
   !
   ! This function returns either analytic or interpolated heating rate

@@ -5,7 +5,7 @@ USE macronova_Pinto_eastman_CNS
 
 CONTAINS
 
-SUBROUTINE Calculate_luminosity(n, MNE_parameters, read_hrate, heating_rates_file, Nt, luminosity)
+SUBROUTINE calculate_luminosity(n, MNE_parameters, read_hrate, heating_rates_file, Nt, luminosity)
     IMPLICIT NONE
 
     INTEGER, INTENT(IN) :: n, Nt
@@ -21,7 +21,7 @@ SUBROUTINE Calculate_luminosity(n, MNE_parameters, read_hrate, heating_rates_fil
 
     CALL Macronova(n, MNE_parameters, read_hrate, heating_rates_file, Nt, luminosity)
 
-END SUBROUTINE Calculate_luminosity
+END SUBROUTINE calculate_luminosity
 
 
 END MODULE
