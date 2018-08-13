@@ -64,3 +64,6 @@ target/
 
 # Ipython checkpoints
 .ipynb_checkpoints
+
+# HPC Files
+job_files/
