@@ -40,7 +40,7 @@ echo \`cat \$PBS_NODEFILE | uniq\`
 
 #! Create a machine file
 cat \$PBS_NODEFILE | uniq > ../job_files/machine.file.\$PBS_JOBID
-PYTHONPATH=\$PYTHONPATH:~/.conda/envs/astrotog/bin/python
+export PYTHONPATH=\$PYTHONPATH:~/.conda/envs/astrotog/bin/python
 
 mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH, --machinefile \$PBS_NODEFILE /share/apps/anaconda/python3.6/bin/python ../sim_scripts/$code
 
