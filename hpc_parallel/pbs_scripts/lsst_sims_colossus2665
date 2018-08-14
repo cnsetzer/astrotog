@@ -1,14 +1,13 @@
 #!/bin/bash --norc
 #PBS -S /bin/bash
 #PBS -V
-#PBS -N run_lsst_kne_kraken2036
+#PBS -N run_lsst_kne_colossus2665
 #PBS -q cores24
 #PBS -l nodes=1:ppn=24,walltime=99:00:00
 #PBS -r n
-#PBS -j oe
-#PBS -k oe /home/csetzer/LSST/astrotog_output/myjob.oe
-#PBS -M christian.setzer@fysik.su.se
-#PBS -m be
+#PBS -k oe
+#PBS -o /home/csetzer/LSST/astrotog_output/colossus2665.o
+#PBS -e /home/csetzer/LSST/astrotog_output/colossus2665.e
 module purge
 module load python
 module load mpi/mvapich/2-2.3b
@@ -28,4 +27,4 @@ echo PBS_NODEFILE=$PBS_NODEFILE
 
 export PYTHONPATH=$PYTHONPATH:/home/csetzer/.conda/envs/astrotog_hpc/bin/python
 
-mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH --machinefile $PBS_NODEFILE bash ../shell_scripts/kraken2036.sh
+mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH --machinefile $PBS_NODEFILE bash ../shell_scripts/colossus2665.sh

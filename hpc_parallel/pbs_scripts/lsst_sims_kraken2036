@@ -5,10 +5,9 @@
 #PBS -q cores24
 #PBS -l nodes=1:ppn=24,walltime=99:00:00
 #PBS -r n
-#PBS -j oe
-#PBS -k oe /home/csetzer/LSST/astrotog_output/myjob.oe
-#PBS -M christian.setzer@fysik.su.se
-#PBS -m be
+#PBS -k oe
+#PBS -o /home/csetzer/LSST/astrotog_output/krake2036.o
+#PBS -e /home/csetzer/LSST/astrotog_output/krake2036.e
 module purge
 module load python
 module load mpi/mvapich/2-2.3b
