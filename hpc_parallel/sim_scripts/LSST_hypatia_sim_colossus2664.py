@@ -46,10 +46,10 @@ if __name__ == "__main__":
 
         seds_path = '/home/csetzer/lsst/seds/rosswog/NSNS/winds'
         cadence_path = \
-            '/home/csetzer/lsst/OpSim_outputs/kraken_2036.db'
+            '/home/csetzer/lsst/OpSim_outputs/colossus_2664.db'
         throughputs_path = '/home/csetzer/lsst/throughputs/lsst'
         reference_flux_path = '/home/csetzer/lsst/throughputs/references'
-        run_dir = 'lsst_kne_sim_kraken2036_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
+        run_dir = 'lsst_kne_sim_colossus2664_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
         output_path = '/home/csetzer/lsst/astrotog_output/' + run_dir + '/'
 
         if not os.path.exists(output_path):
