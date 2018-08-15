@@ -67,3 +67,6 @@ target/
 
 # HPC Files
 job_files/
+
+# Ignore paper
+paper/
