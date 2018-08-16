@@ -220,23 +220,28 @@ def detect(pandas_obs_df, param_df, filter_dict):
     }
 
     """
-
     detected_inter = deepcopy(pandas_obs_df)
 
     for filter, properties in filter_dict.items():
         type = properties['type']
-
+        count = properties['num_count']
+        name = properties['name']
+        value = properties['value']
+        gt_lt_eq = properties['gt_lt_eq']
+        absolute = properties['absolute']
 
         if type == 'value':
             detected_inter = filter_on_value(detected_inter, )
         elif type == 'count':
-
+            detected_inter = filter_on_count(detected_inter, count, name,
+                                             value, gt_lt_eq, absolute)
         elif type == 'both':
-
+            detected_inter = filter_on_count(detected_inter, count, name,
+                                             value, gt_lt_eq, absolute)
         else:
             print('The filter, {}, has incorrect synatx.'.format(filter))
 
-
+    detected_transients = detected_inter
     return detected_transients
 
 
