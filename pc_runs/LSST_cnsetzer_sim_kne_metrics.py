@@ -40,8 +40,13 @@ if __name__ == "__main__":
         # -------------------------------------------------------------------
         # Section that user can edit to tailor simulation on primary process
         # -------------------------------------------------------------------
-        run_dir = 'LSST_sim_run_kraken2036_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
-        output_path = '/Users/cnsetzer/Documents/LSST/astrotog_output/' + run_dir + '/'
+        throughputs_path = '/Users/cnsetzer/Documents/LSST/throughputs/lsst'
+        reference_flux_path = '/Users/cnsetzer/Documents/LSST/throughputs/references'
+        cadence_path = '/share/data1/lsst_cadence'
+        prev_param_file = '/share/data1/lsst_kne_sims//parameters.csv'
+        prev_obs_file = '/share/data1/lsst_kne_sims//observations.csv'
+        run_dir = 'metrics_lsst_kne_kraken2036_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
+        output_path = '/share/data1/csetzer/lsst_kne_sims' + run_dir + '/'
 
         if not os.path.exists(output_path):
             os.makedirs(output_path)
@@ -67,11 +72,10 @@ if __name__ == "__main__":
                               dithers=dithers, simversion=survey_version,
                               add_dithers=add_dithers)
         LSST_survey = atopclass.LSST(sim_inst)
-        transient_dist = aclasses.transient_distribution(LSST_survey, sim_inst)
-        tran_param_dist = atopclass.rosswog_kilonovae(parameter_dist=True,
-                                            num_samples=transient_dist.number_simulated)
-        num_params_pprocess = int(ceil(transient_dist.number_simulated/size))
-        num_transient_params = tran_param_dist.num_params
+
+        pd.read_csv(prev_run_path + )
+
+
         if verbose:
             print('The number of transients is: {}'.format(transient_dist.number_simulated))
             print('The number of parameters per transient is: {}'.format(num_transient_params))
@@ -105,6 +109,31 @@ if __name__ == "__main__":
                       'signal to noise', 'airmass',
                       'five sigma depth', 'when']
     other_obs_data = pd.DataFrame(columns=ohter_obs_columns)
+
+    if rank == 0 and verbose:
+        print('\nLaunching multiprocess pool of {} workers per MPI core.'.format(batch_mp_workers))
+        print('The batch processing will now begin.')
+        t0 = time.time()
+
+    if size > 1:
+        comm.barrier()
+    # Launch x threads per MPI worker
+    p = mp.Pool(batch_mp_workers)
+    for i in range(num_batches):
+        # Handle uneven batch sizes
+        if i == (num_batches-1):
+            current_batch_size = num_params_pprocess - i*batch_size
+        else:
+            current_batch_size = batch_size
+
+
+
+
+
+
+
+
+
 
     comm.barrier()
     # detections = p.starmap()
