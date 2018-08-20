@@ -28,7 +28,7 @@ print Fout <<EMP;
 module purge
 module load python
 module load mpi/mvapich/2-2.3b
-source activate astrotog
+source activate astrotog_hpc
 cd $dir
 
 echo Running on host \`hostname\`
