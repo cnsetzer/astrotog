@@ -185,7 +185,7 @@ if __name__ == "__main__":
                          'instrument flux', 'instrument flux one sigma',
                          'signal to noise', 'airmass',
                          'five sigma depth', 'when']
-    stored_other_obs_data = pd.DataFrame(columns=ohter_obs_columns)
+    stored_other_obs_data = pd.DataFrame(columns=other_obs_columns)
 
     if rank == 0 and verbose:
         print('\nLaunching multiprocess pool of {} workers per MPI core.'.format(batch_mp_workers))
