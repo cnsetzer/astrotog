@@ -1,0 +1,12 @@
+#!/bin/bash -l
+qsub lsst_sims_baseline2018a
+qsub lsst_sims_colossus2664
+qsub lsst_sims_colossus2665
+qsub lsst_sims_colossus2667
+qsub lsst_sims_kraken2026
+qsub lsst_sims_kraken2035
+qsub lsst_sims_kraken2036
+qsub lsst_sims_mothra2045
+qsub lsst_sims_pontus2002
+qsub lsst_sims_pontus2489
+qsub lsst_sims_pontus2502
