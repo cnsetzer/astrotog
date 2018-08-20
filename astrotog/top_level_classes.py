@@ -17,7 +17,8 @@ class simulation(object):
                  output_path=os.getcwd(), cadence_flags='combined', z_min=0.0,
                  z_bin_size=0.01, multiproc=False, num_processes=1,
                  batch_size='all', cosmology=cosmo, rate_gpc=1000,
-                 dithers=True, simversion='lsstv4', add_dithers=False):
+                 dithers=True, simversion='lsstv4', add_dithers=False,
+                 t_before=30.0, t_after=30.0, response_path= None):
         self.cadence_path = cadence_path
         self.throughputs_path = throughputs_path
         self.reference_path = reference_path
@@ -34,6 +35,9 @@ class simulation(object):
         self.dithers = dithers
         self.version = simversion
         self.add_dithers = add_dithers
+        self.t_before = t_before
+        self.t_after = t_after
+        self.response_path = response_path
 
 
 class LSST(survey):
@@ -52,7 +56,6 @@ class LSST(survey):
             self.instrument = instrument_params['instrument']
             self.magsys = instrument_params['magsys']
             self.filters = instrument_params['filters']
-
         super().__init__(simulation)
 
 
@@ -181,3 +184,67 @@ class rosswog_numerical_kilonovae(kilonovae):
             else:
                 fileio.close()
                 break
+
+
+class metzger_kilonova(kilonovae):
+    """
+    Top-level class for kilonovae transients based on Scolnic, et. al 2017
+    model for kilonovae spectral energy distribution mimicing the GW170817
+    event.
+    """
+    def __init__(self, num_samples=1):
+        self.number_of_samples = num_samples
+        self.make_sed()
+        self.subtype = 'rosswog semi-analytic'
+        super().__init__()
+
+    def make_sed(self):
+        self.phase, self.wave, self.flux = SED_FUNCTION()
+
+
+class cowperthwaite_kilonova(kilonovae):
+    """
+    Top-level class for kilonovae transients based on Scolnic, et. al 2017
+    model for kilonovae spectral energy distribution mimicing the GW170817
+    event.
+    """
+    def __init__(self, num_samples=1):
+        self.number_of_samples = num_samples
+        self.make_sed()
+        self.subtype = 'rosswog semi-analytic'
+        super().__init__()
+
+    def make_sed(self):
+        self.phase, self.wave, self.flux = SED_FUNCTION()
+
+
+class kasen_kilonova(kilonovae):
+    """
+    Top-level class for kilonovae transients based on Scolnic, et. al 2017
+    model for kilonovae spectral energy distribution mimicing the GW170817
+    event.
+    """
+    def __init__(self, num_samples=1):
+        self.number_of_samples = num_samples
+        self.make_sed()
+        self.subtype = 'rosswog semi-analytic'
+        super().__init__()
+
+    def make_sed(self):
+        self.phase, self.wave, self.flux = SED_FUNCTION()
+
+
+class scolnic_kilonova(kilonovae):
+    """
+    Top-level class for kilonovae transients based on Scolnic, et. al 2017
+    model for kilonovae spectral energy distribution mimicing the GW170817
+    event.
+    """
+    def __init__(self, num_samples=1):
+        self.number_of_samples = num_samples
+        self.make_sed()
+        self.subtype = 'rosswog semi-analytic'
+        super().__init__()
+
+    def make_sed(self):
+        self.phase, self.wave, self.flux = SED_FUNCTION()
