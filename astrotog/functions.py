@@ -481,14 +481,49 @@ def scolnic_detections(param_df, obs_df, other_obs_df, survey):
     return scolnic_detections
 
 
-def process_nightly_coadds(obs_df):
+def process_nightly_coadds(obs_df, survey):
     """
-
+    Function which coadds all observations within 12 hours of each other but
+    avoids reprocessing observations more than once.
 
     """
+    coadded_df = pd.DataFrame(columns=obs_df.columns.append('coadded night'))
+
     for transient in list(obs_df['transient id'].unique()):
         t_obs_df = obs_df.query('transient id == {}'.format(transient))
-        for iter
+        for band in list(t_obs_df['bandfilter'].unique()):
+            band_df = t_obs_df.query('bandfilter == {}'.format(band))
+            coadded_indicies = []
+            for iter, row in band_df.iterrows():
+                if iter in coadded_indicies:
+                    continue
+                else:
+                    same_night_df = band_df.query('-0.5 < mjd - {} & mjd - {} < 0.5'.format(row['mjd']))
+                    coadding_series = deepcopy(row)
+                    if len(same_night_df.index) > 1:
+                        coadding_series['mjd'] = same_night_df['mjd'].mean()
+                        coadding_series['extincted flux'] = same_night_df['extincted flux'].mean()
+                        coadding_series['source flux'] = same_night_df['source flux'].mean()
+                        coadding_series['intrument flux'] = same_night_df['intrument flux'].mean()
+                        coadding_series['instrument flux one sigma'] = np.sqrt(np.sum(np.square(same_night_df['instrument flux one sigma'])))/len(same_night_df.index)
+                        coadding_series['source flux one sigma'] = np.sqrt(np.sum(np.square(same_night_df['source flux one sigma'])))/len(same_night_df.index)
+                        coadding_series['extincted flux one sigma'] = np.sqrt(np.sum(np.square(same_night_df['extincted flux one sigma'])))/len(same_night_df.index)
+                        coadding_series['airmass'] = same_night_df['airmass'].mean()
+                        coadding_series['five sigma depth'] = same_night_df['five sigma depth'].mean()
+                        coadding_series['lightcurve phase'] = same_night_df['lightcurve phase'].mean()
+                        coadding_series['extincted magnitude'] = flux_to_mag(coadding_series['extincted flux'], survey.reference_flux_response[band])
+                        coadding_series['source magnitude'] = flux_to_mag(coadding_series['source flux'], survey.reference_flux_response[band])
+                        coadding_series['instrument magnitude'] = flux_to_mag(coadding_series['instrument flux'], survey.reference_flux_response[band])
+                        coadding_series['instrument mag one sigma'] = magnitude_error(coadding_series['instrument flux'], coadding_series['instrument flux one sigma'], survey.reference_flux_response[band])
+                        coadding_series['extincted mag one sigma'] = magnitude_error(coadding_series['extincted flux'], coadding_series['extincted flux one sigma'], survey.reference_flux_response[band])
+                        coadding_series['source mag one sigma'] = magnitude_error(coadding_series['source flux'], coadding_series['source flux one sigma'], survey.reference_flux_response[band])
+                        coadding_series['signal to noise'] = coadding_series['instrument flux']/coadding_series['instrument flux one sigma']
+                        coadding_series['coadded night'] = True
+                    else:
+                        coadding_series['coadded night'] = False
+                    coadded_indicies.extend(list(same_night_df.index))
+                    coadded_df = coadded_df.append(coadding_series, ignore_index=True)
+
     return coadded_df
 
 

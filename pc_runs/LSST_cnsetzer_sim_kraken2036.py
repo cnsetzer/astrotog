@@ -328,10 +328,14 @@ if __name__ == "__main__":
                    }
         stored_obs_data = afunc.detect(stored_obs_data, filters)
 
-        detected_observations = afunc.scolnic_detections(stored_param_data, stored_obs_data, stored_other_obs_data, LSST_survey)
+        # Do coadds
+        coadded_observations = afunc.process_nightly_coadds(stored_obs_data, LSST_survey)
+
+        detected_observations = afunc.scolnic_detections(stored_param_data, coadded_observations, stored_other_obs_data, LSST_survey)
 
         stored_param_data = afunc.param_observe_detect(stored_param_data, stored_obs_data, detected_observations)
 
+        coadded_observations.to_csv(output_path + 'coadded_observations.csv')
         detected_observations.to_csv(output_path + 'scolnic_detections.csv')
         stored_param_data.to_csv(output_path + 'modified_parameters.csv')
 
