@@ -106,7 +106,8 @@ def observe(table_columns, transient, survey):
         pointing_dec = row[survey.col_dec]
         angdist = np.arccos(np.sin(pointing_dec)*np.sin(transient.dec) +
                             np.cos(pointing_dec) *
-                            np.cos(transient.dec)*np.cos(transient.ra - pointing_ra))
+                            np.cos(transient.dec)*np.cos(transient.ra -
+                                                         pointing_ra))
         if angdist < survey.FOV_radius:
             overlap_indices.append(index)
     if not overlap_indices:
@@ -118,16 +119,24 @@ def observe(table_columns, transient, survey):
             band = 'lsst{}'.format(row['filter'])
             obs_phase = row['expMJD'] - transient.t0
             A_x = dust(ra=transient.ra, dec=transient.dec, band=band)
-            source_bandflux = bandflux(survey.throughputs[band], SED_model=transient.model, phase=obs_phase)
-            source_mag = flux_to_mag(source_bandflux, survey.reference_flux_response[band])
+            source_bandflux = bandflux(survey.throughputs[band],
+                                       SED_model=transient.model,
+                                       phase=obs_phase)
+            source_mag = flux_to_mag(source_bandflux,
+                                     survey.reference_flux_response[band])
             extinct_mag = source_mag + A_x
-            extinct_bandflux = mag_to_flux(extinct_mag, survey.reference_flux_response[band])
+            extinct_bandflux = mag_to_flux(extinct_mag,
+                                           survey.reference_flux_response[band])
             fivesigma = row['fiveSigmaDepth']
-            flux_error = bandflux_error(fivesigma, survey.reference_flux_response[band])
-            source_mag_error = magnitude_error(source_bandflux, flux_error, survey.reference_flux_response[band])
-            extinct_mag_error = magnitude_error(extinct_bandflux, flux_error, survey.reference_flux_response[band])
+            flux_error = bandflux_error(fivesigma,
+                                        survey.reference_flux_response[band])
+            source_mag_error = magnitude_error(source_bandflux, flux_error,
+                                               survey.reference_flux_response[band])
+            extinct_mag_error = magnitude_error(extinct_bandflux, flux_error,
+                                                survey.reference_flux_response[band])
             inst_flux = flux_noise(extinct_bandflux, flux_error)
-            inst_mag = flux_to_mag(inst_flux, survey.reference_flux_response[band])
+            inst_mag = flux_to_mag(inst_flux,
+                                   survey.reference_flux_response[band])
             inst_mag_error = magnitude_error(inst_flux, flux_error,
                                              survey.reference_flux_response[band])
             pd_df.at[index, 'transient id'] = transient.id
@@ -205,7 +214,7 @@ def dust(ra, dec, band, Rv=3.1):
     return A_x
 
 
-def detect(pandas_obs_df, param_df, filter_dict):
+def detect(pandas_obs_df, filter_dict):
     """
     The filter dict must be in the form:
 
@@ -231,7 +240,8 @@ def detect(pandas_obs_df, param_df, filter_dict):
         absolute = properties['absolute']
 
         if type == 'value':
-            detected_inter = filter_on_value(detected_inter, )
+            detected_inter = filter_on_value(detected_inter, name, value,
+                                             gt_lt_eq, absolute)
         elif type == 'count':
             detected_inter = filter_on_count(detected_inter, count, name,
                                              value, gt_lt_eq, absolute)
@@ -248,12 +258,19 @@ def detect(pandas_obs_df, param_df, filter_dict):
 def param_observe_detect(param_df, obs_df=None, detect_df=None):
     if obs_df:
         obs_col = pd.DataFrame(columns=['observed'])
+        alert_col = pd.DataFrame(columns=['alerted'])
         for iter, row in param_df.iterrows():
             if obs_df.query('{} == transient id'.format(row['transient id'])).empty is False:
                 obs_col.at[iter, 'observed'] = True
             else:
                 obs_col.at[iter, 'observed'] = False
+            if obs_df.query('{} == transient id & alert == True'.format(row['transient id'])).empty is False:
+                alert_col.at[iter, 'alerted'] = True
+            else:
+                alert_col.at[iter, 'alerted'] = False
         param_df.join(obs_col)
+        param_df.join(alert_col)
+
     if detect_df:
         detect_col = pd.DataFrame(columns=['detected'])
         for iter, row in param_df.iterrows():
@@ -265,7 +282,23 @@ def param_observe_detect(param_df, obs_df=None, detect_df=None):
     return param_df
 
 
-def filter_on_value(pandas_df, filter_column, value,  gt_lt_eq, absolute=False):
+# def transient_dependent_filter(param_df, obs_df, filter_column, value1, value2, time_interval,
+#                        gt_lt_eq, absolute):
+#     """
+#     This is a function which applies a filter to the general pandas DataFrame
+#     of observation points to select subsamples based on filter criteria.
+#     """
+#
+#     for iter, row in param_df.iterrows():
+#         t_grouped_df = obs_df.query('transient id == {}'.format(row['transient id']))
+#         if t_grouped_df.empty is False:
+#             t_grouped_df.query('')
+#
+#     return pandas_df
+
+
+def filter_on_value(pandas_df, filter_column, value,  gt_lt_eq,
+                    absolute=False):
     """
     This is a function which applies a filter to the general pandas DataFrame
     of observation points to select subsamples based on filter criteria.
@@ -273,45 +306,26 @@ def filter_on_value(pandas_df, filter_column, value,  gt_lt_eq, absolute=False):
     filtered_obs = pd.DataFrame(columns=pandas_df.columns)
     iters_passed = []
     passed_transients = []
-    transient_id = None
     for iter, row in pandas_df.iterrows():
         if gt_lt_eq == 'gt':
             if row[filter_column] >= value:
                 iters_passed.append(iter)
-                if transient_id == row['transient id'] and skip is False:
-                    passed_transients.append(transient_id)
-                    skip = True
-                else:
-                    transient_id = row['transient id']
-                    skip = False
+                if not row['transient id'] in passed_transients:
+                    passed_transients.append(row['transient id'])
         elif gt_lt_eq == 'lt':
             if row[filter_column] <= value:
                 iters_passed.append(iter)
-                if transient_id == row['transient id'] and skip is False:
-                    passed_transients.append(transient_id)
-                    skip = True
-                else:
-                    transient_id = row['transient id']
-                    skip = False
+                if not row['transient id'] in passed_transients:
+                    passed_transients.append(row['transient id'])
         elif gt_lt_eq == 'eq':
             if row[filter_column] == value:
                 iters_passed.append(iter)
-                if transient_id == row['transient id'] and skip is False:
-                    passed_transients.append(transient_id)
-                    skip = True
-                else:
-                    transient_id = row['transient id']
-                    skip = False
-
+                if not row['transient id'] in passed_transients:
+                    passed_transients.append(row['transient id'])
     if absolute is True:
         filtered_obs = pandas_df.loc[iters_passed]
     else:
-        transient_iters = []
-        for iter, row in pandas_df.iterrows():
-            for id in passed_transients:
-                if id == row['transient id']:
-                    transient_iters.append(iter)
-        filtered_obs = pandas_df.loc[transient_iters]
+        filtered_obs = pandas_df[pandas_df['transient id'].isin(passed_transients)]
 
     return filtered_obs
 
@@ -324,41 +338,22 @@ def filter_on_count(pandas_df, num_count, filter_column=None, value=None,
     or simply counts of transients.
     """
     filtered_obs_on_count = pd.DataFrame(columns=pandas_df.columns)
+    count_df = pd.Dataframe(columns=['counts'], index=list(pandas_df['transient id'].unique()))
     passed_transients = []
     if value and gt_lt_eq:
         value_filtered_obs = filter_on_value(pandas_df, filter_column, value,
                                              gt_lt_eq, absolute)
-        transient_id = None
         for iter, row in value_filtered_obs.iterrows():
-            if transient_id == row['transient id']:
-                count += 1
-                if count >= num_count and skip is False:
-                    passed_transients.append(transient_id)
-                    skip = True
-            else:
-                transient_id = row['transient id']
-                skip = False
-                count = 1
+            count_df.loc['{}'.format(row['transient id'])] += 1
+            if count_df.loc['{}'.format(row['transient id'])] >= num_count and not row['transient id'] in passed_transients:
+                passed_transients.append(transient_id)
     else:
-        transient_id = None
-        count = 0
         for iter, row in pandas_df.iterrows():
-            if transient_id == row['transient id']:
-                count += 1
-                if count >= num_count and skip is False:
-                    passed_transients.append(transient_id)
-                    skip = True
-            else:
-                transient_id = row['transient id']
-                skip = False
-                count = 1
+            count_df.loc['{}'.format(row['transient id'])] += 1
+            if count_df.loc['{}'.format(row['transient id'])] >= num_count and not row['transient id'] in passed_transients:
+                passed_transients.append(transient_id)
 
-    transient_iters = []
-    for iter, row in pandas_df.iterrows():
-        for id in passed_transients:
-            if id == row['transient id']:
-                transient_iters.append(iter)
-    filtered_obs_on_count = pandas_df.loc[transient_iters]
+    filtered_obs_on_count = pandas_df[pandas_df['transient id'].isin(passed_transients)]
 
     return filtered_obs_on_count
 
@@ -418,6 +413,85 @@ def extend_args_list(list1, list2):
     list1.extend(list2)
     return list1
 
+
+def efficiency_process(survey, obs_df):
+    """
+    Wrapper function to determine if an observation generates an alert or
+    "detection" in the language of Scolnic et. al 2017.
+    """
+    eff_col = pd.DataFrame(columns=['alert'])
+    for iter, row in obs_df.iterrows():
+        snr = row['signal to noise']
+        band = row['bandfilter'].replace('lsst', '')
+        prob = np.asscalar(survey.detect_table.effSNR(band, snr))
+        if np.random.binomial(1, prob)[0] == 1:
+            eff_col.at[iter, 'alert'] = True
+        else:
+            eff_col.at[iter, 'alert'] = False
+
+    obs_df.join(eff_col)
+    return obs_df
+
+
+def scolnic_detections(param_df, obs_df, other_obs_df, survey):
+    detected_transients = []
+    # LSST_eff_table = eft.fromDES_EfficiencyFile(sim_inst.efficiency_table_path)
+    for iter, row in param_df.iterrows():
+        t_obs_df = obs_df.query('transient id == {}'.format(row['transient id']))
+        t_other_obs_df = other_obs_df.query('transient id == {}'.format(row['transient id']))
+
+        # Bool flags to pass for transient to be a Scolnic detection
+        step_one = False
+        step_two_cr1 = False
+        step_two_cr2 = False
+        step_two_cr3 = False
+        step_two_cr4 = False
+
+        # Step one, trigger simulation
+        alert_df = t_obs_df.query('alert == True')
+        for iter3, row3 in alert_df.iterrows():
+            for iter4, row4 in alert_df.iterrows():
+                if abs(row3['mjd'] - row4['mjd']) >= 0.020833333333333 and step_one is False:
+                    step_one = True
+
+        # Step two, reject SN backgrounds
+
+        # Criteria One
+        if len(list(snr5_df['bandfilter'].unique())) >= 2:
+            step_two_cr1 = True
+        # Criteria Two
+        snr5_df = t_obs_df.query('signal to noise >= 5.0')
+        for iter3, row3 in snr5_df.iterrows():
+            for iter4, row4 in snr5_df.iterrows():
+                if abs(row3['mjd'] - row4['mjd']) < 25.0 and step_two_cr2 is False:
+                    step_two_cr2 = True
+        # Criteria Three and Four
+        for iter3, row3 in t_other_obs_df.iterrows():
+            if (row['explosion time'] - row3['mjd']) > 0 and (row['explosion time'] - row3['mjd']) <= 20.0 and step_two_cr3 is False:
+                step_two_cr3 = True
+            if (row3['mjd'] - row['max time']) > 0 and (row3['mjd'] - row['max time']) <= 20.0 and step_two_cr4 is False:
+                step_two_cr4 = True
+
+        # record the transients which have been detected
+        if step_one is True and step_two_cr1 is True and step_two_cr2 is True and step_two_cr3 is True and step_two_cr4 is True and not row['transient id'] in detected_transients:
+            detected_transients.append(row['transient id'])
+
+    scolnic_detections = obs_df[obs_df['transient id'].isin(detected_transients)]
+
+    return scolnic_detections
+
+
+def process_nightly_coadds(obs_df):
+    """
+
+
+    """
+    for transient in list(obs_df['transient id'].unique()):
+        t_obs_df = obs_df.query('transient id == {}'.format(transient))
+        for iter
+    return coadded_df
+
+
 # def Get_N_z(All_Sources, Detections, param_priors, fig_num):
 #     param_key = 'parameters'
 #     z_min = param_priors['zmin']
@@ -445,55 +519,3 @@ def extend_args_list(list1, list2):
 #     plt.title('Number of sources per {0:.3f} redshift bin'.format(bin_size))
 #     fig_num += 1
 #     return N_z_dist_fig, fig_num
-
-
-# def Plot_Observations(Observations, fig_num):
-#     # Function to take the specific observation data structure and plot the
-#     # mock observations.
-#     obs_key = 'observations'
-#     source_list = Observations.keys()
-#
-#     # Plot max lc for talk
-#     max_lc_p = 0
-#     for key in source_list:
-#         band_keys = Observations[key][obs_key].keys()
-#         for i, band in enumerate(band_keys):
-#             num_p_lc = len(Observations[key][obs_key][band]['times'])
-#             if num_p_lc > max_lc_p:
-#                 max_lc_p = num_p_lc
-#                 max_band = band
-#                 max_source_key = key
-#
-#     f = plt.figure(fig_num)
-#     axes = f.add_subplot(1, 1, 1)
-#     t_0 = Observations[max_source_key]['parameters']['min_MJD']
-#     times = deepcopy(Observations[max_source_key][obs_key][max_band]['times'])
-#     times = times - t_0
-#     mags = deepcopy(Observations[max_source_key][obs_key][max_band]['magnitudes'])
-#     errs = deepcopy(Observations[max_source_key][obs_key][max_band]['mag_errors'])
-#     axes.errorbar(x=times, y=mags, yerr=errs, fmt='ro')
-#     axes.legend(['{0}'.format(max_band)])
-#     axes.set(xlabel=r'$t - t_{0}$ MJD', ylabel=r'$m_{ab}$')
-#     axes.set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
-#     axes.set_title('Simulated Source: {}'.format(max_source_key))
-#     #
-#     # for key in source_list:
-#     #     band_keys = Observations[key][obs_key].keys()
-#     #     n_plots = len(band_keys)
-#     #     # Max 6-color lightcurves
-#     #     f = plt.figure(fig_num)
-#     #     for i, band in enumerate(band_keys):
-#     #         axes = f.add_subplot(n_plots, 1, i+1)
-#     #         times = deepcopy(Observations[key][obs_key][band]['times'])
-#     #         mags = deepcopy(Observations[key][obs_key][band]['magnitudes'])
-#     #         errs = deepcopy(Observations[key][obs_key][band]['mag_errors'])
-#     #         axes.errorbar(x=times, y=mags, yerr=errs, fmt='kx')
-#     #         axes.legend(['{}'.format(band)])
-#     #         axes.set(xlabel='MJD', ylabel=r'$m_{ab}$')
-#     #         axes.set_ylim(bottom=np.ceil(max(mags)/10.0)*10.0, top=np.floor(min(mags)/10.0)*10.0)
-#     #
-#     #     axes.set_title('{}'.format(key))
-#     #     # Break to only do one plot at the moment
-#     #     fig_num += 1
-#     #     break
-#     return f, fig_num

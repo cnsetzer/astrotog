@@ -1,10 +1,11 @@
-__all__=['transient_distribution']
+__all__ = ['transient_distribution']
 import os
 import re
 import numpy as np
 import sncosmo
 import opsimsummary as oss
 from .functions import bandflux
+from LSSTmetrics.efficiencyTable import EfficiencyTable as eft
 
 
 class transient(object):
@@ -87,6 +88,7 @@ class survey(object):
         self.get_throughputs(simulation.throughputs_path)
         self.get_reference_flux(simulation.reference_path)
         self.get_survey_params()
+        self.response_function(simulation.response_path)
 
     def get_cadence(self, simulation):
         """
@@ -262,6 +264,9 @@ class survey(object):
         self.min_mjd = min_db['expMJD']
         self.max_mjd = max_db['expMJD']
         self.survey_time = self.max_mjd - self.min_mjd  # Survey time in days
+
+    def response_function(self, response_path):
+        self.detect_table = eft.fromDES_EfficiencyFile(response_path)
 
 
 class transient_distribution(object):
