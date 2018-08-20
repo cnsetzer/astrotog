@@ -43,14 +43,17 @@ if __name__ == "__main__":
         dithers = False
         survey_version = 'lsstv4'
         add_dithers = False
+        t_before = 40.0
+        t_after = 40.0
 
-        seds_path = '/home/csetzer/lsst/seds/rosswog/NSNS/winds'
+        seds_path = '/share/data1/csetzer/seds/rosswog/NSNS/winds'
         cadence_path = \
-            '/home/csetzer/lsst/OpSim_outputs/baseline2018a.db'
+            '/share/data1/csetzer/lsst_cadences/baseline2018a.db'
         throughputs_path = '/home/csetzer/lsst/throughputs/lsst'
         reference_flux_path = '/home/csetzer/lsst/throughputs/references'
+        efficiency_table_path = '/home/csetzer/software/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'
         run_dir = 'lsst_kne_sim_baseline2018a_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
-        output_path = '/home/csetzer/lsst/astrotog_output/' + run_dir + '/'
+        output_path = '/share/data1/csetzer/lsst_kne_sims_outputs/' + run_dir + '/'
 
         if not os.path.exists(output_path):
             os.makedirs(output_path)
@@ -69,16 +72,19 @@ if __name__ == "__main__":
         # -----------------------------------------------
 
         sim_inst = atopclass.simulation(cadence_path=cadence_path,
-                              throughputs_path=throughputs_path,
-                              reference_path=reference_flux_path, z_max=z_max,
-                              output_path=output_path,
-                              cadence_flags=cadence_flags, z_min=z_min,
-                              z_bin_size=z_bin_size, multiproc=multiprocess,
-                              num_processes=num_processes,
-                              batch_size=batch_size, cosmology=cosmo,
-                              rate_gpc=rate,
-                              dithers=dithers, simversion=survey_version,
-                              add_dithers=add_dithers)
+                                        throughputs_path=throughputs_path,
+                                        reference_path=reference_flux_path,
+                                        z_max=z_max, output_path=output_path,
+                                        cadence_flags=cadence_flags,
+                                        z_min=z_min, z_bin_size=z_bin_size,
+                                        multiproc=multiprocess,
+                                        num_processes=num_processes,
+                                        batch_size=batch_size, cosmology=cosmo,
+                                        rate_gpc=rate, dithers=dithers,
+                                        simversion=survey_version,
+                                        add_dithers=add_dithers,
+                                        t_before=t_before, t_after=t_after,
+                                        response_path=efficiency_table_path)
         LSST_survey = atopclass.LSST(sim_inst)
         transient_dist = aclasses.transient_distribution(LSST_survey, sim_inst)
         tran_param_dist = atopclass.rosswog_kilonovae(parameter_dist=True,
@@ -114,10 +120,11 @@ if __name__ == "__main__":
 
         sky_loc_array = None
         param_array = None
-        receive_array = np.empty((num_params_pprocess, 5 + num_transient_params))
+        receive_array = np.empty((num_params_pprocess,
+                                 5 + num_transient_params))
         comm.barrier()
         comm.Scatter([total_array, (5+num_transient_params)*num_params_pprocess, MPI.DOUBLE],
-                 [receive_array, (5+num_transient_params)*num_params_pprocess, MPI.DOUBLE], root=0)
+                     [receive_array, (5+num_transient_params)*num_params_pprocess, MPI.DOUBLE], root=0)
         sky_loc_array = receive_array[:, 0:5]
         param_array = receive_array[:, 5:]
 
@@ -162,16 +169,23 @@ if __name__ == "__main__":
     stored_param_data = pd.DataFrame(columns=param_columns)
 
     obs_columns = ['transient id', 'mjd', 'bandfilter', 'instrument magnitude',
-                      'instrument mag one sigma', 'instrument flux',
-                      'instrument flux one sigma', 'A_x',
-                      'signal to noise', 'source magnitude',
-                      'source mag one sigma', 'source flux',
-                      'source flux one sigma', 'extincted magnitude',
-                      'extincted mag one sigma', 'extincted flux',
-                      'extincted flux one sigma', 'airmass',
-                      'five sigma depth', 'lightcurve phase',
-                      'field previously observed', 'field observed after']
+                   'instrument mag one sigma', 'instrument flux',
+                   'instrument flux one sigma', 'A_x',
+                   'signal to noise', 'source magnitude',
+                   'source mag one sigma', 'source flux',
+                   'source flux one sigma', 'extincted magnitude',
+                   'extincted mag one sigma', 'extincted flux',
+                   'extincted flux one sigma', 'airmass',
+                   'five sigma depth', 'lightcurve phase',
+                   'field previously observed', 'field observed after']
     stored_obs_data = pd.DataFrame(columns=obs_columns)
+
+    other_obs_columns = ['transient id', 'mjd', 'bandfilter',
+                         'instrument magnitude', 'instrument mag one sigma',
+                         'instrument flux', 'instrument flux one sigma',
+                         'signal to noise', 'airmass',
+                         'five sigma depth', 'when']
+    stored_other_obs_data = pd.DataFrame(columns=ohter_obs_columns)
 
     if rank == 0 and verbose:
         print('\nLaunching multiprocess pool of {} workers per MPI core.'.format(batch_mp_workers))
@@ -221,6 +235,16 @@ if __name__ == "__main__":
         stored_obs_data = stored_obs_data.append(observation_df,
                                                  ignore_index=True, sort=False)
 
+        other_obs_iter = list(zip(repeat(LSST_survey),np.split(parameter_df,len(parameter_df.index)),
+                                  repeat(sim_inst.t_before), repeat(sim_inst.t_after),
+                                  repeat(other_obs_columns)))
+
+        # get other observations
+        other_obs_df = p.starmap(afunc.other_observations, other_obs_iter)
+        store_other_obs_data = stored_other_obs_data.append(other_obs_df,
+                                                            ignore_index=True,
+                                                            sort=False)
+
         if rank == 0 and verbose:
             # if i == 0:
             #     print('Debug Check of Pandas Dataframe:')
@@ -233,6 +257,9 @@ if __name__ == "__main__":
     # Now process observations for detections and other information
     transient_batch = None
     observation_batch_iter = None
+    other_obs_iter = None
+
+    stored_obs_data = afunc.efficiency_process(LSST_survey, stored_obs_data)
 
     # Process the pandas dataframes for output and shared usage
     if size > 1:
@@ -240,41 +267,77 @@ if __name__ == "__main__":
 
     stored_obs_data.dropna(inplace=True)
     stored_param_data.dropna(inplace=True)
+    stored_other_obs_data.dropna(inplace=True)
 
     # Join all batches and mpi workers and write the dataFrame to file
     if size > 1:
         obs_receive = comm.allgather(stored_obs_data)
         params_receive = comm.allgather(stored_param_data)
+        other_obs_receive = comm.allgather(stored_other_obs_data)
 
         output_params = pd.DataFrame(columns=param_columns)
         output_observations = pd.DataFrame(columns=obs_columns)
+        output_other_observations = pd.DataFrame(columns=other_obs_columns)
 
         # Create a single pandas dataframe
         for i in range(size):
-            output_params = output_params.append(params_receive[i], sort=False)
-            output_observations = output_observations.append(obs_receive[i], sort=False)
+            output_params = output_params.append(params_receive[i], sort=False, ignore_index=True)
+            output_observations = output_observations.append(obs_receive[i], sort=False, ignore_index=True)
+            output_other_observations = output_other_observations.append(other_obs_receive[i], sort=False, ignore_index=True)
 
     else:
         output_observations = stored_obs_data
         output_params = stored_param_data
+        output_other_observations = stored_other_obs_data
 
     if rank == 0:
         if verbose:
             print('\nWriting out parameters and observations to {}'.format(output_path))
         output_params.to_csv(output_path + 'parameters.csv')
         output_observations.to_csv(output_path + 'observations.csv')
+        output_other_observations.to_csv(outputpath + 'other_observations.csv')
         if verbose:
             print('Finished writing observation results.')
 
     stored_obs_data = output_observations
-    stored_param_data = stored_param_data
+    stored_param_data = output_params
+    stored_other_obs_data = output_other_observations
     output_params = None
     output_observations = None
+    output_other_observations = None
     obs_receive = None
     params_receive = None
+    other_obs_receive = None
 
     comm.barrier()
-    # detections = p.starmap()
+
+    # Detections
+    if rank == 0:
+        filters = {'snr': {'type': 'value',
+                           'num_count': None,
+                           'name': 'signal to noise',
+                           'value': 1.0,
+                           'gt_lt_eq': 'gt',
+                           'absolute': True}
+                   # 'snr': {'type': 'value',
+                   #         'num_count': None,
+                   #         'name': 'signal to noise',
+                   #         'value': 5.0,
+                   #         'gt_lt_eq': 'gt',
+                   #         'absolute': False}
+                   }
+        stored_obs_data = afunc.detect(stored_obs_data, filters)
+
+        # Do coadds
+        coadded_observations = afunc.process_nightly_coadds(stored_obs_data, LSST_survey)
+
+        detected_observations = afunc.scolnic_detections(stored_param_data, coadded_observations, stored_other_obs_data, LSST_survey)
+
+        stored_param_data = afunc.param_observe_detect(stored_param_data, stored_obs_data, detected_observations)
+
+        coadded_observations.to_csv(output_path + 'coadded_observations.csv')
+        detected_observations.to_csv(output_path + 'scolnic_detections.csv')
+        stored_param_data.to_csv(output_path + 'modified_parameters.csv')
 
     if rank == 0 and verbose:
         t_end = time.time()
