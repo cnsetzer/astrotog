@@ -98,6 +98,7 @@ if __name__ == "__main__":
         num_transient_params = None
         num_params_pprocess = None
         LSST_survey = None
+        sim_inst = None
 
     if size > 1:
         comm.barrier()
