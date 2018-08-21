@@ -51,13 +51,13 @@ if __name__ == "__main__":
             '/Users/cnsetzer/Documents/LSST/surveydbs/kraken_2036.db'
         throughputs_path = '/Users/cnsetzer/Documents/LSST/throughputs/lsst'
         reference_flux_path = '/Users/cnsetzer/Documents/LSST/throughputs/references'
-        efficiency_table_path = '/home/csetzer/software/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'
-        run_dir = 'LSST_sim_run_kraken2036_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
+        efficiency_table_path = '/Users/cnsetzer/Documents/LSST/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'
+        run_dir = 'lsst_sim_run_kraken2036_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
         output_path = '/Users/cnsetzer/Documents/LSST/astrotog_output/' + run_dir + '/'
 
         if not os.path.exists(output_path):
             os.makedirs(output_path)
-        z_max = 0.05
+        z_max = 0.04
         num_processes = size
         z_bin_size = 0.02
         if size >= 1:
@@ -152,7 +152,8 @@ if __name__ == "__main__":
         # There is definitely a problem here. Might need a virtual server...
         # ----------------------------------------------
         comm.barrier()
-        LSST_survey = comm.bcast(copy(LSST_survey), root=0)
+        LSST_survey = comm.bcast(LSST_survey, root=0)
+        sim_inst = comm.bcast(sim_inst, root=0)
         # ----------------------------------------------`
 
     if batch_size == 'all':
@@ -185,7 +186,7 @@ if __name__ == "__main__":
                          'instrument flux', 'instrument flux one sigma',
                          'signal to noise', 'airmass',
                          'five sigma depth', 'when']
-    stored_other_obs_data = pd.DataFrame(columns=ohter_obs_columns)
+    stored_other_obs_data = pd.DataFrame(columns=other_obs_columns)
 
     if rank == 0 and verbose:
         print('\nLaunching multiprocess pool of {} workers per MPI core.'.format(batch_mp_workers))
@@ -235,7 +236,7 @@ if __name__ == "__main__":
         stored_obs_data = stored_obs_data.append(observation_df,
                                                  ignore_index=True, sort=False)
 
-        other_obs_iter = list(zip(repeat(LSST_survey),np.split(parameter_df,len(parameter_df.index)),
+        other_obs_iter = list(zip(repeat(LSST_survey), parameter_df,
                                   repeat(sim_inst.t_before), repeat(sim_inst.t_after),
                                   repeat(other_obs_columns)))
 

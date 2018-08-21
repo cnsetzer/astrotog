@@ -152,7 +152,8 @@ if __name__ == "__main__":
         # There is definitely a problem here. Might need a virtual server...
         # ----------------------------------------------
         comm.barrier()
-        LSST_survey = comm.bcast(copy(LSST_survey), root=0)
+        LSST_survey = comm.bcast(LSST_survey, root=0)
+        sim_inst = comm.bcast(sim_inst, root=0)
         # ----------------------------------------------`
 
     if batch_size == 'all':
