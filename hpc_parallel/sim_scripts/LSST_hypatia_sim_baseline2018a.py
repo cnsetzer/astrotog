@@ -1,6 +1,5 @@
 import os
 import numpy as np
-from math import ceil
 from astropy.cosmology import Planck15 as cosmo
 from astrotog import functions as afunc
 from astrotog import classes as aclasses
@@ -89,7 +88,7 @@ if __name__ == "__main__":
         transient_dist = aclasses.transient_distribution(LSST_survey, sim_inst)
         tran_param_dist = atopclass.rosswog_kilonovae(parameter_dist=True,
                                                       num_samples=transient_dist.number_simulated)
-        num_params_pprocess = int(ceil(transient_dist.number_simulated/size))
+        num_params_pprocess = int(np.ceil(transient_dist.number_simulated/size))
         num_transient_params = tran_param_dist.num_params
         if verbose:
             print('The number of transients is: {}'.format(transient_dist.number_simulated))
@@ -161,32 +160,32 @@ if __name__ == "__main__":
         batch_size = num_params_pprocess
         num_batches = 1
     else:
-        num_batches = int(ceil(num_params_pprocess/batch_size))
+        num_batches = int(np.ceil(num_params_pprocess/batch_size))
 
     # Create pandas table
-    param_columns = ['transient id', 'm_ej', 'v_ej', 'kappa', 'true redshift',
-                     'explosion time', 'max time', 'ra', 'dec',
-                     'peculiar velocity']
+    param_columns = ['transient_id', 'm_ej', 'v_ej', 'kappa', 'true_redshift',
+                     'explosion_time', 'max_time', 'ra', 'dec',
+                     'peculiar_velocity']
 
     stored_param_data = pd.DataFrame(columns=param_columns)
 
-    obs_columns = ['transient id', 'mjd', 'bandfilter', 'instrument magnitude',
-                   'instrument mag one sigma', 'instrument flux',
-                   'instrument flux one sigma', 'A_x',
-                   'signal to noise', 'source magnitude',
-                   'source mag one sigma', 'source flux',
-                   'source flux one sigma', 'extincted magnitude',
-                   'extincted mag one sigma', 'extincted flux',
-                   'extincted flux one sigma', 'airmass',
-                   'five sigma depth', 'lightcurve phase',
-                   'field previously observed', 'field observed after']
+    obs_columns = ['transient_id', 'mjd', 'bandfilter', 'instrument_magnitude',
+                   'instrument_mag_one_sigma', 'instrument_flux',
+                   'instrument_flux_one_sigma', 'A_x',
+                   'signal_to_noise', 'source_magnitude',
+                   'source_mag_one_sigma', 'source_flux',
+                   'source flux one sigma', 'extincted_magnitude',
+                   'extincted_mag_one_sigma', 'extincted_flux',
+                   'extincted_flux_one_sigma', 'airmass',
+                   'five_sigma_depth', 'lightcurve_phase',
+                   'field_previously_observed', 'field_observed_after']
     stored_obs_data = pd.DataFrame(columns=obs_columns)
 
-    other_obs_columns = ['transient id', 'mjd', 'bandfilter',
-                         'instrument magnitude', 'instrument mag one sigma',
-                         'instrument flux', 'instrument flux one sigma',
-                         'signal to noise', 'airmass',
-                         'five sigma depth', 'when']
+    other_obs_columns = ['transient_id', 'mjd', 'bandfilter',
+                         'instrument_magnitude', 'instrument_mag_one_sigma',
+                         'instrument_flux', 'instrument_flux_one_sigma',
+                         'signal_to_noise', 'airmass',
+                         'five_sigma_depth', 'when']
     stored_other_obs_data = pd.DataFrame(columns=other_obs_columns)
 
     if rank == 0 and verbose:
@@ -299,7 +298,7 @@ if __name__ == "__main__":
             print('\nWriting out parameters and observations to {}'.format(output_path))
         output_params.to_csv(output_path + 'parameters.csv')
         output_observations.to_csv(output_path + 'observations.csv')
-        output_other_observations.to_csv(outputpath + 'other_observations.csv')
+        output_other_observations.to_csv(output_path + 'other_observations.csv')
         if verbose:
             print('Finished writing observation results.')
 
@@ -321,13 +320,13 @@ if __name__ == "__main__":
             print('\nNow processing for detections.')
         filters = {'snr': {'type': 'value',
                            'num_count': None,
-                           'name': 'signal to noise',
+                           'name': 'signal_to_noise',
                            'value': 0.25,
                            'gt_lt_eq': 'gt',
                            'absolute': True}
                    # 'snr': {'type': 'value',
                    #         'num_count': None,
-                   #         'name': 'signal to noise',
+                   #         'name': 'signal_to_noise',
                    #         'value': 5.0,
                    #         'gt_lt_eq': 'gt',
                    #         'absolute': False}

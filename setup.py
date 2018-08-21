@@ -12,7 +12,7 @@ ext = Extension(name='macronova2py',
                                         '-fdefault-double-8', '-fdefault-real-8',
                                         '-fopenmp'],
                 libraries=['lapack','blas'],
-		library_dirs=['/usr/lib64'],
+		library_dirs=['/usr/lib64','/Users/cnsetzer/software/lib/lapack-3.8.0'],
                 #f2py_options=['c', 'only:', 'calculate_luminosity', ':', 'm'],
                 f2py_options=['c', 'm']
                 )
@@ -21,7 +21,7 @@ ext = Extension(name='macronova2py',
 if __name__ == "__main__":
 
     setup(name='astrotog',
-          version='0.1.3',
+          version='0.1.5',
           description='Functions for generating mock observations of astrophysical transients',
           url='http://github.com/cnsetzer/astrotog',
           author='Christian Setzer',

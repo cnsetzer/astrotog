@@ -83,7 +83,7 @@ def magnitude_error(bandflux, bandflux_error, bandflux_ref):
 
 def bandflux_error(fiveSigmaDepth, bandflux_ref):
     # Compute the integrated bandflux error
-    # Note this is trivial since the five sigma depth incorporates the
+    # Note this is trivial since the five_sigma_depth incorporates the
     # integrated time of the exposures.
     Flux_five_sigma = bandflux_ref*pow(10, -0.4*fiveSigmaDepth)
     bandflux_error = Flux_five_sigma/5
@@ -139,51 +139,51 @@ def observe(table_columns, transient, survey):
                                    survey.reference_flux_response[band])
             inst_mag_error = magnitude_error(inst_flux, flux_error,
                                              survey.reference_flux_response[band])
-            pd_df.at[index, 'transient id'] = transient.id
+            pd_df.at[index, 'transient_id'] = transient.id
             pd_df.at[index, 'mjd'] = row['expMJD']
             pd_df.at[index, 'bandfilter'] = row['filter']
-            pd_df.at[index, 'instrument magnitude'] = inst_mag
-            pd_df.at[index, 'instrument mag one sigma'] = inst_mag_error
-            pd_df.at[index, 'instrument flux'] = inst_flux
-            pd_df.at[index, 'instrument flux one sigma'] = flux_error
-            pd_df.at[index, 'extincted magnitude'] = extinct_mag
-            pd_df.at[index, 'extincted mag one sigma'] = extinct_mag_error
-            pd_df.at[index, 'extincted flux'] = extinct_bandflux
-            pd_df.at[index, 'extincted flux one sigma'] = flux_error
+            pd_df.at[index, 'instrument_magnitude'] = inst_mag
+            pd_df.at[index, 'instrument_mag_one_sigma'] = inst_mag_error
+            pd_df.at[index, 'instrument_flux'] = inst_flux
+            pd_df.at[index, 'instrument_flux_one_sigma'] = flux_error
+            pd_df.at[index, 'extincted_magnitude'] = extinct_mag
+            pd_df.at[index, 'extincted_mag_one_sigma'] = extinct_mag_error
+            pd_df.at[index, 'extincted_flux'] = extinct_bandflux
+            pd_df.at[index, 'extincted_flux_one_sigma'] = flux_error
             pd_df.at[index, 'A_x'] = A_x
-            pd_df.at[index, 'source magnitude'] = source_mag
-            pd_df.at[index, 'source mag one sigma'] = source_mag_error
-            pd_df.at[index, 'source flux'] = source_bandflux
-            pd_df.at[index, 'source flux one sigma'] = flux_error
+            pd_df.at[index, 'source_magnitude'] = source_mag
+            pd_df.at[index, 'source_mag_one_sigma'] = source_mag_error
+            pd_df.at[index, 'source_flux'] = source_bandflux
+            pd_df.at[index, 'source_flux_one_sigma'] = flux_error
             pd_df.at[index, 'airmass'] = row['airmass']
-            pd_df.at[index, 'five sigma depth'] = row['fiveSigmaDepth']
-            pd_df.at[index, 'lightcurve phase'] = obs_phase
-            pd_df.at[index, 'signal to noise'] = inst_flux/flux_error
+            pd_df.at[index, 'five_sigma_depth'] = row['fiveSigmaDepth']
+            pd_df.at[index, 'lightcurve_phase'] = obs_phase
+            pd_df.at[index, 'signal_to_noise'] = inst_flux/flux_error
 
         if (positional_overlaps.query('expMJD < {0} - 1.0'.format(transient.t0)).dropna().empty):
-            pd_df['field previously observed'] = False
+            pd_df['field_previously_observed'] = False
         else:
-            pd_df['field previously observed'] = True
+            pd_df['field_previously_observed'] = True
         if (positional_overlaps.query('expMJD > {0} + 1.0'.format(transient.tmax)).dropna().empty):
-            pd_df['field observed after'] = False
+            pd_df['field_observed_after'] = False
         else:
-            pd_df['field observed after'] = True
+            pd_df['field_observed_after'] = True
 
     return pd_df
 
 
 def write_params(table_columns, transient):
     pandas_df = pd.DataFrame(columns=table_columns)
-    pandas_df.at[0, 'transient id'] = transient.id
+    pandas_df.at[0, 'transient_id'] = transient.id
     pandas_df.at[0, 'm_ej'] = transient.m_ej
     pandas_df.at[0, 'v_ej'] = transient.v_ej
     pandas_df.at[0, 'kappa'] = transient.kappa
-    pandas_df.at[0, 'true redshift'] = transient.z
-    pandas_df.at[0, 'explosion time'] = transient.t0
-    pandas_df.at[0, 'max time'] = transient.tmax
+    pandas_df.at[0, 'true_redshift'] = transient.z
+    pandas_df.at[0, 'explosion_time'] = transient.t0
+    pandas_df.at[0, 'max_time'] = transient.tmax
     pandas_df.at[0, 'ra'] = transient.ra
     pandas_df.at[0, 'dec'] = transient.dec
-    pandas_df.at[0, 'peculiar velocity'] = transient.peculiar_vel
+    pandas_df.at[0, 'peculiar_velocity'] = transient.peculiar_vel
     return pandas_df
 
 
@@ -256,29 +256,29 @@ def detect(pandas_obs_df, filter_dict):
 
 
 def param_observe_detect(param_df, obs_df=None, detect_df=None):
-    if obs_df:
+    if obs_df is not None:
         obs_col = pd.DataFrame(columns=['observed'])
         alert_col = pd.DataFrame(columns=['alerted'])
         for iter, row in param_df.iterrows():
-            if obs_df.query('{} == transient id'.format(row['transient id'])).empty is False:
+            if obs_df.query('{} == transient_id'.format(row['transient_id'])).empty is False:
                 obs_col.at[iter, 'observed'] = True
             else:
                 obs_col.at[iter, 'observed'] = False
-            if obs_df.query('{} == transient id & alert == True'.format(row['transient id'])).empty is False:
+            if obs_df.query('{} == transient_id & alert == True'.format(row['transient_id'])).empty is False:
                 alert_col.at[iter, 'alerted'] = True
             else:
                 alert_col.at[iter, 'alerted'] = False
-        param_df.join(obs_col)
-        param_df.join(alert_col)
+        param_df = param_df.join(obs_col)
+        param_df = param_df.join(alert_col)
 
-    if detect_df:
+    if detect_df is not None:
         detect_col = pd.DataFrame(columns=['detected'])
         for iter, row in param_df.iterrows():
-            if detect_df.query('{} == transient id'.format(row['transient id'])).empty is False:
+            if detect_df.query('{} == transient_id'.format(row['transient_id'])).empty is False:
                 detect_col.at[iter, 'detected'] = True
             else:
                 detect_col.at[iter, 'detected'] = False
-        param_df.join(detect_col)
+        param_df = param_df.join(detect_col)
     return param_df
 
 
@@ -290,7 +290,7 @@ def param_observe_detect(param_df, obs_df=None, detect_df=None):
 #     """
 #
 #     for iter, row in param_df.iterrows():
-#         t_grouped_df = obs_df.query('transient id == {}'.format(row['transient id']))
+#         t_grouped_df = obs_df.query('transient_id == {}'.format(row['transient_id']))
 #         if t_grouped_df.empty is False:
 #             t_grouped_df.query('')
 #
@@ -310,22 +310,22 @@ def filter_on_value(pandas_df, filter_column, value,  gt_lt_eq,
         if gt_lt_eq == 'gt':
             if row[filter_column] >= value:
                 iters_passed.append(iter)
-                if not row['transient id'] in passed_transients:
-                    passed_transients.append(row['transient id'])
+                if not row['transient_id'] in passed_transients:
+                    passed_transients.append(row['transient_id'])
         elif gt_lt_eq == 'lt':
             if row[filter_column] <= value:
                 iters_passed.append(iter)
-                if not row['transient id'] in passed_transients:
-                    passed_transients.append(row['transient id'])
+                if not row['transient_id'] in passed_transients:
+                    passed_transients.append(row['transient_id'])
         elif gt_lt_eq == 'eq':
             if row[filter_column] == value:
                 iters_passed.append(iter)
-                if not row['transient id'] in passed_transients:
-                    passed_transients.append(row['transient id'])
+                if not row['transient_id'] in passed_transients:
+                    passed_transients.append(row['transient_id'])
     if absolute is True:
         filtered_obs = pandas_df.loc[iters_passed]
     else:
-        filtered_obs = pandas_df[pandas_df['transient id'].isin(passed_transients)]
+        filtered_obs = pandas_df[pandas_df['transient_id'].isin(passed_transients)]
 
     return filtered_obs
 
@@ -338,22 +338,22 @@ def filter_on_count(pandas_df, num_count, filter_column=None, value=None,
     or simply counts of transients.
     """
     filtered_obs_on_count = pd.DataFrame(columns=pandas_df.columns)
-    count_df = pd.Dataframe(columns=['counts'], index=list(pandas_df['transient id'].unique()))
+    count_df = pd.Dataframe(columns=['counts'], index=list(pandas_df['transient_id'].unique()))
     passed_transients = []
     if value and gt_lt_eq:
         value_filtered_obs = filter_on_value(pandas_df, filter_column, value,
                                              gt_lt_eq, absolute)
         for iter, row in value_filtered_obs.iterrows():
-            count_df.loc['{}'.format(row['transient id'])] += 1
-            if count_df.loc['{}'.format(row['transient id'])] >= num_count and not row['transient id'] in passed_transients:
+            count_df.loc['{}'.format(row['transient_id'])] += 1
+            if count_df.loc['{}'.format(row['transient_id'])] >= num_count and not row['transient_id'] in passed_transients:
                 passed_transients.append(transient_id)
     else:
         for iter, row in pandas_df.iterrows():
-            count_df.loc['{}'.format(row['transient id'])] += 1
-            if count_df.loc['{}'.format(row['transient id'])] >= num_count and not row['transient id'] in passed_transients:
+            count_df.loc['{}'.format(row['transient_id'])] += 1
+            if count_df.loc['{}'.format(row['transient_id'])] >= num_count and not row['transient_id'] in passed_transients:
                 passed_transients.append(transient_id)
 
-    filtered_obs_on_count = pandas_df[pandas_df['transient id'].isin(passed_transients)]
+    filtered_obs_on_count = pandas_df[pandas_df['transient_id'].isin(passed_transients)]
 
     return filtered_obs_on_count
 
@@ -362,8 +362,8 @@ def other_observations(survey, param_df, t_before, t_after, other_obs_columns):
     pd_df = pd.DataFrame(columns=other_obs_columns)
     ra = param_df.at[0, 'ra']
     dec = param_df.at[0, 'dec']
-    t0 = param_df.at[0, 'explosion time']
-    tmax = param_df.at[0, 'max time']
+    t0 = param_df.at[0, 'explosion_time']
+    tmax = param_df.at[0, 'max_time']
     positional_overlaps = deepcopy(survey.cadence.query('({3} - {0} <= {1} <= {3} + {0}) & ({4} - {0} <= {2} <= {4} + {0})'.format(survey.FOV_radius, ra, dec, survey.col_ra, survey.col_dec)))
     t_overlaps = deepcopy(positional_overlaps.query('{0} - {1} <= expMJD <= {0} | {2} <= expMJD <= {2} + {3}'.format(t0, t_before, tmax, t_after)))
     overlap_indices = []
@@ -388,16 +388,16 @@ def other_observations(survey, param_df, t_before, t_after, other_obs_columns):
             inst_mag = flux_to_mag(inst_flux, survey.reference_flux_response[band])
             inst_mag_error = magnitude_error(inst_flux, flux_error,
                                              survey.reference_flux_response[band])
-            pd_df.at[index, 'transient id'] = param_df.at[0, 'transient id']
+            pd_df.at[index, 'transient_id'] = param_df.at[0, 'transient_id']
             pd_df.at[index, 'mjd'] = row['expMJD']
             pd_df.at[index, 'bandfilter'] = row['filter']
-            pd_df.at[index, 'instrument magnitude'] = inst_mag
-            pd_df.at[index, 'instrument mag one sigma'] = inst_mag_error
-            pd_df.at[index, 'instrument flux'] = inst_flux
-            pd_df.at[index, 'instrument flux one sigma'] = flux_error
+            pd_df.at[index, 'instrument_magnitude'] = inst_mag
+            pd_df.at[index, 'instrument_mag_one_sigma'] = inst_mag_error
+            pd_df.at[index, 'instrument_flux'] = inst_flux
+            pd_df.at[index, 'instrument_flux_one_sigma'] = flux_error
             pd_df.at[index, 'airmass'] = row['airmass']
-            pd_df.at[index, 'five sigma depth'] = row['fiveSigmaDepth']
-            pd_df.at[index, 'signal to noise'] = inst_flux/flux_error
+            pd_df.at[index, 'five_sigma_depth'] = row['fiveSigmaDepth']
+            pd_df.at[index, 'signal_to_noise'] = inst_flux/flux_error
             if row['expMJD'] <= t0:
                 pd_df.at[index, 'when'] = 'before'
             else:
@@ -421,15 +421,24 @@ def efficiency_process(survey, obs_df):
     """
     eff_col = pd.DataFrame(columns=['alert'])
     for iter, row in obs_df.iterrows():
-        snr = row['signal to noise']
-        band = row['bandfilter'].replace('lsst', '')
-        prob = np.asscalar(survey.detect_table.effSNR(band, snr))
-        if np.random.binomial(1, prob)[0] == 1:
+        snr = row['signal_to_noise']
+        if snr >= 50.0:
             eff_col.at[iter, 'alert'] = True
         else:
-            eff_col.at[iter, 'alert'] = False
-
-    obs_df.join(eff_col)
+            band = row['bandfilter'].replace('lsst', '')
+            prob = np.asscalar(survey.detect_table.effSNR(band, snr))
+            if np.random.binomial(1, prob) == 1:
+                eff_col.at[iter, 'alert'] = True
+            else:
+                eff_col.at[iter, 'alert'] = False
+    if 'alert' not in obs_df.columns:
+        obs_df = obs_df.join(eff_col)
+    else:
+        for iter, row in obs_df.iterrows():
+            if eff_col.at[iter, 'alert'] is True:
+                obs_df.at[iter, 'alert'] = True
+            else:
+                obs_df.at[iter, 'alert'] = False
     return obs_df
 
 
@@ -437,8 +446,8 @@ def scolnic_detections(param_df, obs_df, other_obs_df, survey):
     detected_transients = []
     # LSST_eff_table = eft.fromDES_EfficiencyFile(sim_inst.efficiency_table_path)
     for iter, row in param_df.iterrows():
-        t_obs_df = obs_df.query('transient id == {}'.format(row['transient id']))
-        t_other_obs_df = other_obs_df.query('transient id == {}'.format(row['transient id']))
+        t_obs_df = obs_df.query('transient_id == {}'.format(row['transient_id']))
+        t_other_obs_df = other_obs_df.query('transient_id == {}'.format(row['transient_id']))
 
         # Bool flags to pass for transient to be a Scolnic detection
         step_one = False
@@ -455,28 +464,27 @@ def scolnic_detections(param_df, obs_df, other_obs_df, survey):
                     step_one = True
 
         # Step two, reject SN backgrounds
-
+        snr5_df = t_obs_df.query('signal_to_noise >= 5.0')
         # Criteria One
         if len(list(snr5_df['bandfilter'].unique())) >= 2:
             step_two_cr1 = True
         # Criteria Two
-        snr5_df = t_obs_df.query('signal to noise >= 5.0')
         for iter3, row3 in snr5_df.iterrows():
             for iter4, row4 in snr5_df.iterrows():
                 if abs(row3['mjd'] - row4['mjd']) < 25.0 and step_two_cr2 is False:
                     step_two_cr2 = True
         # Criteria Three and Four
         for iter3, row3 in t_other_obs_df.iterrows():
-            if (row['explosion time'] - row3['mjd']) > 0 and (row['explosion time'] - row3['mjd']) <= 20.0 and step_two_cr3 is False:
+            if (row['explosion_time'] - row3['mjd']) > 0 and (row['explosion_time'] - row3['mjd']) <= 20.0 and step_two_cr3 is False:
                 step_two_cr3 = True
-            if (row3['mjd'] - row['max time']) > 0 and (row3['mjd'] - row['max time']) <= 20.0 and step_two_cr4 is False:
+            if (row3['mjd'] - row['max_time']) > 0 and (row3['mjd'] - row['max_time']) <= 20.0 and step_two_cr4 is False:
                 step_two_cr4 = True
 
         # record the transients which have been detected
-        if step_one is True and step_two_cr1 is True and step_two_cr2 is True and step_two_cr3 is True and step_two_cr4 is True and not row['transient id'] in detected_transients:
-            detected_transients.append(row['transient id'])
+        if step_one is True and step_two_cr1 is True and step_two_cr2 is True and step_two_cr3 is True and step_two_cr4 is True and not row['transient_id'] in detected_transients:
+            detected_transients.append(row['transient_id'])
 
-    scolnic_detections = obs_df[obs_df['transient id'].isin(detected_transients)]
+    scolnic_detections = obs_df[obs_df['transient_id'].isin(detected_transients)]
 
     return scolnic_detections
 
@@ -487,42 +495,45 @@ def process_nightly_coadds(obs_df, survey):
     avoids reprocessing observations more than once.
 
     """
-    coadded_df = pd.DataFrame(columns=obs_df.columns.append('coadded night'))
+    coadded_df = pd.DataFrame(columns=obs_df.columns)
+    new_coadded = pd.DataFrame(columns=['coadded night'])
+    coadded_df = coadded_df.join(new_coadded)
 
-    for transient in list(obs_df['transient id'].unique()):
-        t_obs_df = obs_df.query('transient id == {}'.format(transient))
+    for transient in list(obs_df['transient_id'].unique()):
+        t_obs_df = obs_df.query('transient_id == {}'.format(transient))
         for band in list(t_obs_df['bandfilter'].unique()):
-            band_df = t_obs_df.query('bandfilter == {}'.format(band))
+            band_df = t_obs_df.query('bandfilter == \'{}\''.format(band))
             coadded_indicies = []
             for iter, row in band_df.iterrows():
                 if iter in coadded_indicies:
                     continue
                 else:
-                    same_night_df = band_df.query('-0.5 < mjd - {} & mjd - {} < 0.5'.format(row['mjd']))
+                    same_night_df = band_df[(band_df['mjd'] - row['mjd'] > -0.5) & (band_df['mjd'] - row['mjd'] < 0.5)]
                     coadding_series = deepcopy(row)
+                    coadd_band = 'lsst{}'.format(band)
                     if len(same_night_df.index) > 1:
                         coadding_series['mjd'] = same_night_df['mjd'].mean()
-                        coadding_series['extincted flux'] = same_night_df['extincted flux'].mean()
-                        coadding_series['source flux'] = same_night_df['source flux'].mean()
-                        coadding_series['intrument flux'] = same_night_df['intrument flux'].mean()
-                        coadding_series['instrument flux one sigma'] = np.sqrt(np.sum(np.square(same_night_df['instrument flux one sigma'])))/len(same_night_df.index)
-                        coadding_series['source flux one sigma'] = np.sqrt(np.sum(np.square(same_night_df['source flux one sigma'])))/len(same_night_df.index)
-                        coadding_series['extincted flux one sigma'] = np.sqrt(np.sum(np.square(same_night_df['extincted flux one sigma'])))/len(same_night_df.index)
+                        coadding_series['extincted_flux'] = same_night_df['extincted_flux'].mean()
+                        coadding_series['source_flux'] = same_night_df['source_flux'].mean()
+                        coadding_series['instrument_flux'] = same_night_df['instrument_flux'].mean()
+                        coadding_series['instrument_flux_one_sigma'] = np.sqrt(np.sum(np.square(same_night_df['instrument_flux_one_sigma'])))/len(same_night_df.index)
+                        coadding_series['source_flux_one_sigma'] = np.sqrt(np.sum(np.square(same_night_df['source_flux_one_sigma'])))/len(same_night_df.index)
+                        coadding_series['extincted_flux_one_sigma'] = np.sqrt(np.sum(np.square(same_night_df['extincted_flux_one_sigma'])))/len(same_night_df.index)
                         coadding_series['airmass'] = same_night_df['airmass'].mean()
-                        coadding_series['five sigma depth'] = same_night_df['five sigma depth'].mean()
-                        coadding_series['lightcurve phase'] = same_night_df['lightcurve phase'].mean()
-                        coadding_series['extincted magnitude'] = flux_to_mag(coadding_series['extincted flux'], survey.reference_flux_response[band])
-                        coadding_series['source magnitude'] = flux_to_mag(coadding_series['source flux'], survey.reference_flux_response[band])
-                        coadding_series['instrument magnitude'] = flux_to_mag(coadding_series['instrument flux'], survey.reference_flux_response[band])
-                        coadding_series['instrument mag one sigma'] = magnitude_error(coadding_series['instrument flux'], coadding_series['instrument flux one sigma'], survey.reference_flux_response[band])
-                        coadding_series['extincted mag one sigma'] = magnitude_error(coadding_series['extincted flux'], coadding_series['extincted flux one sigma'], survey.reference_flux_response[band])
-                        coadding_series['source mag one sigma'] = magnitude_error(coadding_series['source flux'], coadding_series['source flux one sigma'], survey.reference_flux_response[band])
-                        coadding_series['signal to noise'] = coadding_series['instrument flux']/coadding_series['instrument flux one sigma']
+                        coadding_series['five_sigma_depth'] = same_night_df['five_sigma_depth'].mean()
+                        coadding_series['lightcurve_phase'] = same_night_df['lightcurve_phase'].mean()
+                        coadding_series['extincted_magnitude'] = flux_to_mag(coadding_series['extincted_flux'], survey.reference_flux_response[coadd_band])
+                        coadding_series['source_magnitude'] = flux_to_mag(coadding_series['source_flux'], survey.reference_flux_response[coadd_band])
+                        coadding_series['instrument_magnitude'] = flux_to_mag(coadding_series['instrument_flux'], survey.reference_flux_response[coadd_band])
+                        coadding_series['instrument_mag_one_sigma'] = magnitude_error(coadding_series['instrument_flux'], coadding_series['instrument_flux_one_sigma'], survey.reference_flux_response[coadd_band])
+                        coadding_series['extincted_mag_one_sigma'] = magnitude_error(coadding_series['extincted_flux'], coadding_series['extincted_flux_one_sigma'], survey.reference_flux_response[coadd_band])
+                        coadding_series['source_mag_one_sigma'] = magnitude_error(coadding_series['source_flux'], coadding_series['source_flux_one_sigma'], survey.reference_flux_response[coadd_band])
+                        coadding_series['signal_to_noise'] = coadding_series['instrument_flux']/coadding_series['instrument_flux_one_sigma']
                         coadding_series['coadded night'] = True
                     else:
                         coadding_series['coadded night'] = False
                     coadded_indicies.extend(list(same_night_df.index))
-                    coadded_df = coadded_df.append(coadding_series, ignore_index=True)
+                    coadded_df = coadded_df.append(coadding_series, ignore_index=True, sort=False)
 
     return coadded_df
 
