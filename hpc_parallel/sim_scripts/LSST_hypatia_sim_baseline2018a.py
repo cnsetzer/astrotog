@@ -235,7 +235,7 @@ if __name__ == "__main__":
         stored_obs_data = stored_obs_data.append(observation_df,
                                                  ignore_index=True, sort=False)
 
-        other_obs_iter = list(zip(repeat(LSST_survey),np.split(parameter_df,len(parameter_df.index)),
+        other_obs_iter = list(zip(repeat(LSST_survey), parameter_df,
                                   repeat(sim_inst.t_before), repeat(sim_inst.t_after),
                                   repeat(other_obs_columns)))
 
