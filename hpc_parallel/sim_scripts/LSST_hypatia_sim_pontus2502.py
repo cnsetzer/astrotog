@@ -88,7 +88,7 @@ if __name__ == "__main__":
         LSST_survey = atopclass.LSST(sim_inst)
         transient_dist = aclasses.transient_distribution(LSST_survey, sim_inst)
         tran_param_dist = atopclass.rosswog_kilonovae(parameter_dist=True,
-                                            num_samples=transient_dist.number_simulated)
+                                                      num_samples=transient_dist.number_simulated)
         num_params_pprocess = int(ceil(transient_dist.number_simulated/size))
         num_transient_params = tran_param_dist.num_params
         if verbose:
@@ -261,6 +261,8 @@ if __name__ == "__main__":
     observation_batch_iter = None
     other_obs_iter = None
 
+    if rank == 0 and verbose:
+        print('Processing transients for alert triggers.')
     stored_obs_data = afunc.efficiency_process(LSST_survey, stored_obs_data)
 
     # Process the pandas dataframes for output and shared usage
@@ -315,10 +317,12 @@ if __name__ == "__main__":
 
     # Detections
     if rank == 0:
+        if verbose:
+            print('\nNow processing for detections.')
         filters = {'snr': {'type': 'value',
                            'num_count': None,
                            'name': 'signal to noise',
-                           'value': 1.0,
+                           'value': 0.25,
                            'gt_lt_eq': 'gt',
                            'absolute': True}
                    # 'snr': {'type': 'value',
@@ -328,18 +332,33 @@ if __name__ == "__main__":
                    #         'gt_lt_eq': 'gt',
                    #         'absolute': False}
                    }
-        stored_obs_data = afunc.detect(stored_obs_data, filters)
 
-        # Do coadds
+        # Do coadds first
+        if verbose:
+            print('Doing nightly coadds...')
         coadded_observations = afunc.process_nightly_coadds(stored_obs_data, LSST_survey)
 
+        if verbose:
+            print('Processing coadded nights for transients alert triggers.')
+        coadded_observations = afunc.efficiency_process(LSST_survey, coadded_observations)
+
+        # if verbose:
+        #     print('Processing coadded observations for ultra-low SNR.')
+        # coadded_observations = afunc.detect(coadded_observations, filters)
+
+        if verbose:
+            print('Processing coadded observations for detections in line with Scolnic et. al 2018.')
         detected_observations = afunc.scolnic_detections(stored_param_data, coadded_observations, stored_other_obs_data, LSST_survey)
 
         stored_param_data = afunc.param_observe_detect(stored_param_data, stored_obs_data, detected_observations)
 
+        if verbose:
+            print('Outputting coadded observations, scolnic detections, and parameters modified with observed, alerted, and detected flags.')
         coadded_observations.to_csv(output_path + 'coadded_observations.csv')
         detected_observations.to_csv(output_path + 'scolnic_detections.csv')
         stored_param_data.to_csv(output_path + 'modified_parameters.csv')
+
+    comm.barrier()
 
     if rank == 0 and verbose:
         t_end = time.time()
