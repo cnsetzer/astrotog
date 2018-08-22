@@ -471,20 +471,32 @@ def scolnic_detections(param_df, obs_df, other_obs_df, survey):
         # Criteria One
         if len(list(snr5_df['bandfilter'].unique())) >= 2:
             step_two_cr1 = True
+
+        min_snr5_df = snr5_df.min()
+        max_snr5_df = snr5_df.max()
+
+        first_snr5 = min_snr5_df['mjd']
+        last_snr5 = max_snr5_df['mjd']
+
         # Criteria Two
-        for iter3, row3 in snr5_df.iterrows():
-            for iter4, row4 in snr5_df.iterrows():
-                if abs(row3['mjd'] - row4['mjd']) < 25.0 and step_two_cr2 is False:
-                    step_two_cr2 = True
+        if (last_snr5 - first_snr5) < 25.0:
+            step_two_cr2 = True
+
         # Criteria Three and Four
-        for iter3, row3 in t_other_obs_df.iterrows():
-            if (row['explosion_time'] - row3['mjd']) > 0 and (row['explosion_time'] - row3['mjd']) <= 20.0 and step_two_cr3 is False:
+        for iter3, row3, in t_obs_df.iterrows():
+            if (first_snr5 - row3['mjd']) > 0 and (first_snr5 - row3['mjd']) <= 20.0 and step_two_cr3 is False:
                 step_two_cr3 = True
-            if (row3['mjd'] - row['max_time']) > 0 and (row3['mjd'] - row['max_time']) <= 20.0 and step_two_cr4 is False:
+            if (row3['mjd'] - last_snr5) > 0 and (row3['mjd'] - last_snr5) <= 20.0 and step_two_cr4 is False:
+                step_two_cr4 = True
+
+        for iter3, row3 in t_other_obs_df.iterrows():
+            if (first_snr5 - row3['mjd']) > 0 and (first_snr5 - row3['mjd']) <= 20.0 and step_two_cr3 is False:
+                step_two_cr3 = True
+            if (row3['mjd'] - last_snr5) > 0 and (row3['mjd'] - last_snr5) <= 20.0 and step_two_cr4 is False:
                 step_two_cr4 = True
 
         # record the transients which have been detected
-        if step_one is True and step_two_cr1 is True and step_two_cr2 is True and step_two_cr3 is True and step_two_cr4 is True and not row['transient_id'] in detected_transients:
+        if step_one is True and step_two_cr1 is True and step_two_cr2 is True and step_two_cr3 is True and step_two_cr4 is True:
             detected_transients.append(row['transient_id'])
 
     scolnic_detections = obs_df[obs_df['transient_id'].isin(detected_transients)]
