@@ -152,19 +152,23 @@ class rosswog_numerical_kilonovae(kilonovae):
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     numerically generated kilonovae spectral energy distributions.
     """
-    def __init__(self, path):
-        self.make_sed(path)
+    def __init__(self, path, singleSED=None):
+        self.make_sed(path, singleSED)
         self.subtype = 'rosswog numerical'
         super().__init__()
 
-    def make_sed(self, path_to_seds):
-        # Get the list of SED files
-        fl = os.listdir(path_to_seds)
-        # Randomly select SED
-        rindex = np.random.randint(low=0, high=len(fl))
-        filei = fl[rindex]
-        filename = path_to_seds + '/' + filei
-        fileio = open(filename, 'r')
+    def make_sed(self, path_to_seds, singleSED):
+        if not singleSED:
+            # Get the list of SED files
+            fl = os.listdir(path_to_seds)
+            # Randomly select SED
+            rindex = np.random.randint(low=0, high=len(fl))
+            filei = fl[rindex]
+            filename = path_to_seds + '/' + filei
+            fileio = open(filename, 'r')
+        else:
+            filename = path_to_seds
+            fileio = open(filename, 'r')
         self.SED_header_params(fileio)
         # Read in SEDS data with sncosmo tools
         self.phase, self.wave, self.flux = sncosmo.read_griddata_ascii(filename)

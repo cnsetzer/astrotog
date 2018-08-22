@@ -364,8 +364,11 @@ def other_observations(survey, param_df, t_before, t_after, other_obs_columns):
     dec = param_df.at[0, 'dec']
     t0 = param_df.at[0, 'explosion_time']
     tmax = param_df.at[0, 'max_time']
-    positional_overlaps = deepcopy(survey.cadence.query('({3} - {0} <= {1} <= {3} + {0}) & ({4} - {0} <= {2} <= {4} + {0})'.format(survey.FOV_radius, ra, dec, survey.col_ra, survey.col_dec)))
-    t_overlaps = deepcopy(positional_overlaps.query('{0} - {1} <= expMJD <= {0} | {2} <= expMJD <= {2} + {3}'.format(t0, t_before, tmax, t_after)))
+    positional_overlaps = survey.cadence.query('({3} - {0} <= {1} <= {3} + {0}) & ({4} - {0} <= {2} <= {4} + {0})'.format(survey.FOV_radius, ra, dec, survey.col_ra, survey.col_dec))
+    # Split the computaiton of time overlaps into two queries
+    t_before_overlaps = positional_overlaps.query('{0} - {1} <= expMJD & expMJD <= {0}'.format(t0, t_before))
+    t_after_overlaps = positional_overlaps.query('{0} <= expMJD & expMJD <= {0} + {1}'.format(tmax, t_after))
+    t_overlaps = t_before_overlaps.append(t_after_overlaps, sort=False)
     overlap_indices = []
     for index, row in t_overlaps.iterrows():
         pointing_ra = row[survey.col_ra]
@@ -376,7 +379,7 @@ def other_observations(survey, param_df, t_before, t_after, other_obs_columns):
         if angdist < survey.FOV_radius:
             overlap_indices.append(index)
     if not overlap_indices:
-        return None
+        return pd_df
     else:
         colocated_survey = t_overlaps.loc[overlap_indices]
 
@@ -496,7 +499,7 @@ def process_nightly_coadds(obs_df, survey):
 
     """
     coadded_df = pd.DataFrame(columns=obs_df.columns)
-    new_coadded = pd.DataFrame(columns=['coadded night'])
+    new_coadded = pd.DataFrame(columns=['coadded_night'])
     coadded_df = coadded_df.join(new_coadded)
 
     for transient in list(obs_df['transient_id'].unique()):
@@ -529,9 +532,9 @@ def process_nightly_coadds(obs_df, survey):
                         coadding_series['extincted_mag_one_sigma'] = magnitude_error(coadding_series['extincted_flux'], coadding_series['extincted_flux_one_sigma'], survey.reference_flux_response[coadd_band])
                         coadding_series['source_mag_one_sigma'] = magnitude_error(coadding_series['source_flux'], coadding_series['source_flux_one_sigma'], survey.reference_flux_response[coadd_band])
                         coadding_series['signal_to_noise'] = coadding_series['instrument_flux']/coadding_series['instrument_flux_one_sigma']
-                        coadding_series['coadded night'] = True
+                        coadding_series['coadded_night'] = True
                     else:
-                        coadding_series['coadded night'] = False
+                        coadding_series['coadded_night'] = False
                     coadded_indicies.extend(list(same_night_df.index))
                     coadded_df = coadded_df.append(coadding_series, ignore_index=True, sort=False)
 

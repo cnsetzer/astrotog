@@ -235,7 +235,7 @@ class survey(object):
         for band in self.throughputs.keys():
             self.reference_flux_response[band] = \
                 bandflux(band_throughput=self.throughputs[band],
-                              ref_model=ref_model)
+                         ref_model=ref_model)
 
     def get_survey_params(self):
         """
