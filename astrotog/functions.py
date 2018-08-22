@@ -523,7 +523,11 @@ def process_nightly_coadds(obs_df, survey):
                 if iter in coadded_indicies:
                     continue
                 else:
-                    same_night_df = band_df[(band_df['mjd'] - row['mjd'] > -0.5) & (band_df['mjd'] - row['mjd'] < 0.5)]
+                    # Midnight MJD UTC + UTC Offset to midnight +/- 12 hours
+                    night_start = int(row['mjd']) + 0.1666667 - 0.5
+                    night_end = int(row['mjd']) + 0.1666667 + 0.5
+                    same_night_df = band_df[(band_df['mjd'] >= night_start) & (band_df['mjd'] <= night_end)]
+
                     coadding_series = deepcopy(row)
                     coadd_band = 'lsst{}'.format(band)
                     if len(same_night_df.index) > 1:

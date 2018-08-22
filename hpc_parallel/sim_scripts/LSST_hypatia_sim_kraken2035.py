@@ -174,7 +174,7 @@ if __name__ == "__main__":
                    'instrument_flux_one_sigma', 'A_x',
                    'signal_to_noise', 'source_magnitude',
                    'source_mag_one_sigma', 'source_flux',
-                   'source flux one sigma', 'extincted_magnitude',
+                   'source_flux_one_sigma', 'extincted_magnitude',
                    'extincted_mag_one_sigma', 'extincted_flux',
                    'extincted_flux_one_sigma', 'airmass',
                    'five_sigma_depth', 'lightcurve_phase',
@@ -242,21 +242,20 @@ if __name__ == "__main__":
 
         # get other observations
         other_obs_df = p.starmap(afunc.other_observations, other_obs_iter)
-        store_other_obs_data = stored_other_obs_data.append(other_obs_df,
+        stored_other_obs_data = stored_other_obs_data.append(other_obs_df,
                                                             ignore_index=True,
                                                             sort=False)
-
         if rank == 0 and verbose:
-            # if i == 0:
-            #     print('Debug Check of Pandas Dataframe:')
-            #     print(stored_obs_data)
-
+            # Write computaiton time estimates
             print('Batch {0} complete of {1} batches.'.format(i+1, num_batches))
             t1 = time.time()
-            delta_t = int(((t1-t0)/(i+1))*(num_batches-i-1) + 15.0)  # estimated write time
+            delta_t = int(((t1-t0)/(i+1))*(num_batches-i-1) + 0.1045*transient_dist.number_simulated)
             print('Estimated time remaining is: {}'.format(datetime.timedelta(seconds=delta_t)))
+
     # Now process observations for detections and other information
     transient_batch = None
+    batch_method_iter_for_pool = None
+    parameter_batch_iter = None
     observation_batch_iter = None
     other_obs_iter = None
 
@@ -278,15 +277,9 @@ if __name__ == "__main__":
         params_receive = comm.allgather(stored_param_data)
         other_obs_receive = comm.allgather(stored_other_obs_data)
 
-        output_params = pd.DataFrame(columns=param_columns)
-        output_observations = pd.DataFrame(columns=obs_columns)
-        output_other_observations = pd.DataFrame(columns=other_obs_columns)
-
-        # Create a single pandas dataframe
-        for i in range(size):
-            output_params = output_params.append(params_receive[i], sort=False, ignore_index=True)
-            output_observations = output_observations.append(obs_receive[i], sort=False, ignore_index=True)
-            output_other_observations = output_other_observations.append(other_obs_receive[i], sort=False, ignore_index=True)
+        output_params = pd.concat(params_receive, sort=False, ignore_index=True)
+        output_observations = pd.concat(obs_receive, sort=False, ignore_index=True)
+        output_other_observations = pd.concat(other_obs_receive, sort=False, ignore_index=True)
 
     else:
         output_observations = stored_obs_data
@@ -321,7 +314,7 @@ if __name__ == "__main__":
         filters = {'snr': {'type': 'value',
                            'num_count': None,
                            'name': 'signal_to_noise',
-                           'value': 0.25,
+                           'value': 0.001,
                            'gt_lt_eq': 'gt',
                            'absolute': True}
                    # 'snr': {'type': 'value',
@@ -339,11 +332,12 @@ if __name__ == "__main__":
 
         if verbose:
             print('Processing coadded nights for transients alert triggers.')
+        coadded_observations.drop(columns=['alert'], inplace=True)
         coadded_observations = afunc.efficiency_process(LSST_survey, coadded_observations)
 
         # if verbose:
         #     print('Processing coadded observations for ultra-low SNR.')
-        # coadded_observations = afunc.detect(coadded_observations, filters)
+        # filtered_observations = afunc.detect(coadded_observations, filters)
 
         if verbose:
             print('Processing coadded observations for detections in line with Scolnic et. al 2018.')
@@ -356,9 +350,12 @@ if __name__ == "__main__":
         coadded_observations.to_csv(output_path + 'coadded_observations.csv')
         detected_observations.to_csv(output_path + 'scolnic_detections.csv')
         stored_param_data.to_csv(output_path + 'modified_parameters.csv')
+        if verbose:
+            print('Done writing the detection results.')
 
     comm.barrier()
 
     if rank == 0 and verbose:
         t_end = time.time()
+        #print('\n Estimated time for the last bit is: {}'.format((t_end-t1)/transient_dist.number_simulated))
         print('\nSimulation completed successfully with elapsed time: {}.'.format(datetime.timedelta(seconds=int(t_end-t_start))))

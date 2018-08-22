@@ -336,9 +336,9 @@ if __name__ == "__main__":
         coadded_observations.drop(columns=['alert'], inplace=True)
         coadded_observations = afunc.efficiency_process(LSST_survey, coadded_observations)
 
-        if verbose:
-            print('Processing coadded observations for ultra-low SNR.')
-        filtered_observations = afunc.detect(coadded_observations, filters)
+        # if verbose:
+        #     print('Processing coadded observations for ultra-low SNR.')
+        # filtered_observations = afunc.detect(coadded_observations, filters)
 
         if verbose:
             print('Processing coadded observations for detections in line with Scolnic et. al 2018.')
