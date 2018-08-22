@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
         if not os.path.exists(output_path):
             os.makedirs(output_path)
-        z_max = 0.08
+        z_max = 0.07
         num_processes = size
         z_bin_size = 0.02
         if size >= 1:
@@ -134,9 +134,9 @@ if __name__ == "__main__":
     param_del = []
     for i in range(num_params_pprocess):
         if any(abs(sky_loc_array[i]) < 1e-250):
-            sky_del.extend(i)
+            sky_del.append(i)
         if any(abs(param_array[i]) < 1e-250):
-            param_del.extend(i)
+            param_del.append(i)
 
     sky_loc_array = np.delete(sky_loc_array, sky_del, 0)
     param_array = np.delete(param_array, param_del, 0)
@@ -247,11 +247,12 @@ if __name__ == "__main__":
                                                             ignore_index=True,
                                                             sort=False)
         if rank == 0 and verbose:
-
+            # Write computaiton time estimates
             print('Batch {0} complete of {1} batches.'.format(i+1, num_batches))
             t1 = time.time()
-            delta_t = int(((t1-t0)/(i+1))*(num_batches-i-1) + 15.0)  # estimated write time
+            delta_t = int(((t1-t0)/(i+1))*(num_batches-i-1) + 0.1045*transient_dist.number_simulated)
             print('Estimated time remaining is: {}'.format(datetime.timedelta(seconds=delta_t)))
+
     # Now process observations for detections and other information
     transient_batch = None
     batch_method_iter_for_pool = None
@@ -277,15 +278,6 @@ if __name__ == "__main__":
         params_receive = comm.allgather(stored_param_data)
         other_obs_receive = comm.allgather(stored_other_obs_data)
 
-        # output_params = pd.DataFrame(columns=stored_param_data.columns)
-        # output_observations = pd.DataFrame(columns=stored_obs_data.columns)
-        # output_other_observations = pd.DataFrame(columns=stored_other_obs_data.columns)
-
-        # Create a single pandas dataframe
-        # for i in range(size):
-        #     output_params = output_params.append(params_receive[i], sort=False, ignore_index=True)
-        #     output_observations = output_observations.append(obs_receive[i], sort=False, ignore_index=True)
-        #     output_other_observations = output_other_observations.append(other_obs_receive[i], sort=False, ignore_index=True)
         output_params = pd.concat(params_receive, sort=False, ignore_index=True)
         output_observations = pd.concat(obs_receive, sort=False, ignore_index=True)
         output_other_observations = pd.concat(other_obs_receive, sort=False, ignore_index=True)
@@ -323,7 +315,7 @@ if __name__ == "__main__":
         filters = {'snr': {'type': 'value',
                            'num_count': None,
                            'name': 'signal_to_noise',
-                           'value': 0.25,
+                           'value': 0.001,
                            'gt_lt_eq': 'gt',
                            'absolute': True}
                    # 'snr': {'type': 'value',
@@ -341,11 +333,12 @@ if __name__ == "__main__":
 
         if verbose:
             print('Processing coadded nights for transients alert triggers.')
+        coadded_observations.drop(columns=['alert'], inplace=True)
         coadded_observations = afunc.efficiency_process(LSST_survey, coadded_observations)
 
-        # if verbose:
-        #     print('Processing coadded observations for ultra-low SNR.')
-        # coadded_observations = afunc.detect(coadded_observations, filters)
+        if verbose:
+            print('Processing coadded observations for ultra-low SNR.')
+        filtered_observations = afunc.detect(coadded_observations, filters)
 
         if verbose:
             print('Processing coadded observations for detections in line with Scolnic et. al 2018.')
@@ -365,4 +358,5 @@ if __name__ == "__main__":
 
     if rank == 0 and verbose:
         t_end = time.time()
+        #print('\n Estimated time for the last bit is: {}'.format((t_end-t1)/transient_dist.number_simulated))
         print('\nSimulation completed successfully with elapsed time: {}.'.format(datetime.timedelta(seconds=int(t_end-t_start))))
