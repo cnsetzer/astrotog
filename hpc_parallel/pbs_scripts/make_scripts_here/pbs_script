@@ -1,0 +1,27 @@
+#!/bin/bash -l
+#PBS -V
+#PBS -N run_../sim_scripts/LSST_hypatia_sim_pontus2489.py
+#PBS -q cores24
+#PBS -l nodes=1:ppn=24
+#PBS -r n
+#PBS -j oe
+#PBS -k oe
+module purge
+module load python
+module load mpi/mvapich/2-2.3b
+source activate astrotog_hpc
+cd /home/csetzer/astrotog/hpc_parallel/pbs_scripts
+
+echo Running on host `hostname`
+echo Time is `date`
+echo Directory is `pwd`
+echo PBS job ID is $PBS_JOBID
+echo This jobs runs on the following machines:
+echo `cat $PBS_NODEFILE | uniq`
+
+#! Create a machine file
+cat $PBS_NODEFILE | uniq > ../job_files/machine.file.$PBS_JOBID
+#! export PYTHONPATH=$PYTHONPATH:~/.conda/envs/astrotog/bin/python
+
+mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH --machinefile $PBS_NODEFILE python ../sim_scripts/LSST_hypatia_sim_pontus2489.py
+

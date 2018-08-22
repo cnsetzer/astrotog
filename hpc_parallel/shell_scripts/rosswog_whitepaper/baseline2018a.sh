@@ -1,0 +1,1 @@
+python /home/csetzer/astrotog/hpc_parallel/sim_scripts/rosswog_whitepaper/LSST_hypatia_sim_baseline2018a.py

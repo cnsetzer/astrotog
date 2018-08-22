@@ -1,9 +1,11 @@
+__all__ = ['transient_distribution']
 import os
 import re
 import numpy as np
 import sncosmo
 import opsimsummary as oss
-from . import functions as func
+from .functions import bandflux
+from LSSTmetrics.efficiencyTable import EfficiencyTable as eft
 
 
 class transient(object):
@@ -81,12 +83,14 @@ class survey(object):
         Builds the survey object calling the methods to set the base attributes
         of the class.
         """
-        self.get_cadence(simulation.cadence_path, simulation.cadence_flags)
+        self.dithered = simulation.dithers
+        self.get_cadence(simulation)
         self.get_throughputs(simulation.throughputs_path)
         self.get_reference_flux(simulation.reference_path)
         self.get_survey_params()
+        self.response_function(simulation.response_path)
 
-    def get_cadence(self, path, flag='combined'):
+    def get_cadence(self, simulation):
         """
         Method to get the survey cadence from an OpSim database.
 
@@ -104,7 +108,13 @@ class survey(object):
             Dataframe containing the summary elements of each visit that is
             simulated in OpSim for the chosen survey.
         """
-        self.cadence = oss.OpSimOutput.fromOpSimDB(path, subset=flag).summary
+        path = simulation.cadence_path
+        flag = simulation.cadence_flags
+        vers = simulation.version
+        add_dith = simulation.add_dithers
+        self.cadence = oss.OpSimOutput.fromOpSimDB(path, subset=flag,
+                                                   opsimversion=vers,
+                                                   add_dithers=add_dith).summary
 
     def get_throughputs(self, path):
         """
@@ -224,13 +234,20 @@ class survey(object):
         self.reference_flux_response = {}
         for band in self.throughputs.keys():
             self.reference_flux_response[band] = \
-                func.bandflux(band_throughput=self.throughputs[band],
-                              ref_model=ref_model)
+                bandflux(band_throughput=self.throughputs[band],
+                         ref_model=ref_model)
 
     def get_survey_params(self):
         """
         Method to obtain summary features of the given cadence.
         """
+        if self.dithered is True:
+            self.col_dec = '_dec'
+            self.col_ra = '_ra'
+        else:
+            self.col_dec = '_dec'
+            self.col_ra = '_ra'
+
         # Given a prescribed survey simulation get basic properties of the
         # simulation. Currently assume a rectangular (in RA,DEC) solid angle on
         # the sky
@@ -238,15 +255,18 @@ class survey(object):
         min_db = self.cadence.min()
         max_db = self.cadence.max()
         # Need to extend by FOV
-        self.min_ra = min_db['ditheredRA']
-        self.max_ra = max_db['ditheredRA']
-        self.min_dec = min_db['ditheredDec']
-        self.max_dec = max_db['ditheredDec']
+        self.min_ra = min_db[self.col_ra]
+        self.max_ra = max_db[self.col_ra]
+        self.min_dec = min_db[self.col_dec]
+        self.max_dec = max_db[self.col_dec]
         # Survey area in degrees squared
         self.survey_area = np.rad2deg(np.sin(self.max_dec) - np.sin(self.min_dec))*np.rad2deg(self.max_ra - self.min_ra)
         self.min_mjd = min_db['expMJD']
         self.max_mjd = max_db['expMJD']
         self.survey_time = self.max_mjd - self.min_mjd  # Survey time in days
+
+    def response_function(self, response_path):
+        self.detect_table = eft.fromDES_EfficiencyFile(response_path)
 
 
 class transient_distribution(object):

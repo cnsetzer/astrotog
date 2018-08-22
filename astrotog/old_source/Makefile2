@@ -1,0 +1,32 @@
+#########################
+# Set the correct paths #
+#########################
+
+GLOBAL_PATH  = $(PWD)
+MODULE_PATH  = $(GLOBAL_PATH)/obj
+SOURCE_PATH  = $(GLOBAL_PATH)
+
+#################################
+# Compiler, flags and libraries #
+#################################
+F90= gfortran
+F90FLAGS = -cpp -g -O3 -ffpe-trap=overflow,underflow,invalid -Wall -fbacktrace \
+         -fimplicit-none -fdefault-double-8 -fdefault-real-8 -fopenmp
+LDFLAGS = -L$(MODULE_PATH)
+LAPACK_DIR = $(HOME)/software/lib/lapack-3.8.0
+FPATH = -L$(LAPACK_DIR) -I$(LAPACK_DIR)
+FLIBS = -llapack -lrefblas
+
+###########################
+# Source and object files #
+###########################
+
+SRCS  = macronova_Pinto_Eastman_SKR.f90
+SRCS += module_physics_constants.f90
+
+###########
+# Compile #
+###########
+
+all:
+    $(F90) $(LDFLAGS) -c $(SRCS) $(LIBS) $(FPATH) $(F90FLAGS) $(FLIBS)

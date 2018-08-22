@@ -4,8 +4,9 @@ import numpy as np
 import sncosmo
 from astropy.cosmology import Planck15 as cosmo
 # from astrotog import macronovae_wrapper as mw
-from . import macronovae_wrapper as mw
-from . import classes
+from .macronovae_wrapper import Make_Rosswog_SEDS as mw
+from .classes import kilonovae
+from .classes import survey
 
 
 class simulation(object):
@@ -15,7 +16,9 @@ class simulation(object):
     def __init__(self, cadence_path, throughputs_path, reference_path, z_max,
                  output_path=os.getcwd(), cadence_flags='combined', z_min=0.0,
                  z_bin_size=0.01, multiproc=False, num_processes=1,
-                 batch_size='all', cosmology=cosmo, rate_gpc=1000):
+                 batch_size='all', cosmology=cosmo, rate_gpc=1000,
+                 dithers=True, simversion='lsstv4', add_dithers=False,
+                 t_before=30.0, t_after=30.0, response_path= None):
         self.cadence_path = cadence_path
         self.throughputs_path = throughputs_path
         self.reference_path = reference_path
@@ -29,9 +32,15 @@ class simulation(object):
         self.cosmology = cosmology
         self.num_processes = num_processes
         self.rate = rate_gpc
+        self.dithers = dithers
+        self.version = simversion
+        self.add_dithers = add_dithers
+        self.t_before = t_before
+        self.t_after = t_after
+        self.response_path = response_path
 
 
-class LSST(classes.survey):
+class LSST(survey):
     """
     Top-level class for the LSST instrument and survey.
     """
@@ -47,11 +56,10 @@ class LSST(classes.survey):
             self.instrument = instrument_params['instrument']
             self.magsys = instrument_params['magsys']
             self.filters = instrument_params['filters']
-
         super().__init__(simulation)
 
 
-class rosswog_kilonovae(classes.kilonovae):
+class rosswog_kilonovae(kilonovae):
     """
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     semi-analytic model for kilonovae spectral energy distributions.
@@ -135,28 +143,32 @@ class rosswog_kilonovae(classes.kilonovae):
             # variables
             KNE_parameters.append(False)
             KNE_parameters.append('dummy string')
-        self.phase, self.wave, self.flux = mw.Make_Rosswog_SEDS(KNE_parameters,
-                                                                separated=True)
+        self.phase, self.wave, self.flux = mw(KNE_parameters,
+                                              separated=True)
 
 
-class rosswog_numerical_kilonovae(classes.kilonovae):
+class rosswog_numerical_kilonovae(kilonovae):
     """
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     numerically generated kilonovae spectral energy distributions.
     """
-    def __init__(self, path):
-        self.make_sed(path)
+    def __init__(self, path, singleSED=None):
+        self.make_sed(path, singleSED)
         self.subtype = 'rosswog numerical'
         super().__init__()
 
-    def make_sed(self, path_to_seds):
-        # Get the list of SED files
-        fl = os.listdir(path_to_seds)
-        # Randomly select SED
-        rindex = np.random.randint(low=0, high=len(fl))
-        filei = fl[rindex]
-        filename = path_to_seds + '/' + filei
-        fileio = open(filename, 'r')
+    def make_sed(self, path_to_seds, singleSED):
+        if not singleSED:
+            # Get the list of SED files
+            fl = os.listdir(path_to_seds)
+            # Randomly select SED
+            rindex = np.random.randint(low=0, high=len(fl))
+            filei = fl[rindex]
+            filename = path_to_seds + '/' + filei
+            fileio = open(filename, 'r')
+        else:
+            filename = path_to_seds
+            fileio = open(filename, 'r')
         self.SED_header_params(fileio)
         # Read in SEDS data with sncosmo tools
         self.phase, self.wave, self.flux = sncosmo.read_griddata_ascii(filename)
@@ -176,3 +188,67 @@ class rosswog_numerical_kilonovae(classes.kilonovae):
             else:
                 fileio.close()
                 break
+
+
+class metzger_kilonova(kilonovae):
+    """
+    Top-level class for kilonovae transients based on Scolnic, et. al 2017
+    model for kilonovae spectral energy distribution mimicing the GW170817
+    event.
+    """
+    def __init__(self, num_samples=1):
+        self.number_of_samples = num_samples
+        self.make_sed()
+        self.subtype = 'rosswog semi-analytic'
+        super().__init__()
+
+    def make_sed(self):
+        self.phase, self.wave, self.flux = SED_FUNCTION()
+
+
+class cowperthwaite_kilonova(kilonovae):
+    """
+    Top-level class for kilonovae transients based on Scolnic, et. al 2017
+    model for kilonovae spectral energy distribution mimicing the GW170817
+    event.
+    """
+    def __init__(self, num_samples=1):
+        self.number_of_samples = num_samples
+        self.make_sed()
+        self.subtype = 'rosswog semi-analytic'
+        super().__init__()
+
+    def make_sed(self):
+        self.phase, self.wave, self.flux = SED_FUNCTION()
+
+
+class kasen_kilonova(kilonovae):
+    """
+    Top-level class for kilonovae transients based on Scolnic, et. al 2017
+    model for kilonovae spectral energy distribution mimicing the GW170817
+    event.
+    """
+    def __init__(self, num_samples=1):
+        self.number_of_samples = num_samples
+        self.make_sed()
+        self.subtype = 'rosswog semi-analytic'
+        super().__init__()
+
+    def make_sed(self):
+        self.phase, self.wave, self.flux = SED_FUNCTION()
+
+
+class scolnic_kilonova(kilonovae):
+    """
+    Top-level class for kilonovae transients based on Scolnic, et. al 2017
+    model for kilonovae spectral energy distribution mimicing the GW170817
+    event.
+    """
+    def __init__(self, filename, num_samples=1):
+        self.number_of_samples = num_samples
+        self.make_sed(filename)
+        self.subtype = 'scolnic empirical'
+        super().__init__()
+
+    def make_sed(self, filename):
+        self.phase, self.wave, self.flux = sncosmo.read_griddata_ascii(filename)
