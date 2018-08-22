@@ -244,11 +244,11 @@ class scolnic_kilonova(kilonovae):
     model for kilonovae spectral energy distribution mimicing the GW170817
     event.
     """
-    def __init__(self, num_samples=1):
+    def __init__(self, filename, num_samples=1):
         self.number_of_samples = num_samples
-        self.make_sed()
-        self.subtype = 'rosswog semi-analytic'
+        self.make_sed(filename)
+        self.subtype = 'scolnic empirical'
         super().__init__()
 
-    def make_sed(self):
-        self.phase, self.wave, self.flux = SED_FUNCTION()
+    def make_sed(self, filename):
+        self.phase, self.wave, self.flux = sncosmo.read_griddata_ascii(filename)
