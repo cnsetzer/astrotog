@@ -116,9 +116,10 @@ def observe(table_columns, transient, survey):
         survey_overlap = t_overlaps.loc[overlap_indices]
 
         for index, row in survey_overlap.iterrows():
-            band = 'lsst{}'.format(row['filter'])
+            band = row['filter']
             obs_phase = row['expMJD'] - transient.t0
-            A_x = dust(ra=transient.ra, dec=transient.dec, band=band)
+            A_x = dust(ra=transient.ra, dec=transient.dec,
+                       dust_correction=survey.dust_corrections[band])
             source_bandflux = bandflux(survey.throughputs[band],
                                        SED_model=transient.model,
                                        phase=obs_phase)
@@ -175,9 +176,10 @@ def observe(table_columns, transient, survey):
 def write_params(table_columns, transient):
     pandas_df = pd.DataFrame(columns=table_columns)
     pandas_df.at[0, 'transient_id'] = transient.id
-    pandas_df.at[0, 'm_ej'] = transient.m_ej
-    pandas_df.at[0, 'v_ej'] = transient.v_ej
-    pandas_df.at[0, 'kappa'] = transient.kappa
+    if transient.num_params > 0:
+        for i in range(transient.num_params):
+            pandas_df.at[0, getattr(transient,'param{0}_name'.format(i+1))] = getattr(transient,'param{0}'.format(i+1))
+
     pandas_df.at[0, 'true_redshift'] = transient.z
     pandas_df.at[0, 'explosion_time'] = transient.t0
     pandas_df.at[0, 'max_time'] = transient.tmax
@@ -193,23 +195,10 @@ def mag_to_flux(mag, ref_flux):
     return flux
 
 
-def dust(ra, dec, band, Rv=3.1):
+def dust(ra, dec, dust_correction, Rv=3.1):
 
     uncorr_ebv = sfdmap.ebv(ra, dec, frame='icrs', unit='radian')
-
-    if band == 'lsstu':
-            factor = 4.145
-    elif band == 'lsstg':
-            factor = 3.237
-    elif band == 'lsstr':
-            factor = 2.273
-    elif band == 'lssti':
-            factor = 1.684
-    elif band == 'lsstz':
-            factor = 1.323
-    elif band == 'lssty':
-            factor = 1.088
-
+    factor = dust_correction
     A_x = factor*Rv*uncorr_ebv
     return A_x
 
@@ -384,7 +373,7 @@ def other_observations(survey, param_df, t_before, t_after, other_obs_columns):
         colocated_survey = t_overlaps.loc[overlap_indices]
 
         for index, row in colocated_survey.iterrows():
-            band = 'lsst{}'.format(row['filter'])
+            band = row['filter']
             fivesigma = row['fiveSigmaDepth']
             flux_error = bandflux_error(fivesigma, survey.reference_flux_response[band])
             inst_flux = flux_noise(0.0, flux_error)
@@ -428,7 +417,7 @@ def efficiency_process(survey, obs_df):
         if snr >= 50.0:
             eff_col.at[iter, 'alert'] = True
         else:
-            band = row['bandfilter'].replace('lsst', '')
+            band = row['bandfilter']
             prob = np.asscalar(survey.detect_table.effSNR(band, snr))
             if np.random.binomial(1, prob) == 1:
                 eff_col.at[iter, 'alert'] = True
@@ -447,7 +436,6 @@ def efficiency_process(survey, obs_df):
 
 def scolnic_detections(param_df, obs_df, other_obs_df, survey):
     detected_transients = []
-    # LSST_eff_table = eft.fromDES_EfficiencyFile(sim_inst.efficiency_table_path)
     for iter, row in param_df.iterrows():
         t_obs_df = obs_df.query('transient_id == {}'.format(row['transient_id']))
         t_other_obs_df = other_obs_df.query('transient_id == {}'.format(row['transient_id']))
@@ -529,7 +517,6 @@ def process_nightly_coadds(obs_df, survey):
                     same_night_df = band_df[(band_df['mjd'] >= night_start) & (band_df['mjd'] <= night_end)]
 
                     coadding_series = deepcopy(row)
-                    coadd_band = 'lsst{}'.format(band)
                     if len(same_night_df.index) > 1:
                         coadding_series['mjd'] = same_night_df['mjd'].mean()
                         coadding_series['extincted_flux'] = same_night_df['extincted_flux'].mean()
@@ -541,12 +528,12 @@ def process_nightly_coadds(obs_df, survey):
                         coadding_series['airmass'] = same_night_df['airmass'].mean()
                         coadding_series['five_sigma_depth'] = same_night_df['five_sigma_depth'].mean()
                         coadding_series['lightcurve_phase'] = same_night_df['lightcurve_phase'].mean()
-                        coadding_series['extincted_magnitude'] = flux_to_mag(coadding_series['extincted_flux'], survey.reference_flux_response[coadd_band])
-                        coadding_series['source_magnitude'] = flux_to_mag(coadding_series['source_flux'], survey.reference_flux_response[coadd_band])
-                        coadding_series['instrument_magnitude'] = flux_to_mag(coadding_series['instrument_flux'], survey.reference_flux_response[coadd_band])
-                        coadding_series['instrument_mag_one_sigma'] = magnitude_error(coadding_series['instrument_flux'], coadding_series['instrument_flux_one_sigma'], survey.reference_flux_response[coadd_band])
-                        coadding_series['extincted_mag_one_sigma'] = magnitude_error(coadding_series['extincted_flux'], coadding_series['extincted_flux_one_sigma'], survey.reference_flux_response[coadd_band])
-                        coadding_series['source_mag_one_sigma'] = magnitude_error(coadding_series['source_flux'], coadding_series['source_flux_one_sigma'], survey.reference_flux_response[coadd_band])
+                        coadding_series['extincted_magnitude'] = flux_to_mag(coadding_series['extincted_flux'], survey.reference_flux_response[band])
+                        coadding_series['source_magnitude'] = flux_to_mag(coadding_series['source_flux'], survey.reference_flux_response[band])
+                        coadding_series['instrument_magnitude'] = flux_to_mag(coadding_series['instrument_flux'], survey.reference_flux_response[band])
+                        coadding_series['instrument_mag_one_sigma'] = magnitude_error(coadding_series['instrument_flux'], coadding_series['instrument_flux_one_sigma'], survey.reference_flux_response[band])
+                        coadding_series['extincted_mag_one_sigma'] = magnitude_error(coadding_series['extincted_flux'], coadding_series['extincted_flux_one_sigma'], survey.reference_flux_response[band])
+                        coadding_series['source_mag_one_sigma'] = magnitude_error(coadding_series['source_flux'], coadding_series['source_flux_one_sigma'], survey.reference_flux_response[band])
                         coadding_series['signal_to_noise'] = coadding_series['instrument_flux']/coadding_series['instrument_flux_one_sigma']
                         coadding_series['coadded_night'] = True
                     else:

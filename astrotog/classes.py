@@ -5,7 +5,6 @@ import numpy as np
 import sncosmo
 import opsimsummary as oss
 from .functions import bandflux
-from LSSTmetrics.efficiencyTable import EfficiencyTable as eft
 
 
 class transient(object):
@@ -46,7 +45,7 @@ class transient(object):
         self.peculiar_vel = 0.0
 
 
-class kilonovae(transient):
+class kilonova(transient):
     """
     Base class for kilonovae transients
     """
@@ -88,7 +87,6 @@ class survey(object):
         self.get_throughputs(simulation.throughputs_path)
         self.get_reference_flux(simulation.reference_path)
         self.get_survey_params()
-        self.response_function(simulation.response_path)
 
     def get_cadence(self, simulation):
         """
@@ -139,6 +137,7 @@ class survey(object):
         tp_filelist = os.listdir(path)
         for band_file_name in tp_filelist:
             band = band_file_name.strip('.dat')
+            band = band.replace('lsst','')
             self.throughputs[band] = {}
             throughput_file = path + '/' + band_file_name
             band_wave = list()
@@ -264,9 +263,6 @@ class survey(object):
         self.min_mjd = min_db['expMJD']
         self.max_mjd = max_db['expMJD']
         self.survey_time = self.max_mjd - self.min_mjd  # Survey time in days
-
-    def response_function(self, response_path):
-        self.detect_table = eft.fromDES_EfficiencyFile(response_path)
 
 
 class transient_distribution(object):
