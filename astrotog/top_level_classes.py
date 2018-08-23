@@ -1,10 +1,12 @@
 import os
 import re
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 import sncosmo
 from astropy.cosmology import Planck15 as cosmo
 from LSSTmetrics.efficiencyTable import EfficiencyTable as eft
-from .macronovae_wrapper import Make_Rosswog_SEDS as mw
+from .macronovae_wrapper import make_rosswog_seds as mw
 from .classes import kilonova
 from .classes import survey
 
@@ -18,7 +20,7 @@ class simulation(object):
                  z_bin_size=0.01, batch_size='all', cosmology=cosmo,
                  rate_gpc=1000, dithers=True, simversion='lsstv4',
                  add_dithers=False, t_before=30.0, t_after=30.0,
-                 response_path=None):
+                 response_path=None, instrument=None):
         self.cadence_path = cadence_path
         self.throughputs_path = throughputs_path
         self.reference_path = reference_path
@@ -36,6 +38,7 @@ class simulation(object):
         self.t_before = t_before
         self.t_after = t_after
         self.response_path = response_path
+        self.instrument = instrument
 
 
 class LSST(survey):
@@ -75,6 +78,7 @@ class rosswog_kilonova(kilonova):
         self.num_params = 3
         if parameter_dist is True:
             if num_samples > 1:
+                self.pre_dist_params = True
                 self.number_of_samples = num_samples
                 self.draw_parameters(bounds, uniform_v)
             else:
@@ -129,16 +133,17 @@ class rosswog_kilonova(kilonova):
             out_shape = self.number_of_samples
 
         self.param3 = np.random.uniform(low=kappa_min, high=kappa_max,
-                                       size=out_shape)
+                                        size=out_shape)
         self.param1 = np.random.uniform(low=mej_min, high=mej_max,
-                                      size=out_shape)
+                                        size=out_shape)
         if uniform_v is False:
-            self.param2 = np.random.uniform(low=vej_min, high=vej_max*pow(self.param1
-                                          / mej_min, np.log10(0.25/vej_max) / np.log10(mej_max/mej_min)),
-                                          size=out_shape)
+            self.param2 = np.random.uniform(low=vej_min,
+                                            high=vej_max*pow(self.param1/mej_min,
+                                            np.log10(0.25/vej_max)/np.log10(mej_max/mej_min)),
+                                            size=out_shape)
         else:
             self.param2 = np.random.uniform(low=vej_min, high=vej_max,
-                                          size=out_shape)
+                                            size=out_shape)
 
     def make_sed(self, KNE_parameters=None):
         if KNE_parameters is None:
@@ -165,25 +170,35 @@ class rosswog_numerical_kilonova(kilonova):
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     numerically generated kilonovae spectral energy distributions.
     """
-    def __init__(self, path, singleSED=None, parameter_dist=False,
+    def __init__(self, path=None, singleSED=None, parameter_dist=False,
                  num_samples=1):
         self.number_of_samples = num_samples
-        self.make_sed(path, singleSED)
         self.num_params = 3
-        self.subtype = 'rosswog numerical'
-        super().__init__()
+        self.pre_dist_params = False
+        self.param1_name = 'm_ej'
+        self.param2_name = 'v_ej'
+        self.param3_name = 'kappa'
 
-    def make_sed(self, path_to_seds, singleSED):
+        if parameter_dist is True:
+            self.subtype = 'rosswog numerical'
+            self.type = 'parameter distribution'
+
+        else:
+            self.make_sed(path, singleSED)
+            self.subtype = 'rosswog numerical'
+            super().__init__()
+
+    def make_sed(self, path, singleSED):
         if not singleSED:
             # Get the list of SED files
-            fl = os.listdir(path_to_seds)
+            fl = os.listdir(path)
             # Randomly select SED
             rindex = np.random.randint(low=0, high=len(fl))
             filei = fl[rindex]
-            filename = path_to_seds + '/' + filei
+            filename = path + '/' + filei
             fileio = open(filename, 'r')
         else:
-            filename = path_to_seds
+            filename = path
             fileio = open(filename, 'r')
         self.SED_header_params(fileio)
         # Read in SEDS data with sncosmo tools
@@ -195,13 +210,10 @@ class rosswog_numerical_kilonova(kilonova):
             if headline.strip().startswith("#"):
                 if re.search("kappa =", headline):
                     self.param3 = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
-                    self.param3_name = 'kappa_max'
                 elif re.search("m_ej = |m_w =", headline):
                     self.param1 = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
-                    self.param1_name = 'm_ej'
                 elif re.search("v_ej = |v_w =", headline):
                     self.param2 = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
-                    self.param2_name = 'v_ej'
                 else:
                     continue
             else:
@@ -266,12 +278,16 @@ class scolnic_kilonova(kilonova):
     model for kilonovae spectral energy distribution mimicing the GW170817
     event.
     """
-    def __init__(self, path, parameter_dist=False, num_samples=1):
+    def __init__(self, path=None, parameter_dist=False, num_samples=1):
         self.number_of_samples = num_samples
         self.num_params = 0
-        self.make_sed(filename)
+        self.pre_dist_params = False
         self.subtype = 'scolnic empirical'
-        super().__init__()
+        if parameter_dist is True:
+            self.type = 'parameter distribution'
+        else:
+            self.make_sed(path)
+            super().__init__()
 
-    def make_sed(self, filename):
+    def make_sed(self, path):
         self.phase, self.wave, self.flux = sncosmo.read_griddata_ascii(path)

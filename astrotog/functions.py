@@ -5,15 +5,12 @@ from copy import deepcopy
 from sfdmap import SFDMap as sfd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import warnings
-warnings.filterwarnings("ignore", message="numpy.dtype size changed")
-warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
-# font = {'size': 14}
-# matplotlib.rc('font', **font)
-sns.set_style('whitegrid')  # I personally like this style.
+
+# I personally like this style.
+sns.set_style('whitegrid')
 # Easy to change context from `talk`, `notebook`, `poster`, `paper`.
 sns.set_context('talk')
-# set seed
+# Initialze sfdmap for dust corrections
 sfdmap = sfd()
 
 
@@ -93,12 +90,12 @@ def bandflux_error(fiveSigmaDepth, bandflux_ref):
 def observe(table_columns, transient, survey):
     pd_df = pd.DataFrame(columns=table_columns)
     # Begin matching of survey points to event positional overlaps
-    positional_overlaps = deepcopy(survey.cadence.query('({3} - {0} <= {1} <= {3} + {0}) & ({4} - {0} <= {2} <= {4} + {0})'.format(survey.FOV_radius,
+    positional_overlaps = survey.cadence.query('({3} - {0} <= {1} <= {3} + {0}) & ({4} - {0} <= {2} <= {4} + {0})'.format(survey.FOV_radius,
                                                               transient.ra,
                                                               transient.dec,
                                                               survey.col_ra,
-                                                              survey.col_dec)))
-    t_overlaps = deepcopy(positional_overlaps.query('{0} <= expMJD <= {1}'.format(transient.t0, transient.tmax)))
+                                                              survey.col_dec))
+    t_overlaps = positional_overlaps.query('{0} <= expMJD <= {1}'.format(transient.t0, transient.tmax))
 
     overlap_indices = []
     for index, row in t_overlaps.iterrows():
@@ -178,7 +175,7 @@ def write_params(table_columns, transient):
     pandas_df.at[0, 'transient_id'] = transient.id
     if transient.num_params > 0:
         for i in range(transient.num_params):
-            pandas_df.at[0, getattr(transient,'param{0}_name'.format(i+1))] = getattr(transient,'param{0}'.format(i+1))
+            pandas_df.at[0, getattr(transient, 'param{0}_name'.format(i+1))] = getattr(transient,'param{0}'.format(i+1))
 
     pandas_df.at[0, 'true_redshift'] = transient.z
     pandas_df.at[0, 'explosion_time'] = transient.t0
@@ -271,21 +268,6 @@ def param_observe_detect(param_df, obs_df=None, detect_df=None):
     return param_df
 
 
-# def transient_dependent_filter(param_df, obs_df, filter_column, value1, value2, time_interval,
-#                        gt_lt_eq, absolute):
-#     """
-#     This is a function which applies a filter to the general pandas DataFrame
-#     of observation points to select subsamples based on filter criteria.
-#     """
-#
-#     for iter, row in param_df.iterrows():
-#         t_grouped_df = obs_df.query('transient_id == {}'.format(row['transient_id']))
-#         if t_grouped_df.empty is False:
-#             t_grouped_df.query('')
-#
-#     return pandas_df
-
-
 def filter_on_value(pandas_df, filter_column, value,  gt_lt_eq,
                     absolute=False):
     """
@@ -327,7 +309,8 @@ def filter_on_count(pandas_df, num_count, filter_column=None, value=None,
     or simply counts of transients.
     """
     filtered_obs_on_count = pd.DataFrame(columns=pandas_df.columns)
-    count_df = pd.Dataframe(columns=['counts'], index=list(pandas_df['transient_id'].unique()))
+    count_df = pd.Dataframe(columns=['counts'],
+                            index=list(pandas_df['transient_id'].unique()))
     passed_transients = []
     if value and gt_lt_eq:
         value_filtered_obs = filter_on_value(pandas_df, filter_column, value,
@@ -375,9 +358,11 @@ def other_observations(survey, param_df, t_before, t_after, other_obs_columns):
         for index, row in colocated_survey.iterrows():
             band = row['filter']
             fivesigma = row['fiveSigmaDepth']
-            flux_error = bandflux_error(fivesigma, survey.reference_flux_response[band])
+            flux_error = bandflux_error(fivesigma,
+                                        survey.reference_flux_response[band])
             inst_flux = flux_noise(0.0, flux_error)
-            inst_mag = flux_to_mag(inst_flux, survey.reference_flux_response[band])
+            inst_mag = flux_to_mag(inst_flux,
+                                   survey.reference_flux_response[band])
             inst_mag_error = magnitude_error(inst_flux, flux_error,
                                              survey.reference_flux_response[band])
             pd_df.at[index, 'transient_id'] = param_df.at[0, 'transient_id']
@@ -539,35 +524,36 @@ def process_nightly_coadds(obs_df, survey):
                     else:
                         coadding_series['coadded_night'] = False
                     coadded_indicies.extend(list(same_night_df.index))
-                    coadded_df = coadded_df.append(coadding_series, ignore_index=True, sort=False)
+                    coadded_df = coadded_df.append(coadding_series,
+                                                   ignore_index=True,
+                                                   sort=False)
 
     return coadded_df
 
 
-# def Get_N_z(All_Sources, Detections, param_priors, fig_num):
-#     param_key = 'parameters'
-#     z_min = param_priors['zmin']
-#     z_max = param_priors['zmax']
-#     bin_size = param_priors['z_bin_size']
-#     n_bins = int(round((z_max-z_min)/bin_size))
-#     all_zs, detect_zs = [], []
-#     mock_all_keys = All_Sources.keys()
-#     mock_detect_keys = Detections.keys()
-#     for key in mock_all_keys:
-#         all_zs.append(All_Sources[key][param_key]['z'])
-#     for key in mock_detect_keys:
-#         detect_zs.append(Detections[key][param_key]['z'])
-#     print('The redshift range of all sources is {0:.4f} to {1:.4f}.'.format(min(all_zs),max(all_zs)))
-#     print('The redshift range of the detected sources is {0:.4f} to {1:.4f}.'.format(min(detect_zs),max(detect_zs)))
-#     # Create the histogram
-#     N_z_dist_fig = plt.figure(fig_num)
-#     plt.hist(x=all_zs, bins=n_bins, range=(z_min, z_max), histtype='step', color='red', label='All Sources', linewidth=3.0)
-#     plt.hist(x=detect_zs, bins=n_bins, range=(z_min, z_max), histtype='stepfilled', edgecolor='blue', color='blue', alpha=0.3, label='Detected Sources', )
-#     # plt.tick_params(which='both', length=10, width=1.5)
-#     plt.yscale('log')
-#     plt.legend(loc=2)
-#     plt.xlabel('z')
-#     plt.ylabel(r'$N(z)$')
-#     plt.title('Number of sources per {0:.3f} redshift bin'.format(bin_size))
-#     fig_num += 1
-#     return N_z_dist_fig, fig_num
+def redshift_distribution(param_df, simulation):
+    z_min = simulation.z_min
+    z_max = simulation.z_max
+    bin_size = simulation.z_bin_size
+    n_bins = int(round((z_max-z_min)/bin_size))
+    all_zs = list(param_df['true_redshift'])
+    detect_zs = list(param_df[param_df['detected']]['true_redshift'])
+    total_eff = (len(detect_zs)/len(all_zs))*100
+    max_depth_detect = list(param_df[param_df['true_redshift'] <= max(detect_zs)]['true_redshift'])
+    max_depth_eff = (len(max_depth_detect)/len(all_zs))*100
+
+    print('The redshift range of all sources is {0:.4f} to {1:.4f}.'.format(min(all_zs), max(all_zs)))
+    print('The redshift range of the detected sources is {0:.4f} to {1:.4f}.'.format(min(detect_zs), max(detect_zs)))
+    print('There are {0} detected transients out of {1}, which is an efficiency of {2:2.2f}%  of the total simulated number.'.format(len(detect_zs), len(all_zs), total_eff))
+    print('However, this is an efficiency of {0:2.2f}%  of the total that occur within the range that was detected by {1}.'.format(max_depth_eff, simulation.instrument))
+    # Create the histogram
+    N_z_dist_fig = plt.figure()
+    plt.hist(x=all_zs, bins=n_bins, range=(z_min, z_max), histtype='step', color='red', label='All Sources', linewidth=3.0)
+    plt.hist(x=detect_zs, bins=n_bins, range=(z_min, z_max), histtype='stepfilled', edgecolor='blue', color='blue', alpha=0.3, label='Detected Sources', )
+    # plt.tick_params(which='both', length=10, width=1.5)
+    plt.yscale('log')
+    plt.legend(loc=2)
+    plt.xlabel('z')
+    plt.ylabel(r'$N(z)$')
+    plt.title('Redshift Distribution ({0:.2f} bins, {1:2.1f}%  detected depth efficiency.)'.format(bin_size, max_depth_eff))
+    return N_z_dist_fig

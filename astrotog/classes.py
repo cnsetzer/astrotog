@@ -2,6 +2,8 @@ __all__ = ['transient_distribution']
 import os
 import re
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 import sncosmo
 import opsimsummary as oss
 from .functions import bandflux
@@ -33,11 +35,14 @@ class transient(object):
         # Note that it is necessary to scale the amplitude relative to the 10pc
         # (i.e. 10^2 in the following eqn.) placement of the SED currently
         self.model.set(z=z)
-        #self.model.set(amplitude=amp)
+        # self.model.set(amplitude=amp)
 
         # Current working around for issue with amplitude...
-        mapp = cosmo.distmod(z).value + self.model.source_peakmag('lsstz', 'ab', sampling=0.1)
-        self.model.set_source_peakmag(m=mapp, band='lsstz', magsys='ab', sampling=0.1)
+        mapp = cosmo.distmod(z).value + self.model.source_peakmag('lsstz',
+                                                                  'ab',
+                                                                  sampling=0.1)
+        self.model.set_source_peakmag(m=mapp, band='lsstz', magsys='ab',
+                                      sampling=0.1)
 
         return self
 
@@ -137,7 +142,7 @@ class survey(object):
         tp_filelist = os.listdir(path)
         for band_file_name in tp_filelist:
             band = band_file_name.strip('.dat')
-            band = band.replace('lsst','')
+            band = band.replace('lsst', '')
             self.throughputs[band] = {}
             throughput_file = path + '/' + band_file_name
             band_wave = list()
@@ -152,7 +157,7 @@ class survey(object):
                     ang_match = re.search(u'\u212B|Ang|Angstrom|angstrom', line)
                     mic_match = re.search(u'\u03BC|um|micrometer|micron|', line)
                     if nano_match:
-                        conversion = 10.0  # conversion for nanometers to Angstrom
+                        conversion = 10.0  # conversion for nanometers to Angs
                     elif ang_match:
                         conversion = 1.0
                     elif mic_match:
@@ -279,8 +284,8 @@ class transient_distribution(object):
 
     def redshift_distribution(self, survey, sim):
         # Internal funciton to generate a redshift distribution
-        # Given survey parameters, a SED rate, and a cosmology draw from a Poisson
-        # distribution the distribution of the objects vs. redshift.
+        # Given survey parameters, a SED rate, and a cosmology draw from a
+        # Poisson distribution the distribution of the objects vs. redshift.
         zlist = np.asarray(list(sncosmo.zdist(zmin=sim.z_min,
                                               zmax=sim.z_max,
                                               time=survey.survey_time,
@@ -291,8 +296,8 @@ class transient_distribution(object):
         self.number_simulated = len(zlist)
 
     def sky_location_dist(self, survey):
-        # For given survey paramters distribute random points within the (RA,DEC)
-        # space. Again assuming a uniform RA,Dec region
+        # For given survey paramters distribute random points within the
+        # (RA,DEC) space. Again assuming a uniform RA,Dec region
         self.ra_dist = np.random.uniform(low=survey.min_ra, high=survey.max_ra,
                                          size=(self.number_simulated, 1))
         self.dec_dist = np.arcsin(np.random.uniform(low=np.sin(survey.min_dec),
@@ -307,15 +312,3 @@ class transient_distribution(object):
     def ids_for_distribution(self):
         self.ids = np.arange(start=1, stop=self.number_simulated+1,
                              dtype=np.int).reshape((self.number_simulated, 1))
-    # def transient_instances(self):
-    #     self.transients = []
-    #     for i in range(self.number_process):
-#
-#
-# class detections(object):
-#     """
-#     Class for collecting information about transients that are observed and
-#     pass the criteria for detection.
-#     """
-#     def __init__(self):
-#         pass

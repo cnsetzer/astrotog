@@ -1,5 +1,7 @@
 import os
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 from astropy.cosmology import Planck15 as cosmo
 from astrotog import functions as afunc
 from astrotog import classes as aclasses
@@ -11,9 +13,7 @@ import datetime
 import time
 from copy import copy
 import pandas as pd
-# import warnings
-# warnings.filterwarnings("ignore", message="numpy.dtype size changed")
-# warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+
 # Set seed for reproduceability
 np.random.seed(12345)
 
@@ -45,14 +45,14 @@ if __name__ == "__main__":
         instrument_class_name = 'LSST'
         survey_version = 'lsstv4'
         cadence_flags = 'combined'  # Currently use default in class
-        transient_model_name = 'rosswog_kilonova'
+        transient_model_name = 'scolnic_kilonova'
         detect_type = ['scolnic_detections']  # ['detect'], ['scolnic_detections'], or multiple
-        seds_path = '/Users/cnsetzer/Documents/LSST/sedb/rosswog/NSNS/winds'
+        seds_path = '/Users/cnsetzer/Documents/LSST/kilonova_seds/scolnic/DECAMGemini_SED.txt'
         cadence_path = '/Users/cnsetzer/Documents/LSST/surveydbs/kraken_2036.db'
         throughputs_path = '/Users/cnsetzer/Documents/LSST/throughputs/lsst'
         reference_flux_path = '/Users/cnsetzer/Documents/LSST/throughputs/references'
         efficiency_table_path = '/Users/cnsetzer/Documents/LSST/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'
-        run_dir = 'lsst_kne_sim_rosswog_kraken2036_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
+        run_dir = 'lsst_scolnic_kraken2036_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
         output_path = '/Users/cnsetzer/Documents/LSST/astrotog_output/' + run_dir + '/'
 
         # Define filters for detections
@@ -83,13 +83,15 @@ if __name__ == "__main__":
                                         simversion=survey_version,
                                         add_dithers=add_dithers,
                                         t_before=t_before, t_after=t_after,
-                                        response_path=efficiency_table_path)
+                                        response_path=efficiency_table_path,
+                                        instrument=instrument_class_name)
         survey = getattr(atopclass, instrument_class_name)(sim_inst)
         transient_dist = aclasses.transient_distribution(survey, sim_inst)
         tran_param_dist = getattr(atopclass, transient_model_name)(parameter_dist=True,
                                                       num_samples=transient_dist.number_simulated)
         num_params_pprocess = int(np.ceil(transient_dist.number_simulated/size))
         num_transient_params = tran_param_dist.num_params
+        pre_dist_params = tran_param_dist.pre_dist_params
         if verbose:
             print('\nWe are using {0} MPI workers with {1} multiprocess threads per process.'.format(size, batch_mp_workers))
             print('The number of transients is: {}'.format(transient_dist.number_simulated))
@@ -104,6 +106,8 @@ if __name__ == "__main__":
         batch_size = None
         batch_mp_workers = None
         verbose = None
+        seds_path = None
+        pre_dist_params = None
 
     if size > 1:
         comm.barrier()
@@ -114,6 +118,8 @@ if __name__ == "__main__":
         batch_size = comm.bcast(batch_size, root=0)
         batch_mp_workers = comm.bcast(batch_mp_workers, root=0)
         verbose = comm.bcast(verbose, root=0)
+        seds_path = comm.bcast(seds_path, root=0)
+        pre_dist_params = comm.bcast(pre_dist_params, root=0)
 
     total_array = None
     if rank == 0:
@@ -123,7 +129,7 @@ if __name__ == "__main__":
                                    transient_dist.dec_dist,
                                    transient_dist.redshift_dist))
         stack_list = []
-        if num_transient_params > 0:
+        if num_transient_params > 0 and pre_dist_params is True:
             for i in range(num_transient_params):
                 stack_list.append(getattr(tran_param_dist, 'param{0}'.format(i+1)))
             param_array = np.hstack(stack_list)
@@ -132,17 +138,27 @@ if __name__ == "__main__":
 
     if size > 1:
         if rank == 0:
-            total_array = np.hstack((sky_loc_array, param_array))
+            if param_array is not None:
+                total_array = np.hstack((sky_loc_array, param_array))
+            else:
+                total_array = sky_loc_array
 
         sky_loc_array = None
         param_array = None
+
+        if pre_dist_params is True:
+            param_buffer_size = num_transient_params
+        else:
+            param_buffer_size = 0
+
         receive_array = np.empty((num_params_pprocess,
-                                 5 + num_transient_params))
+                                 5 + param_buffer_size))
         comm.barrier()
-        comm.Scatter([total_array, (5+num_transient_params)*num_params_pprocess, MPI.DOUBLE],
-                     [receive_array, (5+num_transient_params)*num_params_pprocess, MPI.DOUBLE], root=0)
+        comm.Scatter([total_array, (5+param_buffer_size)*num_params_pprocess, MPI.DOUBLE],
+                     [receive_array, (5+param_buffer_size)*num_params_pprocess, MPI.DOUBLE], root=0)
         sky_loc_array = receive_array[:, 0:5]
-        param_array = receive_array[:, 5:]
+        if num_transient_params > 0 and pre_dist_params is True:
+            param_array = receive_array[:, 5:]
 
     # Trim the nonsense from the process arrays
     sky_del = []
@@ -150,14 +166,15 @@ if __name__ == "__main__":
     for i in range(num_params_pprocess):
         if any(abs(sky_loc_array[i]) < 1e-250):
             sky_del.append(i)
-        if any(abs(param_array[i]) < 1e-250):
-            param_del.append(i)
+        if param_array is not None:
+            if any(abs(param_array[i]) < 1e-250):
+                param_del.append(i)
 
     sky_loc_array = np.delete(sky_loc_array, sky_del, 0)
-    param_array = np.delete(param_array, param_del, 0)
-
-    assert len(param_array[:]) == len(sky_loc_array[:])
-    num_params_pprocess = len(param_array[:])
+    if param_array is not None:
+        param_array = np.delete(param_array, param_del, 0)
+        assert len(param_array[:]) == len(sky_loc_array[:])
+    num_params_pprocess = len(sky_loc_array[:])
 
     if rank == 0 and verbose:
         print('The split of parameters between processes is:')
@@ -228,8 +245,8 @@ if __name__ == "__main__":
         transient_batch = []
 
         if 'path' in getattr(atopclass, transient_model_name).__init__.__code__.co_varnames:
-            batch_params = list(repeat(seds_path, current_batch_size))
-        else:
+            batch_params = list(zip(repeat(seds_path, current_batch_size)))
+        elif param_array is not None:
             batch_params = param_array[i*batch_size:i*batch_size +
                                        current_batch_size, :]
         batch_sky_loc = sky_loc_array[i*batch_size:i*batch_size +
@@ -275,7 +292,7 @@ if __name__ == "__main__":
             # Write computaiton time estimates
             print('Batch {0} complete of {1} batches.'.format(i+1, num_batches))
             t1 = time.time()
-            delta_t = int(((t1-t0)/(i+1))*(num_batches-i-1) + 0.1045*transient_dist.number_simulated)
+            delta_t = int(((t1-t0)/(i+1))*((num_params_pprocess-(i+1)*current_batch_size)/(batch_size)) + 0.1045*transient_dist.number_simulated)
             print('Estimated time remaining is: {}'.format(datetime.timedelta(seconds=delta_t)))
 
     # Now process observations for detections and other information
@@ -364,11 +381,15 @@ if __name__ == "__main__":
 
         stored_param_data = afunc.param_observe_detect(stored_param_data, stored_obs_data, detected_observations)
 
+        # Get efficiencies and create redshift histogram
+        redshift_histogram = afunc.redshift_distribution(stored_param_data, sim_inst)
+
         if verbose:
-            print('Outputting coadded observations, scolnic detections, and parameters modified with observed, alerted, and detected flags.')
+            print('Outputting coadded observations, scolnic detections, parameters modified with observed, alerted, and detected flags, and the redshift distribution.')
         coadded_observations.to_csv(output_path + 'coadded_observations.csv')
         detected_observations.to_csv(output_path + 'scolnic_detections.csv')
         stored_param_data.to_csv(output_path + 'modified_parameters.csv')
+        redshift_histogram.savefig(output_path + 'redshift_distribution.pdf', bbox_inches='tight')
         if verbose:
             print('Done writing the detection results.')
 
