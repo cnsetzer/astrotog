@@ -4,9 +4,11 @@ import re
 import numpy as np
 import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+from astropy.constants import c as speed_of_light_ms
 import sncosmo
 import opsimsummary as oss
 from .functions import bandflux
+speed_of_light_kms = speed_of_light_ms.to('km/s').value  # Convert m/s to km/s
 
 
 class transient(object):
@@ -14,40 +16,60 @@ class transient(object):
     Base class for transients
     """
     def __init__(self):
+        self.extend_sed_waves()
         source = sncosmo.TimeSeriesSource(self.phase, self.wave, self.flux)
         self.model = sncosmo.Model(source=source)
-        self.peculiar_velocity()
-        return self
 
     def put_in_universe(self, id, t, ra, dec, z, cosmo):
         self.id = int(id)
         self.t0 = t
         self.ra = ra
         self.dec = dec
-        self.redshift(z, cosmo)
+        self.z = z
+        self.peculiar_velocity()
+        self.redshift(cosmo)
         self.tmax = t + self.model.maxtime()
         return self
 
-    def redshift(self, z, cosmo):
-        self.z = z
-        lumdist = cosmo.luminosity_distance(z).value * 1e6  # in pc
+    def redshift(self, cosmo):
+        lumdist = cosmo.luminosity_distance(self.z).value * 1e6  # in pc
         amp = pow(np.divide(10.0, lumdist), 2)
         # Note that it is necessary to scale the amplitude relative to the 10pc
         # (i.e. 10^2 in the following eqn.) placement of the SED currently
-        self.model.set(z=z)
-        # self.model.set(amplitude=amp)
+        self.model.set(z=self.obs_z)
+        self.model.set(amplitude=amp)
 
         # Current working around for issue with amplitude...
-        mapp = cosmo.distmod(z).value + self.model.source_peakmag('lsstz',
-                                                                  'ab',
-                                                                  sampling=0.1)
-        self.model.set_source_peakmag(m=mapp, band='lsstz', magsys='ab',
-                                      sampling=0.1)
-
-        return self
+        # mapp = cosmo.distmod(self.z).value + self.model.source_peakmag('lsstz',
+        #                                                                'ab',
+        #                                                                sampling=0.1)
+        # self.model.set_source_peakmag(m=mapp, band='lsstz', magsys='ab',
+        #                               sampling=0.1)
 
     def peculiar_velocity(self):
-        self.peculiar_vel = 0.0
+        # Draw from gaussian peculiar velocity distribution with width 300km/s
+        # Hui and Greene (2006)
+        self.peculiar_vel = np.random.normal(loc=0, scale=300)
+        self.obs_z = (1 + self.z)*(np.sqrt((1 + (self.peculiar_vel/speed_of_light_kms))/((1 - (self.peculiar_vel/speed_of_light_kms))))) - 1.0
+
+    def extend_sed_waves(self):
+        min_wave = np.min(self.wave)
+        max_wave = np.max(self.wave)
+        delta_wave = abs(self.wave[0] - self.wave[1])
+        extension_flux = 0.0
+
+        # insert new max and min
+        if max_wave < 50000.0:
+            new_max1 = max_wave + delta_wave
+            new_max2 = 50000.0
+            self.wave = np.insert(self.wave, [self.wave.size, self.wave.size], [new_max1, new_max2], axis=0)
+            self.flux = np.insert(self.flux, (self.flux.shape[1], self.flux.shape[1]), extension_flux, axis=1)
+
+        if min_wave > 50.0:
+            new_min1 = min_wave - delta_wave
+            new_min2 = 50.0
+            self.wave = np.insert(self.wave, [0, 0], [new_min2, new_min1], axis=0)
+            self.flux = np.insert(self.flux, (0, 0), extension_flux, axis=1)
 
 
 class kilonova(transient):

@@ -178,6 +178,7 @@ def write_params(table_columns, transient):
             pandas_df.at[0, getattr(transient, 'param{0}_name'.format(i+1))] = getattr(transient,'param{0}'.format(i+1))
 
     pandas_df.at[0, 'true_redshift'] = transient.z
+    pandas_df.at[0, 'obs_redshift'] = transient.obs_z
     pandas_df.at[0, 'explosion_time'] = transient.t0
     pandas_df.at[0, 'max_time'] = transient.tmax
     pandas_df.at[0, 'ra'] = transient.ra
@@ -537,10 +538,16 @@ def redshift_distribution(param_df, simulation):
     bin_size = simulation.z_bin_size
     n_bins = int(round((z_max-z_min)/bin_size))
     all_zs = list(param_df['true_redshift'])
-    detect_zs = list(param_df[param_df['detected']]['true_redshift'])
+    is_detected = not param_df[param_df['detected']].empty
+    if is_detected is False:
+        detect_zs = []
+        max_depth_detect = []
+    else:
+        detect_zs = list(param_df[param_df['detected']]['true_redshift'])
+        max_depth_detect = list(param_df[param_df['true_redshift'] <= max(detect_zs)]['true_redshift'])
+
     total_eff = (len(detect_zs)/len(all_zs))*100
-    max_depth_detect = list(param_df[param_df['true_redshift'] <= max(detect_zs)]['true_redshift'])
-    max_depth_eff = (len(max_depth_detect)/len(all_zs))*100
+    max_depth_eff = (len(detect_zs)/len(max_depth_detect))*100
 
     print('The redshift range of all sources is {0:.4f} to {1:.4f}.'.format(min(all_zs), max(all_zs)))
     print('The redshift range of the detected sources is {0:.4f} to {1:.4f}.'.format(min(detect_zs), max(detect_zs)))

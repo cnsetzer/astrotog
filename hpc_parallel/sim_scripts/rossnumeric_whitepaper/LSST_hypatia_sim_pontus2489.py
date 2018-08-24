@@ -196,7 +196,7 @@ if __name__ == "__main__":
         num_batches = int(np.ceil(num_params_pprocess/batch_size))
 
     # Create pandas table
-    param_columns = ['transient_id', 'true_redshift',
+    param_columns = ['transient_id', 'true_redshift', 'obs_redshift',
                      'explosion_time', 'max_time', 'ra', 'dec',
                      'peculiar_velocity']
 
