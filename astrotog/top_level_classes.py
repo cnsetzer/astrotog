@@ -1,11 +1,13 @@
 import os
 import re
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 import sncosmo
 from astropy.cosmology import Planck15 as cosmo
-# from astrotog import macronovae_wrapper as mw
-from .macronovae_wrapper import Make_Rosswog_SEDS as mw
-from .classes import kilonovae
+from LSSTmetrics.efficiencyTable import EfficiencyTable as eft
+from .macronovae_wrapper import make_rosswog_seds as mw
+from .classes import kilonova
 from .classes import survey
 
 
@@ -14,11 +16,11 @@ class simulation(object):
     Top-level class that represents the desired run_simulation
     """
     def __init__(self, cadence_path, throughputs_path, reference_path, z_max,
-                 output_path=os.getcwd(), cadence_flags='combined', z_min=0.0,
-                 z_bin_size=0.01, multiproc=False, num_processes=1,
-                 batch_size='all', cosmology=cosmo, rate_gpc=1000,
-                 dithers=True, simversion='lsstv4', add_dithers=False,
-                 t_before=30.0, t_after=30.0, response_path= None):
+                 output_path='.', cadence_flags='combined', z_min=0.0,
+                 z_bin_size=0.01, batch_size='all', cosmology=cosmo,
+                 rate_gpc=1000, dithers=True, simversion='lsstv4',
+                 add_dithers=False, t_before=30.0, t_after=30.0,
+                 response_path=None, instrument=None):
         self.cadence_path = cadence_path
         self.throughputs_path = throughputs_path
         self.reference_path = reference_path
@@ -27,10 +29,8 @@ class simulation(object):
         self.z_min = z_min
         self.z_max = z_max
         self.z_bin_size = z_bin_size
-        self.multiprocess = multiproc
         self.batch_size = batch_size
         self.cosmology = cosmology
-        self.num_processes = num_processes
         self.rate = rate_gpc
         self.dithers = dithers
         self.version = simversion
@@ -38,6 +38,7 @@ class simulation(object):
         self.t_before = t_before
         self.t_after = t_after
         self.response_path = response_path
+        self.instrument = instrument
 
 
 class LSST(survey):
@@ -49,17 +50,24 @@ class LSST(survey):
             self.FOV_radius = np.deg2rad(1.75)
             self.instrument = 'lsst'
             self.magsys = 'ab'
-            self.filters = ['lsstu', 'lsstg', 'lsstr',
-                            'lssti', 'lsstz', 'lssty']
+            self.filters = ['u', 'g', 'r',
+                            'i', 'z', 'y']
         else:
             self.FOV_radius = instrument_params['fov_rad']
             self.instrument = instrument_params['instrument']
             self.magsys = instrument_params['magsys']
             self.filters = instrument_params['filters']
+
+        self.dust_corrections = {'u': 4.145, 'g': 3.237, 'r': 2.273,
+                                 'i': 1.684, 'z': 1.323, 'y': 1.088}
+        self.response_function(simulation.response_path)
         super().__init__(simulation)
 
+    def response_function(self, response_path):
+        self.detect_table = eft.fromDES_EfficiencyFile(response_path)
 
-class rosswog_kilonovae(kilonovae):
+
+class rosswog_kilonova(kilonova):
     """
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     semi-analytic model for kilonovae spectral energy distributions.
@@ -67,23 +75,27 @@ class rosswog_kilonovae(kilonovae):
     def __init__(self, mej=None, vej=None, kappa=None, bounds=None,
                  uniform_v=False, KNE_parameters=None, parameter_dist=False,
                  num_samples=1):
+        self.num_params = 3
         if parameter_dist is True:
             if num_samples > 1:
+                self.pre_dist_params = True
                 self.number_of_samples = num_samples
                 self.draw_parameters(bounds, uniform_v)
             else:
                 print('To generate a parameter distribution you need to supply\
                         a number of samples greater than one.')
                 exit()
-            self.num_params = 3
             self.subtype = 'rosswog semi-analytic'
             self.type = 'parameter distribution'
         else:
             self.number_of_samples = num_samples
             if (mej and vej and kappa):
-                self.m_ej = mej
-                self.v_ej = vej
-                self.kappa = kappa
+                self.param1 = mej
+                self.param1_name = 'm_ej'
+                self.param2 = vej
+                self.param2_name = 'v_ej'
+                self.param3 = kappa
+                self.param3_name = 'kappa'
             elif KNE_parameters:
                 pass
             else:
@@ -93,6 +105,11 @@ class rosswog_kilonovae(kilonovae):
             super().__init__()
 
     def draw_parameters(self, bounds=None, uniform_v=False):
+        # Set the parameter names
+        self.param1_name = 'm_ej'
+        self.param2_name = 'v_ej'
+        self.param3_name = 'kappa'
+
         if bounds is not None:
             kappa_min = min(bounds['kappa'])
             kappa_max = max(bounds['kappa'])
@@ -115,29 +132,30 @@ class rosswog_kilonovae(kilonovae):
         else:
             out_shape = self.number_of_samples
 
-        self.kappa = np.random.uniform(low=kappa_min, high=kappa_max,
-                                       size=out_shape)
-        self.m_ej = np.random.uniform(low=mej_min, high=mej_max,
-                                      size=out_shape)
+        self.param3 = np.random.uniform(low=kappa_min, high=kappa_max,
+                                        size=out_shape)
+        self.param1 = np.random.uniform(low=mej_min, high=mej_max,
+                                        size=out_shape)
         if uniform_v is False:
-            self.v_ej = np.random.uniform(low=vej_min, high=vej_max*pow(self.m_ej
-                                          / mej_min, np.log10(0.25/vej_max) / np.log10(mej_max/mej_min)),
-                                          size=out_shape)
+            self.param2 = np.random.uniform(low=vej_min,
+                                            high=vej_max*pow(self.param1/mej_min,
+                                            np.log10(0.25/vej_max)/np.log10(mej_max/mej_min)),
+                                            size=out_shape)
         else:
-            self.v_ej = np.random.uniform(low=vej_min, high=vej_max,
-                                          size=out_shape)
+            self.param2 = np.random.uniform(low=vej_min, high=vej_max,
+                                            size=out_shape)
 
     def make_sed(self, KNE_parameters=None):
         if KNE_parameters is None:
             KNE_parameters = []
             KNE_parameters.append(0.00001157)
             KNE_parameters.append(50.0)
-            KNE_parameters.append(self.m_ej)
-            KNE_parameters.append(self.v_ej)
+            KNE_parameters.append(self.param1)
+            KNE_parameters.append(self.param2)
             KNE_parameters.append(1.3)
             KNE_parameters.append(0.25)
             KNE_parameters.append(1.0)
-            KNE_parameters.append(self.kappa)
+            KNE_parameters.append(self.param3)
             KNE_parameters.append(150.0)
             # Not reading heating rates from file so feed fortran dummy
             # variables
@@ -147,27 +165,40 @@ class rosswog_kilonovae(kilonovae):
                                               separated=True)
 
 
-class rosswog_numerical_kilonovae(kilonovae):
+class rosswog_numerical_kilonova(kilonova):
     """
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     numerically generated kilonovae spectral energy distributions.
     """
-    def __init__(self, path, singleSED=None):
-        self.make_sed(path, singleSED)
-        self.subtype = 'rosswog numerical'
-        super().__init__()
+    def __init__(self, path=None, singleSED=None, parameter_dist=False,
+                 num_samples=1):
+        self.number_of_samples = num_samples
+        self.num_params = 3
+        self.pre_dist_params = False
+        self.param1_name = 'm_ej'
+        self.param2_name = 'v_ej'
+        self.param3_name = 'kappa'
 
-    def make_sed(self, path_to_seds, singleSED):
+        if parameter_dist is True:
+            self.subtype = 'rosswog numerical'
+            self.type = 'parameter distribution'
+
+        else:
+            self.make_sed(path, singleSED)
+            self.subtype = 'rosswog numerical'
+            super().__init__()
+
+    def make_sed(self, path, singleSED):
         if not singleSED:
             # Get the list of SED files
-            fl = os.listdir(path_to_seds)
+            fl = os.listdir(path)
             # Randomly select SED
             rindex = np.random.randint(low=0, high=len(fl))
             filei = fl[rindex]
-            filename = path_to_seds + '/' + filei
+            filename = path + '/' + filei
             fileio = open(filename, 'r')
         else:
-            filename = path_to_seds
+            filename = path
             fileio = open(filename, 'r')
         self.SED_header_params(fileio)
         # Read in SEDS data with sncosmo tools
@@ -178,11 +209,11 @@ class rosswog_numerical_kilonovae(kilonovae):
         for headline in fileio:
             if headline.strip().startswith("#"):
                 if re.search("kappa =", headline):
-                    self.kappa = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
+                    self.param3 = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
                 elif re.search("m_ej = |m_w =", headline):
-                    self.m_ej = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
+                    self.param1 = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
                 elif re.search("v_ej = |v_w =", headline):
-                    self.v_ej = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
+                    self.param2 = float(re.search(r"\s\d+\.*\d*\s", headline).group(0))
                 else:
                     continue
             else:
@@ -190,14 +221,15 @@ class rosswog_numerical_kilonovae(kilonovae):
                 break
 
 
-class metzger_kilonova(kilonovae):
+class metzger_kilonova(kilonova):
     """
     Top-level class for kilonovae transients based on Scolnic, et. al 2017
     model for kilonovae spectral energy distribution mimicing the GW170817
     event.
     """
-    def __init__(self, num_samples=1):
+    def __init__(self, parameter_dist=False, num_samples=1):
         self.number_of_samples = num_samples
+        self.num_params = 0
         self.make_sed()
         self.subtype = 'rosswog semi-analytic'
         super().__init__()
@@ -206,14 +238,15 @@ class metzger_kilonova(kilonovae):
         self.phase, self.wave, self.flux = SED_FUNCTION()
 
 
-class cowperthwaite_kilonova(kilonovae):
+class cowperthwaite_kilonova(kilonova):
     """
     Top-level class for kilonovae transients based on Scolnic, et. al 2017
     model for kilonovae spectral energy distribution mimicing the GW170817
     event.
     """
-    def __init__(self, num_samples=1):
+    def __init__(self, parameter_dist=False, num_samples=1):
         self.number_of_samples = num_samples
+        self.num_params = 0
         self.make_sed()
         self.subtype = 'rosswog semi-analytic'
         super().__init__()
@@ -222,14 +255,15 @@ class cowperthwaite_kilonova(kilonovae):
         self.phase, self.wave, self.flux = SED_FUNCTION()
 
 
-class kasen_kilonova(kilonovae):
+class kasen_kilonova(kilonova):
     """
     Top-level class for kilonovae transients based on Scolnic, et. al 2017
     model for kilonovae spectral energy distribution mimicing the GW170817
     event.
     """
-    def __init__(self, num_samples=1):
+    def __init__(self, parameter_dist=False, num_samples=1):
         self.number_of_samples = num_samples
+        self.num_params = 0
         self.make_sed()
         self.subtype = 'rosswog semi-analytic'
         super().__init__()
@@ -238,17 +272,22 @@ class kasen_kilonova(kilonovae):
         self.phase, self.wave, self.flux = SED_FUNCTION()
 
 
-class scolnic_kilonova(kilonovae):
+class scolnic_kilonova(kilonova):
     """
     Top-level class for kilonovae transients based on Scolnic, et. al 2017
     model for kilonovae spectral energy distribution mimicing the GW170817
     event.
     """
-    def __init__(self, filename, num_samples=1):
+    def __init__(self, path=None, parameter_dist=False, num_samples=1):
         self.number_of_samples = num_samples
-        self.make_sed(filename)
+        self.num_params = 0
+        self.pre_dist_params = False
         self.subtype = 'scolnic empirical'
-        super().__init__()
+        if parameter_dist is True:
+            self.type = 'parameter distribution'
+        else:
+            self.make_sed(path)
+            super().__init__()
 
-    def make_sed(self, filename):
-        self.phase, self.wave, self.flux = sncosmo.read_griddata_ascii(filename)
+    def make_sed(self, path):
+        self.phase, self.wave, self.flux = sncosmo.read_griddata_ascii(path)

@@ -1,0 +1,29 @@
+#!/bin/bash --norc
+#PBS -S /bin/bash
+#PBS -V
+#PBS -N lsst_scolnic_mothra2045
+#PBS -q cores24
+#PBS -l nodes=1:ppn=24,walltime=99:00:00
+#PBS -r n
+#PBS -o /home/csetzer/LSST/astrotog_output/scolnic_whitepaper/mothra2045.o
+#PBS -e /home/csetzer/LSST/astrotog_output/scolnic_whitepaper/mothra2045.e
+module purge
+module load python
+module load mpi/mvapich/2-2.3b
+source activate astrotog_hpc
+cd /home/csetzer/astrotog/hpc_parallel
+
+echo $PBS_O_WORKDIR
+echo Running on host `hostname`
+echo Time is `date`
+echo Directory is `pwd`
+echo PBS job ID is $PBS_JOBID
+echo This jobs runs on the following machines:
+
+#!Create a machine file
+cat $PBS_NODEFILE | uniq > job_files/machine.file.$PBS_JOBID
+echo PBS_NODEFILE=$PBS_NODEFILE
+
+export PYTHONPATH=$PYTHONPATH:/home/csetzer/.conda/envs/astrotog_hpc/bin/python
+
+mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH --machinefile $PBS_NODEFILE python sim_scripts/scolnic_whitepaper/LSST_hypatia_sim_mothra2045.py

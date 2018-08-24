@@ -3,7 +3,7 @@ from math import *
 from macronova2py import macronova2py as m2p
 
 
-def Make_Rosswog_SEDS(KNE_parameters, separated=False):
+def make_rosswog_seds(KNE_parameters, separated=False):
     Nt = 2000
     n = len(KNE_parameters) - 2
     MNE_parameters = KNE_parameters[0:n]
@@ -11,10 +11,10 @@ def Make_Rosswog_SEDS(KNE_parameters, separated=False):
     heating_rates_file = KNE_parameters[n+1]
     luminosity = m2p.calculate_luminosity(n, MNE_parameters, read_hrate,
                                           heating_rates_file, Nt)
-    return SED_timeseries(luminosity, separated)
+    return sed_timeseries(luminosity, separated)
 
 
-def SED_timeseries(luminosity, separated=False):
+def sed_timeseries(luminosity, separated=False):
     # --------------------------------------------------------------------------
     # Planck distribution
     # normalized to sigma*T**4/pi
@@ -89,7 +89,7 @@ def SED_timeseries(luminosity, separated=False):
         # output spectral flux f_lambda [erg s^-1 cm^-2 A^-1]
         for i, lam_A in enumerate(wavelengths):
             lam_cm = lam_A * Ang
-            f_lm = Coef * Blam(lam_cm, tef[it]) * Ang
+            f_lm = Coef * blam(lam_cm, tef[it]) * Ang
             sed_data_struct[it*len(wavelengths)+i, :] = tim[it]/day_in_s, \
                 lam_A, f_lm
 
@@ -106,7 +106,7 @@ def SED_timeseries(luminosity, separated=False):
         return sed_data_struct
 
 
-def Blam(lam, T):
+def blam(lam, T):
     #####################################
     # Planck function, lambda[cm] input #
     #####################################

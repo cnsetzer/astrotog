@@ -2,10 +2,13 @@ __all__ = ['transient_distribution']
 import os
 import re
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+from astropy.constants import c as speed_of_light_ms
 import sncosmo
 import opsimsummary as oss
 from .functions import bandflux
-from LSSTmetrics.efficiencyTable import EfficiencyTable as eft
+speed_of_light_kms = speed_of_light_ms.to('km/s').value  # Convert m/s to km/s
 
 
 class transient(object):
@@ -13,40 +16,63 @@ class transient(object):
     Base class for transients
     """
     def __init__(self):
+        self.extend_sed_waves()
         source = sncosmo.TimeSeriesSource(self.phase, self.wave, self.flux)
         self.model = sncosmo.Model(source=source)
-        self.peculiar_velocity()
-        return self
 
     def put_in_universe(self, id, t, ra, dec, z, cosmo):
         self.id = int(id)
         self.t0 = t
         self.ra = ra
         self.dec = dec
-        self.redshift(z, cosmo)
+        self.z = z
+        self.peculiar_velocity()
+        self.redshift(cosmo)
         self.tmax = t + self.model.maxtime()
         return self
 
-    def redshift(self, z, cosmo):
-        self.z = z
-        lumdist = cosmo.luminosity_distance(z).value * 1e6  # in pc
+    def redshift(self, cosmo):
+        lumdist = cosmo.luminosity_distance(self.z).value * 1e6  # in pc
         amp = pow(np.divide(10.0, lumdist), 2)
         # Note that it is necessary to scale the amplitude relative to the 10pc
         # (i.e. 10^2 in the following eqn.) placement of the SED currently
-        self.model.set(z=z)
-        #self.model.set(amplitude=amp)
+        self.model.set(z=self.obs_z)
+        # self.model.set(amplitude=amp)
 
         # Current working around for issue with amplitude...
-        mapp = cosmo.distmod(z).value + self.model.source_peakmag('lsstz', 'ab', sampling=0.1)
-        self.model.set_source_peakmag(m=mapp, band='lsstz', magsys='ab', sampling=0.1)
-
-        return self
+        mapp = cosmo.distmod(self.z).value + self.model.source_peakmag('lsstz',
+                                                                       'ab',
+                                                                       sampling=0.1)
+        self.model.set_source_peakmag(m=mapp, band='lsstz', magsys='ab',
+                                      sampling=0.1)
 
     def peculiar_velocity(self):
-        self.peculiar_vel = 0.0
+        # Draw from gaussian peculiar velocity distribution with width 300km/s
+        # Hui and Greene (2006)
+        self.peculiar_vel = np.random.normal(loc=0, scale=300)
+        self.obs_z = (1 + self.z)*(np.sqrt((1 + (self.peculiar_vel/speed_of_light_kms))/((1 - (self.peculiar_vel/speed_of_light_kms))))) - 1.0
+
+    def extend_sed_waves(self):
+        min_wave = np.min(self.wave)
+        max_wave = np.max(self.wave)
+        delta_wave = abs(self.wave[0] - self.wave[1])
+        extension_flux = 0.0
+
+        # insert new max and min
+        if max_wave < 50000.0:
+            new_max1 = max_wave + delta_wave
+            new_max2 = 50000.0
+            self.wave = np.insert(self.wave, [self.wave.size, self.wave.size], [new_max1, new_max2], axis=0)
+            self.flux = np.insert(self.flux, (self.flux.shape[1], self.flux.shape[1]), extension_flux, axis=1)
+
+        if min_wave > 50.0:
+            new_min1 = min_wave - delta_wave
+            new_min2 = 50.0
+            self.wave = np.insert(self.wave, [0, 0], [new_min2, new_min1], axis=0)
+            self.flux = np.insert(self.flux, (0, 0), extension_flux, axis=1)
 
 
-class kilonovae(transient):
+class kilonova(transient):
     """
     Base class for kilonovae transients
     """
@@ -88,7 +114,6 @@ class survey(object):
         self.get_throughputs(simulation.throughputs_path)
         self.get_reference_flux(simulation.reference_path)
         self.get_survey_params()
-        self.response_function(simulation.response_path)
 
     def get_cadence(self, simulation):
         """
@@ -139,6 +164,7 @@ class survey(object):
         tp_filelist = os.listdir(path)
         for band_file_name in tp_filelist:
             band = band_file_name.strip('.dat')
+            band = band.replace('lsst', '')
             self.throughputs[band] = {}
             throughput_file = path + '/' + band_file_name
             band_wave = list()
@@ -153,7 +179,7 @@ class survey(object):
                     ang_match = re.search(u'\u212B|Ang|Angstrom|angstrom', line)
                     mic_match = re.search(u'\u03BC|um|micrometer|micron|', line)
                     if nano_match:
-                        conversion = 10.0  # conversion for nanometers to Angstrom
+                        conversion = 10.0  # conversion for nanometers to Angs
                     elif ang_match:
                         conversion = 1.0
                     elif mic_match:
@@ -265,9 +291,6 @@ class survey(object):
         self.max_mjd = max_db['expMJD']
         self.survey_time = self.max_mjd - self.min_mjd  # Survey time in days
 
-    def response_function(self, response_path):
-        self.detect_table = eft.fromDES_EfficiencyFile(response_path)
-
 
 class transient_distribution(object):
     """
@@ -283,8 +306,8 @@ class transient_distribution(object):
 
     def redshift_distribution(self, survey, sim):
         # Internal funciton to generate a redshift distribution
-        # Given survey parameters, a SED rate, and a cosmology draw from a Poisson
-        # distribution the distribution of the objects vs. redshift.
+        # Given survey parameters, a SED rate, and a cosmology draw from a
+        # Poisson distribution the distribution of the objects vs. redshift.
         zlist = np.asarray(list(sncosmo.zdist(zmin=sim.z_min,
                                               zmax=sim.z_max,
                                               time=survey.survey_time,
@@ -295,8 +318,8 @@ class transient_distribution(object):
         self.number_simulated = len(zlist)
 
     def sky_location_dist(self, survey):
-        # For given survey paramters distribute random points within the (RA,DEC)
-        # space. Again assuming a uniform RA,Dec region
+        # For given survey paramters distribute random points within the
+        # (RA,DEC) space. Again assuming a uniform RA,Dec region
         self.ra_dist = np.random.uniform(low=survey.min_ra, high=survey.max_ra,
                                          size=(self.number_simulated, 1))
         self.dec_dist = np.arcsin(np.random.uniform(low=np.sin(survey.min_dec),
@@ -311,15 +334,3 @@ class transient_distribution(object):
     def ids_for_distribution(self):
         self.ids = np.arange(start=1, stop=self.number_simulated+1,
                              dtype=np.int).reshape((self.number_simulated, 1))
-    # def transient_instances(self):
-    #     self.transients = []
-    #     for i in range(self.number_process):
-#
-#
-# class detections(object):
-#     """
-#     Class for collecting information about transients that are observed and
-#     pass the criteria for detection.
-#     """
-#     def __init__(self):
-#         pass
