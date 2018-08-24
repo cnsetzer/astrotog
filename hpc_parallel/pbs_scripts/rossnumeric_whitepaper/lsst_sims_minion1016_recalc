@@ -1,12 +1,12 @@
 #!/bin/bash --norc
 #PBS -S /bin/bash
 #PBS -V
-#PBS -N lsst_scolnic_minion1016
+#PBS -N lsst_rossnumeric_minion1016_recalc
 #PBS -q cores24
 #PBS -l nodes=1:ppn=24,walltime=99:00:00
 #PBS -r n
-#PBS -o /home/csetzer/LSST/astrotog_output/scolnic_whitepaper/minion1016.o
-#PBS -e /home/csetzer/LSST/astrotog_output/scolnic_whitepaper/minion1016.e
+#PBS -o /home/csetzer/LSST/astrotog_output/rossnumeric_whitepaper/minion1016_recalc_.o
+#PBS -e /home/csetzer/LSST/astrotog_output/rossnumeric_whitepaper/minion1016_recalc.e
 module purge
 module load python
 module load mpi/mvapich/2-2.3b
@@ -26,4 +26,4 @@ echo PBS_NODEFILE=$PBS_NODEFILE
 
 export PYTHONPATH=$PYTHONPATH:/home/csetzer/.conda/envs/astrotog_hpc/bin/python
 
-mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH --machinefile $PBS_NODEFILE python sim_scripts/scolnic_whitepaper/LSST_hypatia_sim_minion1016.py
+mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH --machinefile $PBS_NODEFILE python sim_scripts/rossnumeric_whitepaper/LSST_hypatia_sim_minion1016_recalc.py

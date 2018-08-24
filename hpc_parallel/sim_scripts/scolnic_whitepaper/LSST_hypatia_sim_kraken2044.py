@@ -48,7 +48,7 @@ if __name__ == "__main__":
         transient_model_name = 'scolnic_kilonova'
         detect_type = ['scolnic_detections']  # ['detect'], ['scolnic_detections'], or multiple
         seds_path = '/share/data1/csetzer/kilonova_seds/scolnic_decam/DECAMGemini_SED.txt'
-        cadence_path = '/share/data1/csetzer/lsst_cadences/kraken_2036.db'
+        cadence_path = '/share/data1/csetzer/lsst_cadences/kraken_2044.db'
         throughputs_path = '/share/data1/csetzer/lsst/throughputs/lsst'
         reference_flux_path = '/share/data1/csetzer/lsst/throughputs/references'
         efficiency_table_path = '/home/csetzer/software/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'

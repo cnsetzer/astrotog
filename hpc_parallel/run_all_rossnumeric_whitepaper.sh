@@ -1,5 +1,6 @@
 #!/bin/bash -l
-qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/rossnumeric_whitepaper/lsst_sims_minion1016
+qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/rossnumeric_whitepaper/lsst_sims_minion1016_sqlite
+qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/rossnumeric_whitepaper/lsst_sims_minion1016_recalc
 qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/rossnumeric_whitepaper/lsst_sims_baseline2018a
 qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/rossnumeric_whitepaper/lsst_sims_colossus2664
 qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/rossnumeric_whitepaper/lsst_sims_colossus2665
