@@ -3,6 +3,8 @@ import pandas as pd
 from scipy.integrate import simps
 from copy import deepcopy
 from sfdmap import SFDMap as sfd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -82,8 +84,8 @@ def bandflux_error(fiveSigmaDepth, bandflux_ref):
     # Compute the integrated bandflux error
     # Note this is trivial since the five_sigma_depth incorporates the
     # integrated time of the exposures.
-    Flux_five_sigma = bandflux_ref*pow(10, -0.4*fiveSigmaDepth)
-    bandflux_error = Flux_five_sigma/5
+    Flux_five_sigma = bandflux_ref*pow(10.0, -0.4*fiveSigmaDepth)
+    bandflux_error = Flux_five_sigma/5.0
     return bandflux_error
 
 
@@ -498,8 +500,8 @@ def process_nightly_coadds(obs_df, survey):
                     continue
                 else:
                     # Midnight MJD UTC + UTC Offset to midnight +/- 12 hours
-                    night_start = int(row['mjd']) + 0.1666667 - 0.5
-                    night_end = int(row['mjd']) + 0.1666667 + 0.5
+                    night_start = int(row['mjd']) - survey.utc_offset/24.0 - 0.5
+                    night_end = int(row['mjd']) - survey.utc_offset/24 + 0.5
                     same_night_df = band_df[(band_df['mjd'] >= night_start) & (band_df['mjd'] <= night_end)]
 
                     coadding_series = deepcopy(row)

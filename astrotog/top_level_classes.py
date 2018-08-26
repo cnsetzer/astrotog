@@ -20,7 +20,8 @@ class simulation(object):
                  z_bin_size=0.01, batch_size='all', cosmology=cosmo,
                  rate_gpc=1000, dithers=True, simversion='lsstv4',
                  add_dithers=False, t_before=30.0, t_after=30.0,
-                 response_path=None, instrument=None):
+                 response_path=None, instrument=None, ra_col='_ra',
+                 dec_col='_dec'):
         self.cadence_path = cadence_path
         self.throughputs_path = throughputs_path
         self.reference_path = reference_path
@@ -39,27 +40,68 @@ class simulation(object):
         self.t_after = t_after
         self.response_path = response_path
         self.instrument = instrument
+        self.ra_col = ra_col
+        self.dec_col = dec_col
 
 
 class LSST(survey):
     """
     Top-level class for the LSST instrument and survey.
     """
-    def __init__(self, simulation, instrument_params=None):
-        if instrument_params is None:
-            self.FOV_radius = np.deg2rad(1.75)
-            self.instrument = 'lsst'
-            self.magsys = 'ab'
-            self.filters = ['u', 'g', 'r',
-                            'i', 'z', 'y']
-        else:
-            self.FOV_radius = instrument_params['fov_rad']
-            self.instrument = instrument_params['instrument']
-            self.magsys = instrument_params['magsys']
-            self.filters = instrument_params['filters']
+    def __init__(self, simulation):
 
+        self.FOV_radius = np.deg2rad(1.75)
+        self.instrument = 'lsst'
+        self.magsys = 'ab'
+        self.filters = ['u', 'g', 'r',
+                        'i', 'z', 'y']
         self.dust_corrections = {'u': 4.145, 'g': 3.237, 'r': 2.273,
                                  'i': 1.684, 'z': 1.323, 'y': 1.088}
+        self.utc_offset = -3.0 #Specify the UTC offset in hours INCLUDE the +/-
+        self.response_function(simulation.response_path)
+        super().__init__(simulation)
+
+    def response_function(self, response_path):
+        self.detect_table = eft.fromDES_EfficiencyFile(response_path)
+
+
+class WFIRST(survey):
+    """
+    Top-level class for the LSST instrument and survey.
+    """
+    def __init__(self, simulation):
+
+        self.FOV_radius = np.deg2rad(1.75)
+        self.instrument = 'wfirst'
+        self.magsys = 'ab'
+        self.filters = ['u', 'g', 'r',
+                        'i', 'z', 'y']
+        self.dust_corrections = {'u': 4.145, 'g': 3.237, 'r': 2.273,
+                                 'i': 1.684, 'z': 1.323, 'y': 1.088}
+
+        self.utc_offset = 0.0 #Specify the UTC offset in hours INCLUDE the +/-
+        self.response_function(simulation.response_path)
+        super().__init__(simulation)
+
+    def response_function(self, response_path):
+        self.detect_table = eft.fromDES_EfficiencyFile(response_path)
+
+
+class ZTF(survey):
+    """
+    Top-level class for the LSST instrument and survey.
+    """
+    def __init__(self, simulation):
+
+        self.FOV_radius = np.deg2rad(1.75)
+        self.instrument = 'wfirst'
+        self.magsys = 'ab'
+        self.filters = ['u', 'g', 'r',
+                        'i', 'z', 'y']
+        self.dust_corrections = {'u': 4.145, 'g': 3.237, 'r': 2.273,
+                                 'i': 1.684, 'z': 1.323, 'y': 1.088}
+
+        self.utc_offset = 0.0 #Specify the UTC offset in hours INCLUDE the +/-
         self.response_function(simulation.response_path)
         super().__init__(simulation)
 

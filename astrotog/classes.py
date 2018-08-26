@@ -111,9 +111,9 @@ class survey(object):
         """
         self.dithered = simulation.dithers
         self.get_cadence(simulation)
-        self.get_throughputs(simulation.throughputs_path)
+        self.get_throughputs(simulation)
         self.get_reference_flux(simulation.reference_path)
-        self.get_survey_params()
+        self.get_survey_params(simulation)
 
     def get_cadence(self, simulation):
         """
@@ -141,7 +141,7 @@ class survey(object):
                                                    opsimversion=vers,
                                                    add_dithers=add_dith).summary
 
-    def get_throughputs(self, path):
+    def get_throughputs(self, simulation):
         """
         Method to obtain the throughput response for each band filter of the
         instrument, as selected by the provided path.
@@ -160,11 +160,12 @@ class survey(object):
             each band filter in the directory.
 
         """
+        path = simulation.throughputs_path
         self.throughputs = {}
         tp_filelist = os.listdir(path)
         for band_file_name in tp_filelist:
-            band = band_file_name.strip('.dat')
-            band = band.replace('lsst', '')
+            band = os.path.splitext(band_file_name)[0]
+        band = band.replace('{}'.format(simulation.instrument), '')
             self.throughputs[band] = {}
             throughput_file = path + '/' + band_file_name
             band_wave = list()
@@ -263,16 +264,12 @@ class survey(object):
                 bandflux(band_throughput=self.throughputs[band],
                          ref_model=ref_model)
 
-    def get_survey_params(self):
+    def get_survey_params(self, simulation):
         """
         Method to obtain summary features of the given cadence.
         """
-        if self.dithered is True:
-            self.col_dec = '_dec'
-            self.col_ra = '_ra'
-        else:
-            self.col_dec = '_dec'
-            self.col_ra = '_ra'
+        self.col_dec = simulation.dec_col
+        self.col_ra = simulation.ra_col
 
         # Given a prescribed survey simulation get basic properties of the
         # simulation. Currently assume a rectangular (in RA,DEC) solid angle on
@@ -298,7 +295,7 @@ class transient_distribution(object):
     in the universe.
     """
     def __init__(self, survey, sim, parameter_distribution=None):
-        self.rate = lambda x: sim.rate/pow(1000, 3)
+        self.rate = lambda x: sim.rate/pow(1000.0, 3)
         self.redshift_distribution(survey, sim)
         self.sky_location_dist(survey)
         self.time_dist(survey)
