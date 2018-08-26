@@ -165,7 +165,7 @@ class survey(object):
         tp_filelist = os.listdir(path)
         for band_file_name in tp_filelist:
             band = os.path.splitext(band_file_name)[0]
-        band = band.replace('{}'.format(simulation.instrument), '')
+            band = band.replace('{}'.format(simulation.instrument), '')
             self.throughputs[band] = {}
             throughput_file = path + '/' + band_file_name
             band_wave = list()

@@ -49,6 +49,8 @@ if __name__ == "__main__":
         detect_type = ['scolnic_detections']  # ['detect'], ['scolnic_detections'], or multiple
         seds_path = '/Users/cnsetzer/Documents/LSST/kilonova_seds/scolnic/DECAMGemini_SED.txt'
         cadence_path = '/Users/cnsetzer/Documents/LSST/surveydbs/kraken_2036.db'
+        cadence_ra_col = '_ra'
+        cadence_dec_col = '_dec'
         throughputs_path = '/Users/cnsetzer/Documents/LSST/throughputs/lsst'
         reference_flux_path = '/Users/cnsetzer/Documents/LSST/throughputs/references'
         efficiency_table_path = '/Users/cnsetzer/Documents/LSST/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'
@@ -77,6 +79,8 @@ if __name__ == "__main__":
                                         reference_path=reference_flux_path,
                                         z_max=z_max, output_path=output_path,
                                         cadence_flags=cadence_flags,
+                                        ra_col=cadence_ra_col,
+                                        dec_col=cadence_dec_col,
                                         z_min=z_min, z_bin_size=z_bin_size,
                                         batch_size=batch_size, cosmology=cosmo,
                                         rate_gpc=rate, dithers=dithers,
