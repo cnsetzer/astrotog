@@ -393,6 +393,7 @@ if __name__ == "__main__":
         detected_observations.to_csv(output_path + 'scolnic_detections.csv')
         stored_param_data.to_csv(output_path + 'modified_parameters.csv')
         redshift_histogram.savefig(output_path + 'redshift_distribution.pdf', bbox_inches='tight')
+        plt.close(redshift_histogram)
         if verbose:
             print('Done writing the detection results.')
 

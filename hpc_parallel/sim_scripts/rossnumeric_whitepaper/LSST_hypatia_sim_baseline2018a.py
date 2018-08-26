@@ -13,7 +13,9 @@ import datetime
 import time
 from copy import copy
 import pandas as pd
-
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 # Set seed for reproduceability
 np.random.seed(12345)
 
@@ -42,13 +44,15 @@ if __name__ == "__main__":
         z_bin_size = 0.04  # Binning for redshift distribution histogram
         z_min = 0.0  # Given if you want to simulate shells
         rate = 1000  # Rate in events per GPC^3 per restframe time
-        instrument_class_name = 'LSST'
+        instrument_class_name = 'lsst'
         survey_version = 'lsstv4'
         cadence_flags = 'combined'  # Currently use default in class
         transient_model_name = 'rosswog_numerical_kilonova'
         detect_type = ['scolnic_detections']  # ['detect'], ['scolnic_detections'], or multiple
         seds_path = '/share/data1/csetzer/kilonova_seds/rosswog_numerical/NSNS/winds'
         cadence_path = '/share/data1/csetzer/lsst_cadences/baseline2018a.db'
+        cadence_ra_col = '_ra'
+        cadence_dec_col = '_dec'
         throughputs_path = '/share/data1/csetzer/lsst/throughputs/lsst'
         reference_flux_path = '/share/data1/csetzer/lsst/throughputs/references'
         efficiency_table_path = '/home/csetzer/software/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'
@@ -77,6 +81,8 @@ if __name__ == "__main__":
                                         reference_path=reference_flux_path,
                                         z_max=z_max, output_path=output_path,
                                         cadence_flags=cadence_flags,
+                                        ra_col=cadence_ra_col,
+                                        dec_col=cadence_dec_col,
                                         z_min=z_min, z_bin_size=z_bin_size,
                                         batch_size=batch_size, cosmology=cosmo,
                                         rate_gpc=rate, dithers=dithers,
@@ -390,6 +396,7 @@ if __name__ == "__main__":
         detected_observations.to_csv(output_path + 'scolnic_detections.csv')
         stored_param_data.to_csv(output_path + 'modified_parameters.csv')
         redshift_histogram.savefig(output_path + 'redshift_distribution.pdf', bbox_inches='tight')
+        plt.close(redshift_histogram)
         if verbose:
             print('Done writing the detection results.')
 
