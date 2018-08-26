@@ -44,7 +44,7 @@ class simulation(object):
         self.dec_col = dec_col
 
 
-class LSST(survey):
+class lsst(survey):
     """
     Top-level class for the LSST instrument and survey.
     """
@@ -65,7 +65,7 @@ class LSST(survey):
         self.detect_table = eft.fromDES_EfficiencyFile(response_path)
 
 
-class WFIRST(survey):
+class wfirst(survey):
     """
     Top-level class for the LSST instrument and survey.
     """
@@ -87,7 +87,7 @@ class WFIRST(survey):
         self.detect_table = eft.fromDES_EfficiencyFile(response_path)
 
 
-class ZTF(survey):
+class ztf(survey):
     """
     Top-level class for the LSST instrument and survey.
     """

@@ -42,7 +42,7 @@ if __name__ == "__main__":
         z_bin_size = 0.02  # Binning for redshift distribution histogram
         z_min = 0.0  # Given if you want to simulate shells
         rate = 1000  # Rate in events per GPC^3 per restframe time
-        instrument_class_name = 'LSST'
+        instrument_class_name = 'lsst'
         survey_version = 'lsstv3'
         cadence_flags = 'combined'  # Currently use default in class
         transient_model_name = 'scolnic_kilonova'
