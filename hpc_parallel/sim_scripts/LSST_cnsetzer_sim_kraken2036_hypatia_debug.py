@@ -43,20 +43,19 @@ if __name__ == "__main__":
         z_min = 0.0  # Given if you want to simulate shells
         rate = 1000  # Rate in events per GPC^3 per restframe time
         instrument_class_name = 'LSST'
-        survey_version = 'lsstv4'
+        survey_version = 'lsstv3'
         cadence_flags = 'combined'  # Currently use default in class
         transient_model_name = 'scolnic_kilonova'
         detect_type = ['scolnic_detections']  # ['detect'], ['scolnic_detections'], or multiple
-        seds_path = '/Users/cnsetzer/Documents/LSST/kilonova_seds/scolnic/DECAMGemini_SED.txt'
-        cadence_path = '/Users/cnsetzer/Documents/LSST/surveydbs/kraken_2036.db'
+        seds_path = '/share/data1/csetzer/kilonova_seds/scolnic_decam/DECAMGemini_SED.txt'
+        cadence_path = '/share/data1/csetzer/lsst_cadences/minion_1016_desc_dithered_v4.db'
         cadence_ra_col = '_ra'
         cadence_dec_col = '_dec'
-        throughputs_path = '/Users/cnsetzer/Documents/LSST/throughputs/lsst'
-        reference_flux_path = '/Users/cnsetzer/Documents/LSST/throughputs/references'
-        efficiency_table_path = '/Users/cnsetzer/Documents/LSST/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'
-        run_dir = 'lsst_scolnic_kraken2036_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
-        output_path = '/Users/cnsetzer/Documents/LSST/astrotog_output/' + run_dir + '/'
-
+        throughputs_path = '/share/data1/csetzer/lsst/throughputs/lsst'
+        reference_flux_path = '/share/data1/csetzer/lsst/throughputs/references'
+        efficiency_table_path = '/home/csetzer/software/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'
+        run_dir = 'lsst_scolnic_minion1016_descdithersv4_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
+        output_path = '/share/data1/csetzer/lsst_kne_sims_outputs/' + run_dir + '/'
         # Define filters for detections
         filters = {'snr': {'type': 'value',
                            'num_count': None,
