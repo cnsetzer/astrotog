@@ -60,16 +60,16 @@ class transient(object):
 
         # insert new max and min
         if max_wave < 50000.0:
-            new_max1 = max_wave + delta_wave
-            new_max2 = 50000.0
-            self.wave = np.insert(self.wave, [self.wave.size, self.wave.size], [new_max1, new_max2], axis=0)
-            self.flux = np.insert(self.flux, (self.flux.shape[1], self.flux.shape[1]), extension_flux, axis=1)
+            new_max1 = 50000.0
+            for wave in np.arange(start=max_wave+delta_wave, stop=new_max1+delta_wave, step=delta_wave):
+                self.wave = np.insert(self.wave, [self.wave.size], [wave], axis=0)
+                self.flux = np.insert(self.flux, (self.flux.shape[1]), extension_flux, axis=1)
 
         if min_wave > 50.0:
-            new_min1 = min_wave - delta_wave
-            new_min2 = 50.0
-            self.wave = np.insert(self.wave, [0, 0], [new_min2, new_min1], axis=0)
-            self.flux = np.insert(self.flux, (0, 0), extension_flux, axis=1)
+            new_min1 = 50.0
+            for wave in np.arange(start=new_min1, stop=min_wave, step=delta_wave):
+                self.wave = np.insert(self.wave, [0], [wave], axis=0)
+                self.flux = np.insert(self.flux, (0), extension_flux, axis=1)
 
 
 class kilonova(transient):
