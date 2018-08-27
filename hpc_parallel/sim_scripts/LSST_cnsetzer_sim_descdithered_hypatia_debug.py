@@ -13,7 +13,9 @@ import datetime
 import time
 from copy import copy
 import pandas as pd
-
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 # Set seed for reproduceability
 np.random.seed(12345)
 
