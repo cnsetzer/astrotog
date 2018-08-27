@@ -146,7 +146,7 @@ class rosswog_kilonova(kilonova):
             self.subtype = 'rosswog semi-analytic'
             super().__init__()
 
-    def draw_parameters(self, bounds=None, uniform_v=False):
+    def draw_parameters(self, bounds=None, uniform_v=False, probability=0.5):
         # Set the parameter names
         self.param1_name = 'm_ej'
         self.param2_name = 'v_ej'
@@ -159,6 +159,7 @@ class rosswog_kilonova(kilonova):
             mej_max = max(bounds['m_ej'])
             vej_min = min(bounds['v_ej'])
             vej_max = max(bounds['v_ej'])
+            probability = bounds['orientation_probability']
         else:
             # Set to default values from Rosswog's paper
             kappa_min = 1.0
@@ -174,8 +175,7 @@ class rosswog_kilonova(kilonova):
         else:
             out_shape = self.number_of_samples
 
-        self.param3 = np.random.uniform(low=kappa_min, high=kappa_max,
-                                        size=out_shape)
+        self.param3 = np.random.binomial(1, probability, size=out_shape)*(kappa_max - kappa_min) + kappa_min
         self.param1 = np.random.uniform(low=mej_min, high=mej_max,
                                         size=out_shape)
         if uniform_v is False:
