@@ -42,7 +42,7 @@ if __name__ == "__main__":
         z_bin_size = 0.02  # Binning for redshift distribution histogram
         z_min = 0.0  # Given if you want to simulate shells
         rate = 1000  # Rate in events per GPC^3 per restframe time
-        instrument_class_name = 'LSST'
+        instrument_class_name = 'lsst'
         survey_version = 'lsstv4'
         cadence_flags = 'combined'  # Currently use default in class
         transient_model_name = 'scolnic_kilonova'
@@ -54,7 +54,7 @@ if __name__ == "__main__":
         throughputs_path = '/Users/cnsetzer/Documents/LSST/throughputs/lsst'
         reference_flux_path = '/Users/cnsetzer/Documents/LSST/throughputs/references'
         efficiency_table_path = '/Users/cnsetzer/Documents/LSST/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'
-        run_dir = 'lsst_scolnic_kraken2036_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
+        run_dir = 'lsst_scolnic_kraken2036_debug' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
         output_path = '/Users/cnsetzer/Documents/LSST/astrotog_output/' + run_dir + '/'
 
         # Define filters for detections
