@@ -116,13 +116,13 @@ class rosswog_kilonova(kilonova):
     """
     def __init__(self, mej=None, vej=None, kappa=None, bounds=None,
                  uniform_v=False, KNE_parameters=None, parameter_dist=False,
-                 num_samples=1):
+                 num_samples=1, probability=0.5):
         self.num_params = 3
         if parameter_dist is True:
             if num_samples > 1:
                 self.pre_dist_params = True
                 self.number_of_samples = num_samples
-                self.draw_parameters(bounds, uniform_v)
+                self.draw_parameters(bounds, uniform_v, probability)
             else:
                 print('To generate a parameter distribution you need to supply\
                         a number of samples greater than one.')
@@ -141,7 +141,7 @@ class rosswog_kilonova(kilonova):
             elif KNE_parameters:
                 pass
             else:
-                self.draw_parameters(bounds, uniform_v)
+                self.draw_parameters(bounds, uniform_v, probability)
             self.make_sed(KNE_parameters)
             self.subtype = 'rosswog semi-analytic'
             super().__init__()
