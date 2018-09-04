@@ -11,3 +11,9 @@ qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/variance_whitepaper/lsst_si
 qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/variance_whitepaper/lsst_sims_kraken2026_rw_var4
 qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/variance_whitepaper/lsst_sims_kraken2026_rw_var5
 qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/variance_whitepaper/lsst_sims_kraken2026_rw_var6
+qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/variance_whitepaper/lsst_sims_minion1016sqlite_sc_var1
+qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/variance_whitepaper/lsst_sims_minion1016sqlite_sc_var2
+qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/variance_whitepaper/lsst_sims_minion1016sqlite_sc_var3
+qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/variance_whitepaper/lsst_sims_minion1016sqlite_sc_var4
+qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/variance_whitepaper/lsst_sims_minion1016sqlite_sc_var5
+qsub /home/csetzer/astrotog/hpc_parallel/pbs_scripts/variance_whitepaper/lsst_sims_minion1016sqlite_sc_var6
