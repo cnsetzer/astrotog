@@ -113,9 +113,11 @@ if __name__ == "__main__":
         verbose = None
         seds_path = None
         pre_dist_params = None
+        detect_type = None
 
     if size > 1:
         comm.barrier()
+        detect_type = comm.bcast(detect_type, root=0)
         num_transient_params = comm.bcast(num_transient_params, root=0)
         num_params_pprocess = comm.bcast(num_params_pprocess, root=0)
         tran_param_dist = comm.bcast(tran_param_dist, root=0)
@@ -165,6 +167,10 @@ if __name__ == "__main__":
         if num_transient_params > 0 and pre_dist_params is True:
             param_array = receive_array[:, 5:]
 
+    # Empty buffers
+    total_array = None
+    receive_array = None
+
     # Trim the nonsense from the process arrays
     sky_del = []
     param_del = []
@@ -180,6 +186,10 @@ if __name__ == "__main__":
         param_array = np.delete(param_array, param_del, 0)
         assert len(param_array[:]) == len(sky_loc_array[:])
     num_params_pprocess = len(sky_loc_array[:])
+
+    # Empty del lists
+    sky_del = None
+    param_del = None
 
     if rank == 0 and verbose:
         print('The split of parameters between processes is:')
@@ -211,6 +221,9 @@ if __name__ == "__main__":
             param_columns.append(getattr(tran_param_dist, 'param{0}_name'.format(i+1)))
 
     stored_param_data = pd.DataFrame(columns=param_columns)
+
+    # Empty variables to control memory usage
+    tran_param_dist = None
 
     obs_columns = ['transient_id', 'mjd', 'bandfilter', 'instrument_magnitude',
                    'instrument_mag_one_sigma', 'instrument_flux',
@@ -262,6 +275,11 @@ if __name__ == "__main__":
 
         extended_args = p.starmap(afunc.extend_args_list, args_for_method)
 
+        # Try to reorganize for better memory management
+        batch_sky_loc = None
+        batch_params = None
+        args_for_method = None
+
         batch_method_iter_for_pool = list(zip(transient_batch,
                                               repeat('put_in_universe'),
                                               extended_args))
@@ -269,20 +287,33 @@ if __name__ == "__main__":
         transient_batch = p.starmap(afunc.class_method_in_pool,
                                     batch_method_iter_for_pool)
 
+        # Try to reorganize for better memory management
+        batch_method_iter_for_pool = None
+
         parameter_batch_iter = list(zip(repeat(param_columns),
                                         transient_batch))
 
         parameter_df = p.starmap(afunc.write_params, parameter_batch_iter)
         stored_param_data = stored_param_data.append(parameter_df,
                                                      ignore_index=True, sort=False)
+        # Try to reorganize for better memory management
+        parameter_batch_iter = None
 
         observation_batch_iter = list(zip(repeat(obs_columns),
                                           transient_batch,
                                           repeat(survey)))
 
         observation_df = p.starmap(afunc.observe, observation_batch_iter)
+
+        # Try to reorganize for better memory management
+        transient_batch = None
+        observation_batch_iter = None
+
         stored_obs_data = stored_obs_data.append(observation_df,
                                                  ignore_index=True, sort=False)
+
+        # Try to reorganize for better memory management
+        observation_df = None
 
         other_obs_iter = list(zip(repeat(survey), parameter_df,
                                   repeat(sim_inst.t_before), repeat(sim_inst.t_after),
@@ -291,22 +322,24 @@ if __name__ == "__main__":
         # get other observations
         other_obs_df = p.starmap(afunc.other_observations, other_obs_iter)
         stored_other_obs_data = stored_other_obs_data.append(other_obs_df,
-                                                            ignore_index=True,
-                                                            sort=False)
+                                                             ignore_index=True,
+                                                             sort=False)
+        # Try to reorganize for better memory management
+        other_obs_iter = None
+        parameter_df = None
+        other_obs_df = None
+
         if rank == 0 and verbose:
             # Write computaiton time estimates
             print('Batch {0} complete of {1} batches.'.format(i+1, num_batches))
             t1 = time.time()
-            delta_t = int(((t1-t0)/(i+1))*((num_params_pprocess-(i+1)*current_batch_size)/(batch_size)) + 0.1045*transient_dist.number_simulated)
+            delta_t = int(((t1-t0)/(i+1))*((num_params_pprocess-(i+1)*current_batch_size)/(batch_size)) + 0.11045*transient_dist.number_simulated)
             print('Estimated time remaining is: {}'.format(datetime.timedelta(seconds=delta_t)))
 
+    # Empty arrays as no longer needed
+    sky_loc_array = None
+    param_array = None
     # Now process observations for detections and other information
-    transient_batch = None
-    batch_method_iter_for_pool = None
-    parameter_batch_iter = None
-    observation_batch_iter = None
-    other_obs_iter = None
-
     if rank == 0 and verbose:
         print('Processing transients for alert triggers.')
     stored_obs_data = afunc.efficiency_process(survey, stored_obs_data)
@@ -357,43 +390,93 @@ if __name__ == "__main__":
 
     if size > 1:
         comm.barrier()
+        # Split back into processes
+        if rank == 0:
+            num_params_last = transient_dist.number_simulated - (size-1)*num_params_pprocess
+            comm.send(num_params_last, dest=size - 1, tag=11)
+            ids_per_process = list(np.arange(start=num_params_pprocess*rank + 1, stop=num_params_pprocess*(rank+1) + 1))
+        elif rank == size - 1:
+            num_params_last = comm.recv(source=0, tag=11)
+            ids_per_process = list(np.arange(start=num_params_pprocess*rank + 1, stop=num_params_pprocess*rank + 1 + num_params_last))
+        else:
+            ids_per_process = list(np.arange(start=num_params_pprocess*rank + 1, stop=num_params_pprocess*(rank+1) + 1))
+    else:
+        ids_per_process = list(np.arange(start=1, stop=transient_dist.number_simulated + 1))
+
+    # Split stored_obs_data, stored_param_data, stored_other_obs_data
+    process_obs_data = stored_obs_data[stored_obs_data['transient_id'].isin(ids_per_process)]
+    process_other_obs_data = stored_other_obs_data[stored_other_obs_data['transient_id'].isin(ids_per_process)]
+    process_param_data = stored_param_data[stored_param_data['transient_id'].isin(ids_per_process)]
+
 
     # Detections
-    if rank == 0:
-        if verbose:
-            print('\nNow processing for detections.')
+    if verbose and rank == 0:
+        print('\nNow processing for detections.')
 
-        # Do coadds first
-        if verbose:
-            print('Doing nightly coadds...')
-        coadded_observations = afunc.process_nightly_coadds(stored_obs_data, survey)
+    # Do coadds first
+    if verbose and rank == 0:
+        print('Doing nightly coadds...')
+    coadded_observations = afunc.process_nightly_coadds(process_obs_data, survey)
 
-        if verbose:
-            print('Processing coadded nights for transients alert triggers.')
-        coadded_observations.drop(columns=['alert'], inplace=True)
-        coadded_observations = afunc.efficiency_process(survey, coadded_observations)
+    if verbose and rank == 0:
+        print('Processing coadded nights for transients alert triggers.')
+    coadded_observations.drop(columns=['alert'], inplace=True)
+    coadded_observations = afunc.efficiency_process(survey, coadded_observations)
 
-        intermediate_filter = coadded_observations
-        for type in detect_type:
-            if verbose and type == 'scolnic_detections':
+    intermediate_filter = coadded_observations
+    for type in detect_type:
+        if type == 'scolnic_detections':
+            if rank == 0 and verbose:
                 print('Processing coadded observations for detections in line with Scolnic et. al 2018.')
-                intermediate_filter = getattr(afunc, type)(stored_param_data, intermediate_filter, stored_other_obs_data, survey)
-            else:
-                if verbose:
-                    print('Processing coadded observations with the given filter dictionary.')
-                intermediate_filter = getattr(afunc, type)(intermediate_filter, filters)
-        detected_observations = intermediate_filter
+            intermediate_filter = getattr(afunc, type)(process_param_data, intermediate_filter, process_other_obs_data, survey)
+        else:
+            if verbose and rank == 0:
+                print('Processing coadded observations with the given filter dictionary.')
+            intermediate_filter = getattr(afunc, type)(intermediate_filter, filters)
+    detected_observations = intermediate_filter
+    intermediate_filter = None
 
-        stored_param_data = afunc.param_observe_detect(stored_param_data, stored_obs_data, detected_observations)
+    process_param_data = afunc.param_observe_detect(process_param_data, process_obs_data, detected_observations)
 
+    # Gather up all data to root
+    coadded_observations.dropna(inplace=True)
+    detected_observations.dropna(inplace=True)
+    process_param_data.dropna(inplace=True)
+
+    # Join all batches and mpi workers and write the dataFrame to file
+    if size > 1:
+        comm.barrier()
+        coadd_receive = comm.allgather(coadded_observations)
+        params_receive = comm.allgather(process_param_data)
+        detected_receive = comm.allgather(detected_observations)
+
+        output_params = pd.concat(params_receive, sort=False, ignore_index=True)
+        output_coadd = pd.concat(coadd_receive, sort=False, ignore_index=True)
+        output_detections = pd.concat(detected_receive, sort=False, ignore_index=True)
+
+    else:
+        output_coadd = coadded_observations
+        output_params = process_param_data
+        output_detections = detected_observations
+
+    coadd_receive = None
+    params_receive = None
+    detected_receive = None
+    coadded_observations = None
+    process_obs_data = None
+    process_param_data = None
+    process_other_obs_data = None
+    detected_observations = None
+
+    if rank == 0:
         # Get efficiencies and create redshift histogram
-        redshift_histogram = afunc.redshift_distribution(stored_param_data, sim_inst)
+        redshift_histogram = afunc.redshift_distribution(output_params, sim_inst)
 
         if verbose:
             print('Outputting coadded observations, scolnic detections, parameters modified with observed, alerted, and detected flags, and the redshift distribution.')
-        coadded_observations.to_csv(output_path + 'coadded_observations.csv')
-        detected_observations.to_csv(output_path + 'scolnic_detections.csv')
-        stored_param_data.to_csv(output_path + 'modified_parameters.csv')
+        output_coadd.to_csv(output_path + 'coadded_observations.csv')
+        output_detections.to_csv(output_path + 'scolnic_detections.csv')
+        output_params.to_csv(output_path + 'modified_parameters.csv')
         redshift_histogram.savefig(output_path + 'redshift_distribution.pdf', bbox_inches='tight')
         plt.close(redshift_histogram)
         if verbose:
@@ -404,5 +487,5 @@ if __name__ == "__main__":
 
     if rank == 0 and verbose:
         t_end = time.time()
-        #print('\n Estimated time for the last bit is: {}'.format((t_end-t1)/transient_dist.number_simulated))
+        print('\n Estimated time for the last bit is: {}'.format((t_end-t1)/transient_dist.number_simulated))
         print('\nSimulation completed successfully with elapsed time: {}.'.format(datetime.timedelta(seconds=int(t_end-t_start))))

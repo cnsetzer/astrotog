@@ -167,6 +167,10 @@ if __name__ == "__main__":
         if num_transient_params > 0 and pre_dist_params is True:
             param_array = receive_array[:, 5:]
 
+    # Empty buffers
+    total_array = None
+    receive_array = None
+
     # Trim the nonsense from the process arrays
     sky_del = []
     param_del = []
@@ -182,6 +186,10 @@ if __name__ == "__main__":
         param_array = np.delete(param_array, param_del, 0)
         assert len(param_array[:]) == len(sky_loc_array[:])
     num_params_pprocess = len(sky_loc_array[:])
+
+    # Empty del lists
+    sky_del = None
+    param_del = None
 
     if rank == 0 and verbose:
         print('The split of parameters between processes is:')
@@ -213,6 +221,9 @@ if __name__ == "__main__":
             param_columns.append(getattr(tran_param_dist, 'param{0}_name'.format(i+1)))
 
     stored_param_data = pd.DataFrame(columns=param_columns)
+
+    # Empty variables to control memory usage
+    tran_param_dist = None
 
     obs_columns = ['transient_id', 'mjd', 'bandfilter', 'instrument_magnitude',
                    'instrument_mag_one_sigma', 'instrument_flux',
@@ -264,6 +275,11 @@ if __name__ == "__main__":
 
         extended_args = p.starmap(afunc.extend_args_list, args_for_method)
 
+        # Try to reorganize for better memory management
+        batch_sky_loc = None
+        batch_params = None
+        args_for_method = None
+
         batch_method_iter_for_pool = list(zip(transient_batch,
                                               repeat('put_in_universe'),
                                               extended_args))
@@ -271,20 +287,33 @@ if __name__ == "__main__":
         transient_batch = p.starmap(afunc.class_method_in_pool,
                                     batch_method_iter_for_pool)
 
+        # Try to reorganize for better memory management
+        batch_method_iter_for_pool = None
+
         parameter_batch_iter = list(zip(repeat(param_columns),
                                         transient_batch))
 
         parameter_df = p.starmap(afunc.write_params, parameter_batch_iter)
         stored_param_data = stored_param_data.append(parameter_df,
                                                      ignore_index=True, sort=False)
+        # Try to reorganize for better memory management
+        parameter_batch_iter = None
 
         observation_batch_iter = list(zip(repeat(obs_columns),
                                           transient_batch,
                                           repeat(survey)))
 
         observation_df = p.starmap(afunc.observe, observation_batch_iter)
+
+        # Try to reorganize for better memory management
+        transient_batch = None
+        observation_batch_iter = None
+
         stored_obs_data = stored_obs_data.append(observation_df,
                                                  ignore_index=True, sort=False)
+
+        # Try to reorganize for better memory management
+        observation_df = None
 
         other_obs_iter = list(zip(repeat(survey), parameter_df,
                                   repeat(sim_inst.t_before), repeat(sim_inst.t_after),
@@ -293,22 +322,24 @@ if __name__ == "__main__":
         # get other observations
         other_obs_df = p.starmap(afunc.other_observations, other_obs_iter)
         stored_other_obs_data = stored_other_obs_data.append(other_obs_df,
-                                                            ignore_index=True,
-                                                            sort=False)
+                                                             ignore_index=True,
+                                                             sort=False)
+        # Try to reorganize for better memory management
+        other_obs_iter = None
+        parameter_df = None
+        other_obs_df = None
+
         if rank == 0 and verbose:
             # Write computaiton time estimates
             print('Batch {0} complete of {1} batches.'.format(i+1, num_batches))
             t1 = time.time()
-            delta_t = int(((t1-t0)/(i+1))*((num_params_pprocess-(i+1)*current_batch_size)/(batch_size)) + 0.1045*transient_dist.number_simulated)
+            delta_t = int(((t1-t0)/(i+1))*((num_params_pprocess-(i+1)*current_batch_size)/(batch_size)) + 0.11045*transient_dist.number_simulated)
             print('Estimated time remaining is: {}'.format(datetime.timedelta(seconds=delta_t)))
 
+    # Empty arrays as no longer needed
+    sky_loc_array = None
+    param_array = None
     # Now process observations for detections and other information
-    transient_batch = None
-    batch_method_iter_for_pool = None
-    parameter_batch_iter = None
-    observation_batch_iter = None
-    other_obs_iter = None
-
     if rank == 0 and verbose:
         print('Processing transients for alert triggers.')
     stored_obs_data = afunc.efficiency_process(survey, stored_obs_data)
@@ -385,6 +416,7 @@ if __name__ == "__main__":
                     print('Processing coadded observations with the given filter dictionary.')
                 intermediate_filter = getattr(afunc, type)(intermediate_filter, filters)
         detected_observations = intermediate_filter
+        intermediate_filter = None
 
         stored_param_data = afunc.param_observe_detect(stored_param_data, stored_obs_data, detected_observations)
 
@@ -406,5 +438,5 @@ if __name__ == "__main__":
 
     if rank == 0 and verbose:
         t_end = time.time()
-        #print('\n Estimated time for the last bit is: {}'.format((t_end-t1)/transient_dist.number_simulated))
+        print('\n Estimated time for the last bit is: {}'.format((t_end-t1)/transient_dist.number_simulated))
         print('\nSimulation completed successfully with elapsed time: {}.'.format(datetime.timedelta(seconds=int(t_end-t_start))))
