@@ -243,6 +243,7 @@ class rosswog_numerical_kilonova(kilonova):
             filename = path
             fileio = open(filename, 'r')
         self.SED_header_params(fileio)
+        fileio.close()
         # Read in SEDS data with sncosmo tools
         self.phase, self.wave, self.flux = sncosmo.read_griddata_ascii(filename)
 
@@ -259,7 +260,6 @@ class rosswog_numerical_kilonova(kilonova):
                 else:
                     continue
             else:
-                fileio.close()
                 break
 
 

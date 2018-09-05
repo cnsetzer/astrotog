@@ -502,7 +502,7 @@ def process_nightly_coadds(obs_df, survey):
                     # Midnight MJD UTC + UTC Offset to midnight +/- 12 hours
                     night_start = int(row['mjd']) - survey.utc_offset/24.0 - 0.5
                     night_end = int(row['mjd']) - survey.utc_offset/24 + 0.5
-                    same_night_df = band_df[(band_df['mjd'] >= night_start) & (band_df['mjd'] <= night_end)]
+                    same_night_df = band_df.query('(mjd >= {0}) & (mjd <= {1})'.format(night_start, night_end))
 
                     coadding_series = deepcopy(row)
                     if len(same_night_df.index) > 1:
