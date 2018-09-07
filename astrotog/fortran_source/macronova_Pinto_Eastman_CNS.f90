@@ -649,7 +649,8 @@ MODULE macronova_Pinto_eastman_CNS
       DEALLOCATE(Tnn,Tnp,Mnn,Mnp)
       DEALLOCATE(AP,BP,W,WORK)
       DEALLOCATE(psi,LT,Dm,Nm2)
-      DEALLOCATE(t_HR,HR)
+      IF (read_hrate) THEN
+        DEALLOCATE(t_HR,HR)
 
 
 
