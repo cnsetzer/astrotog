@@ -651,6 +651,7 @@ MODULE macronova_Pinto_eastman_CNS
       DEALLOCATE(psi,LT,Dm,Nm2)
       IF (read_hrate) THEN
         DEALLOCATE(t_HR,HR)
+      ENDIF
 
 
 
