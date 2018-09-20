@@ -101,13 +101,13 @@ def observe(table_columns, transient, survey):
 
     overlap_indices = []
     for index, row in t_overlaps.iterrows():
-        pointing_ra = np.deg2rad(row[survey.col_ra])
-        pointing_dec = np.deg2rad(row[survey.col_dec])
-        angdist = np.arccos(np.sin(pointing_dec)*np.sin(np.deg2rad(transient.dec)) +
+        pointing_ra = row[survey.col_ra]
+        pointing_dec = row[survey.col_dec]
+        angdist = np.arccos(np.sin(pointing_dec)*np.sin(transient.dec) +
                             np.cos(pointing_dec) *
-                            np.cos(np.deg2rad(transient.dec))*np.cos(np.deg2rad(transient.ra) -
+                            np.cos(transient.dec)*np.cos(transient.ra -
                                                          pointing_ra))
-        if angdist < np.deg2rad(survey.FOV_radius):
+        if angdist < survey.FOV_radius:
             overlap_indices.append(index)
     if not overlap_indices:
         return pd_df
@@ -335,8 +335,8 @@ def filter_on_count(pandas_df, num_count, filter_column=None, value=None,
 
 def other_observations(survey, param_df, t_before, t_after, other_obs_columns):
     pd_df = pd.DataFrame(columns=other_obs_columns)
-    ra = np.deg2rad(param_df.at[0, 'ra'])
-    dec = np.deg2rad(param_df.at[0, 'dec'])
+    ra = param_df.at[0, 'ra']
+    dec = param_df.at[0, 'dec']
     t0 = param_df.at[0, 'explosion_time']
     tmax = param_df.at[0, 'max_time']
     positional_overlaps = survey.cadence.query('({3} - {0} <= {1} <= {3} + {0}) & ({4} - {0} <= {2} <= {4} + {0})'.format(survey.FOV_radius, ra, dec, survey.col_ra, survey.col_dec))
@@ -346,12 +346,12 @@ def other_observations(survey, param_df, t_before, t_after, other_obs_columns):
     t_overlaps = t_before_overlaps.append(t_after_overlaps, sort=False)
     overlap_indices = []
     for index, row in t_overlaps.iterrows():
-        pointing_ra = np.deg2rad(row[survey.col_ra])
-        pointing_dec = np.deg2rad(row[survey.col_dec])
+        pointing_ra = row[survey.col_ra]
+        pointing_dec = row[survey.col_dec]
         angdist = np.arccos(np.sin(pointing_dec)*np.sin(dec) +
                             np.cos(pointing_dec) *
                             np.cos(dec)*np.cos(ra - pointing_ra))
-        if angdist < np.deg2rad(survey.FOV_radius):
+        if angdist < survey.FOV_radius:
             overlap_indices.append(index)
     if not overlap_indices:
         return pd_df
