@@ -422,7 +422,7 @@ def efficiency_process(survey, obs_df):
     return obs_df
 
 
-def scolnic_detections(param_df, obs_df, other_obs_df, survey):
+def scolnic_detections(param_df, obs_df, other_obs_df):
     detected_transients = []
     for iter, row in param_df.iterrows():
         t_obs_df = obs_df.query('transient_id == {}'.format(row['transient_id']))
@@ -444,6 +444,64 @@ def scolnic_detections(param_df, obs_df, other_obs_df, survey):
 
         # Step two, reject SN backgrounds
         snr5_df = t_obs_df.query('signal_to_noise >= 5.0')
+        # Criteria One
+        if len(list(snr5_df['bandfilter'].unique())) >= 2:
+            step_two_cr1 = True
+
+        min_snr5_df = snr5_df.min()
+        max_snr5_df = snr5_df.max()
+
+        first_snr5 = min_snr5_df['mjd']
+        last_snr5 = max_snr5_df['mjd']
+
+        # Criteria Two
+        if (last_snr5 - first_snr5) < 25.0:
+            step_two_cr2 = True
+
+        # Criteria Three and Four
+        for iter3, row3, in t_obs_df.iterrows():
+            if (first_snr5 - row3['mjd']) > 0 and (first_snr5 - row3['mjd']) <= 20.0 and step_two_cr3 is False:
+                step_two_cr3 = True
+            if (row3['mjd'] - last_snr5) > 0 and (row3['mjd'] - last_snr5) <= 20.0 and step_two_cr4 is False:
+                step_two_cr4 = True
+
+        for iter3, row3 in t_other_obs_df.iterrows():
+            if (first_snr5 - row3['mjd']) > 0 and (first_snr5 - row3['mjd']) <= 20.0 and step_two_cr3 is False:
+                step_two_cr3 = True
+            if (row3['mjd'] - last_snr5) > 0 and (row3['mjd'] - last_snr5) <= 20.0 and step_two_cr4 is False:
+                step_two_cr4 = True
+
+        # record the transients which have been detected
+        if step_one is True and step_two_cr1 is True and step_two_cr2 is True and step_two_cr3 is True and step_two_cr4 is True:
+            detected_transients.append(row['transient_id'])
+
+    scolnic_detections = obs_df[obs_df['transient_id'].isin(detected_transients)]
+
+    return scolnic_detections
+
+
+def scolnic_like_detections(param_df, obs_df, other_obs_df):
+    detected_transients = []
+    for iter, row in param_df.iterrows():
+        t_obs_df = obs_df.query('transient_id == {}'.format(row['transient_id']))
+        t_other_obs_df = other_obs_df.query('transient_id == {}'.format(row['transient_id']))
+
+        # Bool flags to pass for transient to be a Scolnic detection
+        step_one = False
+        step_two_cr1 = False
+        step_two_cr2 = False
+        step_two_cr3 = False
+        step_two_cr4 = False
+
+        # Step one, trigger simulation
+        alert_df = t_obs_df.query('alert == True')
+        for iter3, row3 in alert_df.iterrows():
+            for iter4, row4 in alert_df.iterrows():
+                if abs(row3['mjd'] - row4['mjd']) >= 0.020833333333333 and step_one is False:
+                    step_one = True
+
+        # Step two, reject SN backgrounds
+        snr5_df = alert_df
         # Criteria One
         if len(list(snr5_df['bandfilter'].unique())) >= 2:
             step_two_cr1 = True
