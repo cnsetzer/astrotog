@@ -45,7 +45,7 @@ if __name__ == "__main__":
         z_min = 0.0  # Given if you want to simulate shells
         rate = 1000  # Rate in events per GPC^3 per restframe time
         instrument_class_name = 'lsst'
-        survey_version = 'ssdf'
+        survey_version = 'sstf'
         cadence_flags = 'combined'  # Currently use default in class
         transient_model_name = 'rosswog_kilonova'
         detect_type = ['scolnic_detections', 'scolnic_like_detections', 'scolnic_detections_no_coadd', 'scolnic_like_detections_no_coadd']  # ['detect'], ['scolnic_detections'], or multiple
