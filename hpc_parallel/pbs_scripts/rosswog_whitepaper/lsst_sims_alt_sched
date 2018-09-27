@@ -5,8 +5,7 @@
 #PBS -q cores24
 #PBS -l nodes=1:ppn=24,walltime=99:00:00
 #PBS -r n
-#PBS -o /home/csetzer/LSST/astrotog_output/rosswog_whitepaper/alt_sched.o
-#PBS -e /home/csetzer/LSST/astrotog_output/rosswog_whitepaper/alt_sched.e
+#PBS -k oe
 module purge
 module load python
 module load mpi/mvapich/2-2.3b
