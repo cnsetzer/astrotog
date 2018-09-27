@@ -16,6 +16,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
 # Set seed for reproduceability
 np.random.seed(12345)
 
@@ -45,18 +46,18 @@ if __name__ == "__main__":
         z_min = 0.0  # Given if you want to simulate shells
         rate = 1000  # Rate in events per GPC^3 per restframe time
         instrument_class_name = 'lsst'
-        survey_version = 'lsstv4'
+        survey_version = 'ssdf'
         cadence_flags = 'combined'  # Currently use default in class
-        transient_model_name = 'rosswog_numerical_kilonova'
-        detect_type = ['scolnic_detections']  # ['detect'], ['scolnic_detections'], or multiple
-        seds_path = '/share/data1/csetzer/kilonova_seds/rosswog_numerical/NSNS/winds'
-        cadence_path = '/share/data1/csetzer/lsst_cadences/nexus_2097.db'
+        transient_model_name = 'scolnic_kilonova'
+        detect_type = ['scolnic_detections', 'scolnic_like_detections', 'scolnic_detections_no_coadd', 'scolnic_like_detections_no_coadd']  # ['detect'], ['scolnic_detections'], or multiple
+        seds_path = '/share/data1/csetzer/kilonova_seds/scolnic_decam/DECAMGemini_SED.txt'
+        cadence_path = '/share/data1/csetzer/lsst_cadences/alt_sched_rolling.db'
         cadence_ra_col = '_ra'
         cadence_dec_col = '_dec'
         throughputs_path = '/share/data1/csetzer/lsst/throughputs/lsst'
         reference_flux_path = '/share/data1/csetzer/lsst/throughputs/references'
         efficiency_table_path = '/home/csetzer/software/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'
-        run_dir = 'lsst_rossnumeric_nexus2097_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
+        run_dir = 'lsst_scolnic_alt_sched_rolling_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
         output_path = '/share/data1/csetzer/lsst_kne_sims_outputs/' + run_dir + '/'
 
         # Define filters for detections
@@ -373,7 +374,7 @@ if __name__ == "__main__":
             print('\nWriting out parameters and observations to {}'.format(output_path))
         if not os.path.exists(output_path):
             os.makedirs(output_path)
-        output_params.to_csv(output_path + 'parameters.csv')
+        #output_params.to_csv(output_path + 'parameters.csv')
         output_observations.to_csv(output_path + 'observations.csv')
         output_other_observations.to_csv(output_path + 'other_observations.csv')
         if verbose:
@@ -430,18 +431,40 @@ if __name__ == "__main__":
             if rank == 0 and verbose:
                 print('Processing coadded observations for detections in line with Scolnic et. al 2018.')
             intermediate_filter = getattr(afunc, type)(process_param_data, intermediate_filter, process_other_obs_data, survey)
+        elif type == 'scolnic_detections_no_coadd':
+            if rank == 0 and verbose:
+                print('Processing coadded observations for detections in line with Scolnic et. al 2018, but no coadds.')
+            intermediate_filter2 = getattr(afunc, type.replace('_no_coadd', ''))(process_param_data, process_obs_data, process_other_obs_data, survey)
+        elif type == 'scolnic_like_detections':
+            if rank == 0 and verbose:
+                print('Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5.')
+            intermediate_filter3 = getattr(afunc, type)(process_param_data, coadded_observations, process_other_obs_data, survey)
+        elif type == 'scolnic_like_detections_no_coadd':
+            if rank == 0 and verbose:
+                print('Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5 and no coadds.')
+            intermediate_filter4 = getattr(afunc, type.replace('_no_coadd', ''))(process_param_data, process_obs_data, process_other_obs_data, survey)
         else:
             if verbose and rank == 0:
                 print('Processing coadded observations with the given filter dictionary.')
             intermediate_filter = getattr(afunc, type)(intermediate_filter, filters)
     detected_observations = intermediate_filter
+    detected_observations2 = intermediate_filter2
+    detected_observations3 = intermediate_filter3
+    detected_observations4 = intermediate_filter4
     intermediate_filter = None
+    intermediate_filter2 = None
+    intermediate_filter3 = None
+    intermediate_filter4 = None
 
     process_param_data = afunc.param_observe_detect(process_param_data, process_obs_data, detected_observations)
+    process_param_data = afunc.determine_ddf_transients(sim_inst, process_param_data)
 
     # Gather up all data to root
     coadded_observations.dropna(inplace=True)
     detected_observations.dropna(inplace=True)
+    detected_observations2.dropna(inplace=True)
+    detected_observations3.dropna(inplace=True)
+    detected_observations4.dropna(inplace=True)
     process_param_data.dropna(inplace=True)
 
     # Join all batches and mpi workers and write the dataFrame to file
@@ -450,24 +473,39 @@ if __name__ == "__main__":
         coadd_receive = comm.allgather(coadded_observations)
         params_receive = comm.allgather(process_param_data)
         detected_receive = comm.allgather(detected_observations)
+        detected_receive2 = comm.allgather(detected_observations2)
+        detected_receive3 = comm.allgather(detected_observations3)
+        detected_receive4 = comm.allgather(detected_observations4)
 
         output_params = pd.concat(params_receive, sort=False, ignore_index=True)
         output_coadd = pd.concat(coadd_receive, sort=False, ignore_index=True)
         output_detections = pd.concat(detected_receive, sort=False, ignore_index=True)
+        output_detections2 = pd.concat(detected_receive2, sort=False, ignore_index=True)
+        output_detections3 = pd.concat(detected_receive3, sort=False, ignore_index=True)
+        output_detections4 = pd.concat(detected_receive4, sort=False, ignore_index=True)
 
     else:
         output_coadd = coadded_observations
         output_params = process_param_data
         output_detections = detected_observations
+        output_detections2 = detected_observations2
+        output_detections3 = detected_observations3
+        output_detections4 = detected_observations4
 
     coadd_receive = None
     params_receive = None
     detected_receive = None
+    detected_receive2 = None
+    detected_receive3 = None
+    detected_receive4 = None
     coadded_observations = None
     process_obs_data = None
     process_param_data = None
     process_other_obs_data = None
     detected_observations = None
+    detected_observations2 = None
+    detected_observations3 = None
+    detected_observations4 = None
 
     if rank == 0:
         # Get efficiencies and create redshift histogram
@@ -477,6 +515,9 @@ if __name__ == "__main__":
             print('Outputting coadded observations, scolnic detections, parameters modified with observed, alerted, and detected flags, and the redshift distribution.')
         output_coadd.to_csv(output_path + 'coadded_observations.csv')
         output_detections.to_csv(output_path + 'scolnic_detections.csv')
+        output_detections2.to_csv(output_path + 'scolnic_detections_no_coadd.csv')
+        output_detections3.to_csv(output_path + 'scolnic_like_detections.csv')
+        output_detections4.to_csv(output_path + 'scolnic_like_detections_no_coadd.csv')
         output_params.to_csv(output_path + 'modified_parameters.csv')
         redshift_histogram.savefig(output_path + 'redshift_distribution.pdf', bbox_inches='tight')
         plt.close(redshift_histogram)

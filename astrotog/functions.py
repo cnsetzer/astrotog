@@ -624,3 +624,58 @@ def redshift_distribution(param_df, simulation):
     plt.ylabel(r'$N(z)$')
     plt.title('Redshift Distribution ({0:.2f} bins, {1:2.1f}%  detected depth efficiency.)'.format(bin_size, max_depth_eff))
     return N_z_dist_fig
+
+
+def determine_ddf_transients(simulation, params):
+    field_rad = np.deg2rad(3.5/2.0)
+
+    path = simulation.cadence_path
+    flag = 'ddf'
+    vers = simulation.version
+    cadence = oss.OpSimOutput.fromOpSimDB(path, subset=flag,
+                                               opsimversion=vers).summary
+
+    if re.search('minion', survey) is None:
+        field_key = 'fieldId'
+    elif re.search('kraken_2042|kraken_2044|nexus_2097|mothra_2049', survey) is not None:
+        field_key = 'fieldRA'
+    else:
+        field_key = 'fieldID'
+
+    ddf_ra = []
+    ddf_dec = []
+    for field in list(cadence[field_key].unique()):
+        if re.search('minion',survey_name) is None:
+            ddf_ra.append(np.deg2rad(np.mean(cadence.query('{0} == {1}'.format(field_key,field))['fieldRA'].unique())))
+            ddf_dec.append(np.deg2rad(np.mean(cadence.query('{0} == {1}'.format(field_key,field))['fieldDec'].unique())))
+        else:
+            ddf_ra.append(np.mean(cadence.query('{0} == {1}'.format(field_key,field))['fieldRA'].unique()))
+            ddf_dec.append(np.mean(cadence.query('{0} == {1}'.format(field_key,field))['fieldDec'].unique()))
+
+    ids_in_ddf = []
+    num_ddf_fields = len(list(cadence[field_key].unique()))
+    for i in range(num_ddf_fields):
+        field_ra = eval(ddf_ra[i])
+        field_dec = eval(ddf_dec[i])
+        inter1 = params.query('ra - {0} <= {1} & {0} - ra <= {1}'.format(field_ra,field_rad))
+        inter2 = inter1.query('dec - {0} <= {1} & {0} - dec <= {1}'.format(field_dec,field_rad))
+        for index, row in inter2.iterrows():
+            ra = row['ra']
+            dec = row['dec']
+            angdist = np.arccos(np.sin(field_dec)*np.sin(dec) +
+                        np.cos(field_dec) *
+                        np.cos(dec)*np.cos(ra - field_ra))
+            if angdist < field_rad:
+                ids_in_ddf.append(row['transient_id'])
+
+    subset_df = pd.DataFrame(index=params.index, columns=['subset'])
+    in_ddf = ids_in_ddf
+    for id in list(params['transient_id']):
+        if id in in_ddf:
+            subset_df.at[id,'subset'] = 'ddf'
+        else:
+            subset_df.at[id,'subset'] = 'wfd'
+
+    params = params.join(subset_df)
+
+    return params
