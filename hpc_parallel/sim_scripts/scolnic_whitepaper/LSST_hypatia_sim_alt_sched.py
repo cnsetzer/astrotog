@@ -39,6 +39,7 @@ if __name__ == "__main__":
         batch_size = 50  # can also be set to 'all'
         dithers = False
         add_dithers = False
+        cadence_has_nulls = False
         t_before = 40.0
         t_after = 40.0
         z_max = 0.5  # Maximum redshift depth for simulation
@@ -91,7 +92,8 @@ if __name__ == "__main__":
                                         add_dithers=add_dithers,
                                         t_before=t_before, t_after=t_after,
                                         response_path=efficiency_table_path,
-                                        instrument=instrument_class_name)
+                                        instrument=instrument_class_name,
+                                        filter_null=cadence_has_nulls)
         survey = getattr(atopclass, instrument_class_name)(sim_inst)
         transient_dist = aclasses.transient_distribution(survey, sim_inst)
         tran_param_dist = getattr(atopclass, transient_model_name)(parameter_dist=True,

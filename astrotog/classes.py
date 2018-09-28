@@ -137,9 +137,11 @@ class survey(object):
         flag = simulation.cadence_flags
         vers = simulation.version
         add_dith = simulation.add_dithers
+        null_option = simulation.filter_null
         self.cadence = oss.OpSimOutput.fromOpSimDB(path, subset=flag,
                                                    opsimversion=vers,
-                                                   add_dithers=add_dith).summary
+                                                   add_dithers=add_dith,
+                                                   filterNull=null_option).summary
 
     def get_throughputs(self, simulation):
         """

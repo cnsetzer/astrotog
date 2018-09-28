@@ -21,7 +21,7 @@ class simulation(object):
                  rate_gpc=1000, dithers=True, simversion='lsstv4',
                  add_dithers=False, t_before=30.0, t_after=30.0,
                  response_path=None, instrument=None, ra_col='_ra',
-                 dec_col='_dec'):
+                 dec_col='_dec', filter_null=False):
         self.cadence_path = cadence_path
         self.throughputs_path = throughputs_path
         self.reference_path = reference_path
@@ -42,6 +42,7 @@ class simulation(object):
         self.instrument = instrument
         self.ra_col = ra_col
         self.dec_col = dec_col
+        self.filter_null = filter_null
 
 
 class lsst(survey):
