@@ -92,7 +92,7 @@ if __name__ == "__main__":
                                         t_before=t_before, t_after=t_after,
                                         response_path=efficiency_table_path,
                                         instrument=instrument_class_name,
-                                        filter_nulls=cadence_has_nulls)
+                                        filter_null=cadence_has_nulls)
         survey = getattr(atopclass, instrument_class_name)(sim_inst)
         transient_dist = aclasses.transient_distribution(survey, sim_inst)
         tran_param_dist = getattr(atopclass, transient_model_name)(parameter_dist=True,
