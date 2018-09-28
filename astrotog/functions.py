@@ -69,8 +69,8 @@ def flux_to_mag(bandflux, bandflux_ref):
 def flux_noise(bandflux, bandflux_error):
     # Add gaussian noise to the true bandflux
     new_bandflux = np.random.normal(loc=bandflux, scale=bandflux_error)
-    if new_bandflux < 0.0:
-        new_bandflux = 1.0e-30
+    if new_bandflux <= 0.0:
+        new_bandflux = 1.0e-35
     return new_bandflux
 
 

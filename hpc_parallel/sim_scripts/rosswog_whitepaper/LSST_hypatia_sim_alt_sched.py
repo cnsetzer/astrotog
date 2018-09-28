@@ -429,19 +429,19 @@ if __name__ == "__main__":
         if type == 'scolnic_detections':
             if rank == 0 and verbose:
                 print('Processing coadded observations for detections in line with Scolnic et. al 2018.')
-            intermediate_filter = getattr(afunc, type)(process_param_data, intermediate_filter, process_other_obs_data, survey)
+            intermediate_filter = getattr(afunc, type)(process_param_data, intermediate_filter, process_other_obs_data)
         elif type == 'scolnic_detections_no_coadd':
             if rank == 0 and verbose:
                 print('Processing coadded observations for detections in line with Scolnic et. al 2018, but no coadds.')
-            intermediate_filter2 = getattr(afunc, type.replace('_no_coadd', ''))(process_param_data, process_obs_data, process_other_obs_data, survey)
+            intermediate_filter2 = getattr(afunc, type.replace('_no_coadd', ''))(process_param_data, process_obs_data, process_other_obs_data)
         elif type == 'scolnic_like_detections':
             if rank == 0 and verbose:
                 print('Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5.')
-            intermediate_filter3 = getattr(afunc, type)(process_param_data, coadded_observations, process_other_obs_data, survey)
+            intermediate_filter3 = getattr(afunc, type)(process_param_data, coadded_observations, process_other_obs_data)
         elif type == 'scolnic_like_detections_no_coadd':
             if rank == 0 and verbose:
                 print('Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5 and no coadds.')
-            intermediate_filter4 = getattr(afunc, type.replace('_no_coadd', ''))(process_param_data, process_obs_data, process_other_obs_data, survey)
+            intermediate_filter4 = getattr(afunc, type.replace('_no_coadd', ''))(process_param_data, process_obs_data, process_other_obs_data)
         else:
             if verbose and rank == 0:
                 print('Processing coadded observations with the given filter dictionary.')
