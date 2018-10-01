@@ -3,6 +3,7 @@ import pandas as pd
 from scipy.integrate import simps
 from copy import deepcopy
 from sfdmap import SFDMap as sfd
+import opsimsummary as oss
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
