@@ -637,12 +637,12 @@ def determine_ddf_transients(simulation, params):
     cadence = oss.OpSimOutput.fromOpSimDB(path, subset=flag,
                                                opsimversion=vers).summary
 
-    if re.search('minion', path) is None:
-        field_key = 'fieldId'
+    if re.search('minion', path) is not None:
+        field_key = 'fieldID'
     elif re.search('kraken_2042|kraken_2044|nexus_2097|mothra_2049|alt_sched', path) is not None:
         field_key = 'fieldRA'
     else:
-        field_key = 'fieldID'
+        field_key = 'fieldId'
 
     ddf_ra = []
     ddf_dec = []
