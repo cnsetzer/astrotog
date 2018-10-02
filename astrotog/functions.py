@@ -639,7 +639,7 @@ def determine_ddf_transients(simulation, params):
 
     if re.search('minion', path) is None:
         field_key = 'fieldId'
-    elif re.search('kraken_2042|kraken_2044|nexus_2097|mothra_2049', path) is not None:
+    elif re.search('kraken_2042|kraken_2044|nexus_2097|mothra_2049|alt_sched', path) is not None:
         field_key = 'fieldRA'
     else:
         field_key = 'fieldID'
