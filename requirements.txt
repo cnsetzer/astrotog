@@ -1,4 +1,4 @@
-# Dependencies list for astrog
+# Dependencies list for astrotog
 
 dependencies:
   - astropy>=3.0
@@ -8,6 +8,7 @@ dependencies:
   - pandas>=0.23.0
   - scipy>=1.0.0
   - opsimsummary
+  - Cadence
   - seaborn>=0.8.1
 
   - pip:
