@@ -16,7 +16,6 @@ import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
 # Set seed for reproduceability
 np.random.seed(12345)
 
@@ -459,7 +458,7 @@ if __name__ == "__main__":
     intermediate_filter4 = None
 
     process_param_data = afunc.param_observe_detect(process_param_data, process_obs_data, detected_observations)
-    process_param_data = afunc.determine_ddf_transients(sim_inst, process_param_data)
+    # process_param_data = afunc.determine_ddf_transients(sim_inst, process_param_data)
 
     # Gather up all data to root
     coadded_observations.dropna(inplace=True)
