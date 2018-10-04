@@ -649,17 +649,17 @@ def determine_ddf_transients(simulation, params):
     ddf_dec = []
     for field in list(cadence[field_key].unique()):
         if re.search('minion', path) is None:
-            ddf_ra.append(np.deg2rad(cadence.query('{0} == {1}'.format(field_key,field))['fieldRA'].unique()))
-            ddf_dec.append(np.deg2rad(cadence.query('{0} == {1}'.format(field_key,field))['fieldDec'].unique()))
+            ddf_ra.append(np.deg2rad(cadence.query('{0} == {1}'.format(field_key,field))['fieldRA'].unique().values))
+            ddf_dec.append(np.deg2rad(cadence.query('{0} == {1}'.format(field_key,field))['fieldDec'].unique().values))
         else:
-            ddf_ra.append(cadence.query('{0} == {1}'.format(field_key,field))['fieldRA'].unique())
-            ddf_dec.append(cadence.query('{0} == {1}'.format(field_key,field))['fieldDec'].unique())
+            ddf_ra.append(cadence.query('{0} == {1}'.format(field_key,field))['fieldRA'].unique().values)
+            ddf_dec.append(cadence.query('{0} == {1}'.format(field_key,field))['fieldDec'].unique().values)
 
     ids_in_ddf = []
     num_ddf_fields = len(list(cadence[field_key].unique()))
     for i in range(num_ddf_fields):
-        field_ra = ddf_ra[i]
-        field_dec = ddf_dec[i]
+        field_ra = np.asscalar(np.mean(ddf_ra[i]))
+        field_dec = np.asscalar(np.mean(ddf_dec[i]))
         inter1 = params.query('ra - {0} <= {1} & {0} - ra <= {1}'.format(field_ra,field_rad))
         inter2 = inter1.query('dec - {0} <= {1} & {0} - dec <= {1}'.format(field_dec,field_rad))
         for index, row in inter2.iterrows():
