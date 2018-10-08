@@ -48,16 +48,16 @@ if __name__ == "__main__":
         instrument_class_name = 'lsst'
         survey_version = 'lsstv4'
         cadence_flags = 'combined'  # Currently use default in class
-        transient_model_name = 'scolnic_kilonova'
+        transient_model_name = 'rosswog_kilonova'
         detect_type = ['scolnic_detections', 'scolnic_like_detections', 'scolnic_detections_no_coadd', 'scolnic_like_detections_no_coadd']  # ['detect'], ['scolnic_detections'], or multiple
-        seds_path = '/share/data1/csetzer/kilonova_seds/scolnic_decam/DECAMGemini_SED.txt'
-        cadence_path = '/share/data1/csetzer/lsst_cadences/astro-lsst-01_2039.db'
+        seds_path = '/share/data1/csetzer/kilonova_seds/rosswog_numerical/NSNS/winds'
+        cadence_path = '/share/data1/csetzer/lsst_cadences/colossus_2683.db'
         cadence_ra_col = '_ra'
         cadence_dec_col = '_dec'
         throughputs_path = '/share/data1/csetzer/lsst/throughputs/lsst'
         reference_flux_path = '/share/data1/csetzer/lsst/throughputs/references'
         efficiency_table_path = '/home/csetzer/software/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'
-        run_dir = 'lsst_scolnic_astro_2039_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
+        run_dir = 'lsst_rosswog_colossus_2683_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
         output_path = '/share/data1/csetzer/lsst_kne_sims_outputs/' + run_dir + '/'
 
         # Define filters for detections
