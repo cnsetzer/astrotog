@@ -110,7 +110,7 @@ class ztf(survey):
         self.detect_table = eft.fromDES_EfficiencyFile(response_path)
 
 
-class rosswog_kilonova(kilonova):
+class saee_kilonova(kilonova):
     """
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     semi-analytic model for kilonovae spectral energy distributions.
@@ -315,7 +315,7 @@ class kasen_kilonova(kilonova):
         self.phase, self.wave, self.flux = SED_FUNCTION()
 
 
-class scolnic_kilonova(kilonova):
+class desgw_kilonova(kilonova):
     """
     Top-level class for kilonovae transients based on Scolnic, et. al 2017
     model for kilonovae spectral energy distribution mimicing the GW170817

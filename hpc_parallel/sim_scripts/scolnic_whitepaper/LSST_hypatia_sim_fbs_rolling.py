@@ -46,18 +46,18 @@ if __name__ == "__main__":
         z_min = 0.0  # Given if you want to simulate shells
         rate = 1000  # Rate in events per GPC^3 per restframe time
         instrument_class_name = 'lsst'
-        survey_version = 'sstf'
+        survey_version = 'lsstv4'
         cadence_flags = 'combined'  # Currently use default in class
-        transient_model_name = 'saee_kilonova'
+        transient_model_name = 'desgw_kilonova'
         detect_type = ['scolnic_detections', 'scolnic_like_detections', 'scolnic_detections_no_coadd', 'scolnic_like_detections_no_coadd']  # ['detect'], ['scolnic_detections'], or multiple
-        seds_path = '/share/data1/csetzer/kilonova_seds/rosswog_numerical/NSNS/winds'
-        cadence_path = '/share/data1/csetzer/lsst_cadences/alt_sched_rolling.db'
+        seds_path = '/share/data1/csetzer/kilonova_seds/scolnic_decam/DECAMGemini_SED.txt'
+        cadence_path = '/share/data1/csetzer/lsst_cadences/rolling_10yrs_opsim.db'
         cadence_ra_col = '_ra'
         cadence_dec_col = '_dec'
         throughputs_path = '/share/data1/csetzer/lsst/throughputs/lsst'
         reference_flux_path = '/share/data1/csetzer/lsst/throughputs/references'
         efficiency_table_path = '/home/csetzer/software/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'
-        run_dir = 'lsst_rosswog_alt_sched_rolling_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
+        run_dir = 'lsst_scolnic_fbs_rolling_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
         output_path = '/share/data1/csetzer/lsst_kne_sims_outputs/' + run_dir + '/'
 
         # Define filters for detections
@@ -458,7 +458,7 @@ if __name__ == "__main__":
     intermediate_filter4 = None
 
     process_param_data = afunc.param_observe_detect(process_param_data, process_obs_data, detected_observations)
-#    process_param_data = afunc.determine_ddf_transients(sim_inst, process_param_data)
+    # process_param_data = afunc.determine_ddf_transients(sim_inst, process_param_data)
 
     # Gather up all data to root
     coadded_observations.dropna(inplace=True)
