@@ -38,7 +38,7 @@ def sed_timeseries(luminosity, separated=False):
     ####################
     x_cut = 100.              # cut value for Planck function argument
     t_start_d = 1.e-4             # start time [d]
-    t_end_d = 30.               # end time [d]
+    t_end_d = 50.               # end time [d]
     delta_dex = 0.05              # spacing of time grid in log10 space
 
     # time grid parameters
