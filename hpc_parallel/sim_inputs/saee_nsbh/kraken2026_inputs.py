@@ -6,10 +6,10 @@ import numpy as np
 batch_mp_workers = 2
 verbose = True
 batch_size = 50  # can also be set to 'all'
-dithers = False
-desc_dithers = False
+dithers = True
+desc_dithers = True
 add_dithers = False
-cadence_has_nulls = True
+cadence_has_nulls = False
 same_dist = True
 min_dec = np.deg2rad(-90.0)
 max_dec = np.deg2rad(30.0)
@@ -21,19 +21,19 @@ z_bin_size = 0.04  # Binning for redshift distribution histogram
 z_min = 0.0  # Given if you want to simulate shells
 rate = 200  # Rate in events per GPC^3 per restframe time
 instrument_class_name = 'lsst'
-survey_version = 'sstf'
+survey_version = 'lsstv4'
 cadence_flags = 'combined'  # Currently use default in class
 transient_model_name = 'saee_nsbh'
 detect_type = ['scolnic_detections', 'scolnic_like_detections', 'scolnic_detections_no_coadd', 'scolnic_like_detections_no_coadd']  # ['detect'], ['scolnic_detections'], or multiple
 seds_path = '/share/data1/csetzer/kilonova_seds/scolnic_decam/DECAMGemini_SED.txt'
-cadence_path = '/share/data1/csetzer/lsst_cadences/alt_sched_rolling.db'
-dither_path = '/share/data1/csetzer/lsst_cadences/descDithers_alt_sched_rolling.csv'
+cadence_path = '/share/data1/csetzer/lsst_cadences/kraken_2026.db'
+dither_path = '/share/data1/csetzer/lsst_cadences/descDithers_kraken_2026.csv'
 cadence_ra_col = '_ra'
 cadence_dec_col = '_dec'
 throughputs_path = '/share/data1/csetzer/lsst/throughputs/lsst'
 reference_flux_path = '/share/data1/csetzer/lsst/throughputs/references'
 efficiency_table_path = '/home/csetzer/software/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'
-run_dir = 'lsst_saee_nsbh_alt_sched_rolling_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
+run_dir = 'lsst_saee_nsbh_kraken2026_' + datetime.datetime.now().strftime('%d%m%y_%H%M%S')
 output_path = '/share/data1/csetzer/lsst_kne_sims_outputs/' + run_dir + '/'
 
 # Define filters for detections

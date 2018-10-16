@@ -288,21 +288,40 @@ class survey(object):
         """
         self.col_dec = simulation.dec_col
         self.col_ra = simulation.ra_col
-
-        # Given a prescribed survey simulation get basic properties of the
-        # simulation. Currently assume a rectangular (in RA,DEC) solid angle on
-        # the sky
-        # Note that the values are assumed to be in radians
         min_db = self.cadence.min()
         max_db = self.cadence.max()
-        # Need to extend by FOV
-        self.min_ra = min_db[self.col_ra]
-        self.max_ra = max_db[self.col_ra]
-        self.min_dec = min_db[self.col_dec]
-        self.max_dec = max_db[self.col_dec]
+        if simulation.same_dist is True:
+            self.min_ra = 0.0
+            self.max_ra = 2.0*np.pi
+            if simulation.min_dec < np.deg2rad(-90.0)+self.FOV_radius:
+                self.min_dec = simulation.min_dec
+            else:
+                self.min_dec = simulation.min_dec - self.FOV_radius
+            if simulation.max_dec < np.deg2rad(90.0)-self.FOV_radius:
+                self.max_dec = simulation.max_dec
+            else:
+                self.max_dec = simulation.max_dec + self.FOV_radius
+        else:
+            # Given a prescribed survey simulation get basic properties of the
+            # simulation. Currently assume a rectangular (in RA,DEC) solid angle on
+            # the sky
+            # Note that the values are assumed to be in radians
+            self.min_ra = min_db[self.col_ra]
+            if self.min_ra > 0.0 + self.FOV_radius:
+                self.min_ra = self.min_ra - self.FOV_radius
+            self.max_ra = max_db[self.col_ra]
+            if self.max_ra < 2.0*np.pi - self.FOV_radius:
+                self.max_ra = self.max_ra + self.FOV_radius
+            self.min_dec = min_db[self.col_dec]
+            if self.min_dec > -np.pi/2.0 + self.FOV_radius:
+                self.min_dec = self.min_dec - self.FOV_radius
+            self.max_dec = max_db[self.col_dec] + self.FOV_radius
+            if self.max_dec < np.pi/2.0 - self.FOV_radius:
+                self.max_dec = self.max_dec + self.FOV_radius
+
         # Survey area in degrees squared
         self.survey_area = np.rad2deg(np.sin(self.max_dec) - np.sin(self.min_dec))*np.rad2deg(self.max_ra - self.min_ra)
-        self.min_mjd = min_db['expMJD']
+        self.min_mjd = min_db['expMJD'] - ((1+simulation.z_max)*simulation.transient_duration)
         self.max_mjd = max_db['expMJD']
         self.survey_time = self.max_mjd - self.min_mjd  # Survey time in days
 

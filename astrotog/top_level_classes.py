@@ -22,7 +22,8 @@ class simulation(object):
                  add_dithers=False, t_before=30.0, t_after=30.0,
                  response_path=None, instrument=None, ra_col='_ra',
                  dec_col='_dec', filter_null=False, desc_dithers=False,
-                 dither_path=cadence_path):
+                 dither_path=cadence_path, same_dist=False, min_dec=-np.pi/2.0,
+                 max_dec=np.pi/6.0, trans_duration=30.0):
         self.cadence_path = cadence_path
         self.throughputs_path = throughputs_path
         self.reference_path = reference_path
@@ -45,6 +46,11 @@ class simulation(object):
         self.dec_col = dec_col
         self.filter_null = filter_null
         self.desc_dithers = desc_dithers
+        self.dither_path = dither_path
+        self.same_dist = same_dist
+        self.min_dec = min_dec
+        self.max_dec = max_dec
+        self.transient_duration = trans_duration
 
 
 class lsst(survey):
@@ -104,7 +110,7 @@ class ztf(survey):
         self.dust_corrections = {'u': 4.145, 'g': 3.237, 'r': 2.273,
                                  'i': 1.684, 'z': 1.323, 'y': 1.088}
 
-        self.utc_offset = 0.0 #Specify the UTC offset in hours INCLUDE the +/-
+        self.utc_offset = -3.0 #Specify the UTC offset in hours INCLUDE the +/-
         self.response_function(simulation.response_path)
         super().__init__(simulation)
 
@@ -112,7 +118,7 @@ class ztf(survey):
         self.detect_table = eft.fromDES_EfficiencyFile(response_path)
 
 
-class saee_kilonova(kilonova):
+class saee_nsns(kilonova):
     """
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     semi-analytic model for kilonovae spectral energy distributions.
@@ -317,7 +323,7 @@ class kasen_kilonova(kilonova):
         self.phase, self.wave, self.flux = SED_FUNCTION()
 
 
-class desgw_kilonova(kilonova):
+class desgw_kne(kilonova):
     """
     Top-level class for kilonovae transients based on Scolnic, et. al 2017
     model for kilonovae spectral energy distribution mimicing the GW170817
