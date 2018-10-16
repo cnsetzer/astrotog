@@ -3,7 +3,7 @@ import sys
 import numpy as np
 from subprocess import Popen
 
-n_seeds = sys.argv[1]
+n_seeds = np.int(sys.argv[1])
 input_paths = []
 
 for i in range(len(sys.argv) - 1):
