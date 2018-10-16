@@ -6,8 +6,8 @@ from subprocess import Popen
 n_seeds = np.int(sys.argv[1])
 input_paths = []
 
-for i in range(len(sys.argv) - 1):
-    input_paths.append(sys.argv[i+1])
+for i in range(len(sys.argv) - 2):
+    input_paths.append(sys.argv[i+2])
 
 if n_seeds > 1:
     seeds = np.random.randint(low=int(pow(n_seeds, 4)), size=n_seeds).tolist()
