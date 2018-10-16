@@ -21,7 +21,8 @@ class simulation(object):
                  rate_gpc=1000, dithers=True, simversion='lsstv4',
                  add_dithers=False, t_before=30.0, t_after=30.0,
                  response_path=None, instrument=None, ra_col='_ra',
-                 dec_col='_dec', filter_null=False):
+                 dec_col='_dec', filter_null=False, desc_dithers=False,
+                 dither_path=cadence_path):
         self.cadence_path = cadence_path
         self.throughputs_path = throughputs_path
         self.reference_path = reference_path
@@ -43,6 +44,7 @@ class simulation(object):
         self.ra_col = ra_col
         self.dec_col = dec_col
         self.filter_null = filter_null
+        self.desc_dithers = desc_dithers
 
 
 class lsst(survey):
@@ -334,3 +336,99 @@ class desgw_kilonova(kilonova):
 
     def make_sed(self, path):
         self.phase, self.wave, self.flux = sncosmo.read_griddata_ascii(path)
+
+
+class saee_nsbh(kilonova):
+    """
+    Top-level class for kilonovae transients based on Rosswog, et. al 2017
+    semi-analytic model for kilonovae spectral energy distributions.
+    """
+    def __init__(self, mej=None, vej=None, kappa=None, bounds=None,
+                 uniform_v=True, KNE_parameters=None, parameter_dist=False,
+                 num_samples=1, probability=0.5):
+        self.num_params = 3
+        if parameter_dist is True:
+            if num_samples > 1:
+                self.pre_dist_params = True
+                self.number_of_samples = num_samples
+                self.draw_parameters(bounds, uniform_v, probability)
+            else:
+                print('To generate a parameter distribution you need to supply\
+                        a number of samples greater than one.')
+                exit()
+            self.subtype = 'saee'
+            self.type = 'parameter distribution'
+        else:
+            self.number_of_samples = num_samples
+            if (mej and vej and kappa):
+                self.param1 = mej
+                self.param1_name = 'm_ej'
+                self.param2 = vej
+                self.param2_name = 'v_ej'
+                self.param3 = kappa
+                self.param3_name = 'kappa'
+            elif KNE_parameters:
+                pass
+            else:
+                self.draw_parameters(bounds, uniform_v, probability)
+            self.make_sed(KNE_parameters)
+            self.subtype = 'saee'
+            super().__init__()
+
+    def draw_parameters(self, bounds=None, uniform_v=False, probability=0.5):
+        # Set the parameter names
+        self.param1_name = 'm_ej'
+        self.param2_name = 'v_ej'
+        self.param3_name = 'kappa'
+
+        if bounds is not None:
+            kappa_min = min(bounds['kappa'])
+            kappa_max = max(bounds['kappa'])
+            mej_min = min(bounds['m_ej'])
+            mej_max = max(bounds['m_ej'])
+            vej_min = min(bounds['v_ej'])
+            vej_max = max(bounds['v_ej'])
+            probability = bounds['orientation_probability']
+        else:
+            kappa = 10.0
+            mej_min = 0.1
+            mej_max = 0.2
+            vej_min = 0.2
+            vej_max = 0.25
+
+        # Determine output shape for parameters based on size
+        if self.number_of_samples > 1:
+            out_shape = (self.number_of_samples, 1)
+        else:
+            out_shape = self.number_of_samples
+
+        self.param3 = np.ones(shape=out_shape)*kappa
+        self.param1 = np.random.uniform(low=mej_min, high=mej_max,
+                                        size=out_shape)
+        if uniform_v is False:
+            self.param2 = np.random.uniform(low=vej_min,
+                                            high=vej_max*pow(self.param1/mej_min,
+                                            np.log10(0.25/vej_max)/np.log10(mej_max/mej_min)),
+                                            size=out_shape)
+        else:
+            self.param2 = np.random.uniform(low=vej_min, high=vej_max,
+                                            size=out_shape)
+
+    def make_sed(self, KNE_parameters=None):
+        if KNE_parameters is None:
+            KNE_parameters = []
+            KNE_parameters.append(0.00001157)
+            KNE_parameters.append(50.0)
+            KNE_parameters.append(self.param1)
+            KNE_parameters.append(self.param2)
+            KNE_parameters.append(1.3)
+            KNE_parameters.append(0.25)
+            KNE_parameters.append(1.0)
+            KNE_parameters.append(self.param3)
+            KNE_parameters.append(150.0)
+            # Not reading heating rates from file so feed fortran dummy
+            # variables
+            KNE_parameters.append(False)
+            KNE_parameters.append('dummy string')
+        self.phase, self.wave, self.flux = mw(KNE_parameters,
+                                              separated=True)

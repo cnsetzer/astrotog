@@ -23,7 +23,6 @@ print Fout <<EMP;
 #PBS -q $queue
 #PBS -l nodes=$num:ppn=$ppn
 #PBS -r n
-#PBS -j oe
 #PBS -k oe
 module purge
 module load python

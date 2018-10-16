@@ -3,6 +3,7 @@ import os
 import re
 import numpy as np
 import warnings
+import pandas as pd
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 from astropy.constants import c as speed_of_light_ms
 import sncosmo
@@ -138,10 +139,25 @@ class survey(object):
         vers = simulation.version
         add_dith = simulation.add_dithers
         null_option = simulation.filter_null
-        self.cadence = oss.OpSimOutput.fromOpSimDB(path, subset=flag,
-                                                   opsimversion=vers,
-                                                   add_dithers=add_dith,
-                                                   filterNull=null_option).summary
+
+        if simulation.dithers is True:
+            if simulation.desc_dithers is True:
+                dither_table = pd.read_csv(simulation.dither_path)
+                dither_table.rename(inplace=True, axis='columns', mapper={'observationdId':'obsHistID', 'descDitheredRA':'ditheredRA', 'descDitheredDec':'ditheredDec'})
+                dither_table.set_index('obsHistID', inplace=True)
+            else:
+                dither_table = pd.read_csv(simulation.dither_path, index_col=0)
+
+            self.cadence = oss.OpSimOutput.fromOpSimDB(path, subset=flag,
+                                                       opsimversion=vers,
+                                                       add_dithers=add_dith,
+                                                       dithercolumns=dither_table,
+                                                       filterNull=null_option).summary
+        else:
+            self.cadence = oss.OpSimOutput.fromOpSimDB(path, subset=flag,
+                                                       opsimversion=vers,
+                                                       add_dithers=add_dith,
+                                                       filterNull=null_option).summary
 
     def get_throughputs(self, simulation):
         """
