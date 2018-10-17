@@ -1,7 +1,7 @@
 import os
 import sys
 import numpy as np
-from subprocess import Popen
+from subprocess import Popen, PIPE
 
 n_seeds = np.int(sys.argv[1])
 input_paths = []
