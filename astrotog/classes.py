@@ -293,14 +293,26 @@ class survey(object):
         if simulation.same_dist is True:
             self.min_ra = 0.0
             self.max_ra = 2.0*np.pi
-            if simulation.min_dec < np.deg2rad(-90.0)+self.FOV_radius:
-                self.min_dec = simulation.min_dec
+            if min_db[self.col_dec] < simulation.min_dec:
+                if min_db[self.col_dec] < np.deg2rad(-90.0) + self.FOV_radius:
+                    self.min_dec = min_db[self.col_dec]
+                else:
+                    self.min_dec = min_db[self.col_dec] - self.FOV_radius
             else:
-                self.min_dec = simulation.min_dec - self.FOV_radius
-            if simulation.max_dec < np.deg2rad(90.0)-self.FOV_radius:
-                self.max_dec = simulation.max_dec
+                if simulation.min_dec < np.deg2rad(-90.0)+self.FOV_radius:
+                    self.min_dec = simulation.min_dec
+                else:
+                    self.min_dec = simulation.min_dec - self.FOV_radius
+            if max_db[self.col_dec] > simulation.max_dec:
+                if max_db[self.col_dec] > np.deg2rad(90.0)-self.FOV_radius:
+                    self.max_dec = max_db[self.col_dec]
+                else:
+                    self.max_dec = max_db[self.col_dec] + self.FOV_radius
             else:
-                self.max_dec = simulation.max_dec + self.FOV_radius
+                if simulation.max_dec > np.deg2rad(90.0)-self.FOV_radius:
+                    self.max_dec = simulation.max_dec
+                else:
+                    self.max_dec = simulation.max_dec + self.FOV_radius
         else:
             # Given a prescribed survey simulation get basic properties of the
             # simulation. Currently assume a rectangular (in RA,DEC) solid angle on
