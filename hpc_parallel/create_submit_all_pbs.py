@@ -57,5 +57,6 @@ for input_path in input_paths:
             '''.format(job_name, cwd, user, input_file, seed)
             p.stdin.write(job_string.encode(encoding='utf_8'))
             p.stdin.close()
-            print(p.stdout.read())
+            out_bytes = p.stdout.read()
+            print(out_bytes.decode('utf_8'))
             p.wait()
