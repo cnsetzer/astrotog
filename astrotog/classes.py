@@ -143,7 +143,7 @@ class survey(object):
         if simulation.dithers is True:
             if simulation.desc_dithers is True:
                 dither_table = pd.read_csv(simulation.dither_path)
-                dither_table.rename(inplace=True, axis='columns', mapper={'observationdId':'obsHistID', 'descDitheredRA':'ditheredRA', 'descDitheredDec':'ditheredDec'})
+                dither_table.rename(inplace=True, axis='columns', mapper={'observationId':'obsHistID', 'descDitheredRA':'ditheredRA', 'descDitheredDec':'ditheredDec'})
                 dither_table.set_index('obsHistID', inplace=True)
             else:
                 dither_table = pd.read_csv(simulation.dither_path, index_col=0)
