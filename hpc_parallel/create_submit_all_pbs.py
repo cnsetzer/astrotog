@@ -24,7 +24,7 @@ for input_path in input_paths:
             job_name = input_path.split(sep='/')[1] + '_' + inp.replace('_inputs.py', '')
             input_fpath = input_path + inp
             input_file = input_fpath.replace('/', '.')
-            p = Popen('qsub')
+            p = Popen('qsub', stdin=PIPE, stdout=PIPE, close_fds=True, start_new_session=True, shell=False)
             job_string = '''#!/bin/bash --norc
             #PBS -S /bin/bash
             #PBS -V
