@@ -54,7 +54,7 @@ for input_path in input_paths:
 
             mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH --machinefile $PBS_NODEFILE python simulation_pipeline.py {3} {4}
             '''.format(job_name, cwd, user, input_file, seed)
-            p.stdin.write(job_string)
+            p.stdin.write(job_string.encode(encoding='utf_8'))
             p.stdin.close()
             print(p.stdout.read())
             p.wait()
