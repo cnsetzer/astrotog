@@ -15,14 +15,15 @@ class simulation(object):
     """
     Top-level class that represents the desired run_simulation
     """
-    def __init__(self, cadence_path, throughputs_path, reference_path, z_max,
-                 output_path='.', cadence_flags='combined', z_min=0.0,
+    def __init__(self, cadence_path, dither_path, throughputs_path,
+                 reference_path, z_max, output_path='.',
+                 cadence_flags='combined', z_min=0.0,
                  z_bin_size=0.01, batch_size='all', cosmology=cosmo,
                  rate_gpc=1000, dithers=True, simversion='lsstv4',
                  add_dithers=False, t_before=30.0, t_after=30.0,
                  response_path=None, instrument=None, ra_col='_ra',
                  dec_col='_dec', filter_null=False, desc_dithers=False,
-                 dither_path=cadence_path, same_dist=False, min_dec=-np.pi/2.0,
+                 same_dist=False, min_dec=-np.pi/2.0,
                  max_dec=np.pi/6.0, trans_duration=30.0):
         self.cadence_path = cadence_path
         self.throughputs_path = throughputs_path
