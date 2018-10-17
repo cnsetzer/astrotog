@@ -50,7 +50,10 @@ if __name__ == "__main__":
                                         instrument=instrument_class_name,
                                         filter_null=cadence_has_nulls,
                                         desc_dithers=desc_dithers,
-                                        dither_path=dither_path)
+                                        dither_path=dither_path,
+                                        same_dist=same_dist, min_dec=min_dec,
+                                        max_dec=max_dec,
+                                        trans_duration=transient_duration)
         survey = getattr(atopclass, instrument_class_name)(sim_inst)
         transient_dist = aclasses.transient_distribution(survey, sim_inst)
         tran_param_dist = getattr(atopclass, transient_model_name)(parameter_dist=True,
@@ -209,6 +212,7 @@ if __name__ == "__main__":
         print('\nLaunching multiprocess pool of {} workers per MPI core.'.format(batch_mp_workers))
         print('The batch processing will now begin.')
         t0 = time.time()
+        t_mod1 = t0
 
     if size > 1:
         comm.barrier()
@@ -294,15 +298,19 @@ if __name__ == "__main__":
             # Write computaiton time estimates
             print('Batch {0} complete of {1} batches.'.format(i+1, num_batches))
             t1 = time.time()
-            delta_t = int(((t1-t0)/(i+1))*((num_params_pprocess-(i+1)*current_batch_size)/(batch_size)) + 0.11045*transient_dist.number_simulated)
+            delta_t = int(((t1-t0)/(i+1))*((num_params_pprocess-(i+1)*current_batch_size)/(batch_size)) + 0.015*transient_dist.number_simulated)
             print('Estimated time remaining is: {}'.format(datetime.timedelta(seconds=delta_t)))
+
+    if rank == 0 and verbose:
+        t_mod2 = time.time()
+        print('\nEstimated time for generating and observing the transients per transient is: {}'.format((t_mod2-t_mod1)/transient_dist.number_simulated))
 
     # Empty arrays as no longer needed
     sky_loc_array = None
     param_array = None
     # Now process observations for detections and other information
     if rank == 0 and verbose:
-        print('Processing transients for alert triggers.')
+        print('\nProcessing transients for alert triggers.')
     stored_obs_data = afunc.efficiency_process(survey, stored_obs_data)
 
     # Process the pandas dataframes for output and shared usage
