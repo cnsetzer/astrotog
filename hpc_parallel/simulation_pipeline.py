@@ -19,6 +19,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 # Set seed for reproduceability
 np.random.seed(np.int(sys.argv[2]))
+pd.options.mode.chained_assignment = None # None|'warn'|'raise'
 
 # Execute parallel script only if used as the main script
 if __name__ == "__main__":
