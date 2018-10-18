@@ -68,9 +68,12 @@ def flux_to_mag(bandflux, bandflux_ref):
     return np.asscalar(magnitude)
 
 
-def flux_noise(bandflux, bandflux_error):
+def flux_noise(bandflux, bandflux_error, seed):
+    state = np.random.get_state()
+    np.random.seed(seed)
     # Add gaussian noise to the true bandflux
     new_bandflux = np.random.normal(loc=bandflux, scale=bandflux_error)
+    np.random.set_state(state)
     if new_bandflux <= 0.0:
         new_bandflux = 1.0e-50
     return new_bandflux
@@ -136,7 +139,7 @@ def observe(table_columns, transient, survey):
                                                survey.reference_flux_response[band])
             extinct_mag_error = magnitude_error(extinct_bandflux, flux_error,
                                                 survey.reference_flux_response[band])
-            inst_flux = flux_noise(extinct_bandflux, flux_error)
+            inst_flux = flux_noise(extinct_bandflux, flux_error, transient.id)
             inst_mag = flux_to_mag(inst_flux,
                                    survey.reference_flux_response[band])
             inst_mag_error = magnitude_error(inst_flux, flux_error,
@@ -365,7 +368,7 @@ def other_observations(survey, param_df, t_before, t_after, other_obs_columns):
             fivesigma = row['fiveSigmaDepth']
             flux_error = bandflux_error(fivesigma,
                                         survey.reference_flux_response[band])
-            inst_flux = flux_noise(0.0, flux_error)
+            inst_flux = flux_noise(0.0, flux_error, param_df.at[0, 'transient_id'])
             inst_mag = flux_to_mag(inst_flux,
                                    survey.reference_flux_response[band])
             inst_mag_error = magnitude_error(inst_flux, flux_error,
@@ -403,6 +406,9 @@ def efficiency_process(survey, obs_df):
     """
     eff_col = pd.DataFrame(columns=['alert'])
     for iter, row in obs_df.iterrows():
+
+        state = np.random.get_state()
+        np.random.seed(seed=row['transient_id'])
         snr = row['signal_to_noise']
         if snr >= 50.0:
             eff_col.at[iter, 'alert'] = True
@@ -413,6 +419,8 @@ def efficiency_process(survey, obs_df):
                 eff_col.at[iter, 'alert'] = True
             else:
                 eff_col.at[iter, 'alert'] = False
+        np.random.set_state(state)
+
     if 'alert' not in obs_df.columns:
         obs_df = obs_df.join(eff_col)
     else:

@@ -50,7 +50,10 @@ class transient(object):
     def peculiar_velocity(self):
         # Draw from gaussian peculiar velocity distribution with width 300km/s
         # Hui and Greene (2006)
+        state = np.random.get_state()
+        np.random.seed(seed=self.id)
         self.peculiar_vel = np.random.normal(loc=0, scale=300)
+        np.random.set_state(state)
         self.obs_z = (1 + self.z)*(np.sqrt((1 + (self.peculiar_vel/speed_of_light_kms))/((1 - (self.peculiar_vel/speed_of_light_kms))))) - 1.0
 
     def extend_sed_waves(self):
