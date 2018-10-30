@@ -189,10 +189,13 @@ class saee_nsns(kilonova):
         self.param1 = np.random.uniform(low=mej_min, high=mej_max,
                                         size=out_shape)
         if uniform_v is False:
-            self.param2 = np.random.uniform(low=vej_min,
-                                            high=vej_max*pow(self.param1/mej_min,
-                                            np.log10(0.25/vej_max)/np.log10(mej_max/mej_min)),
-                                            size=out_shape)
+            self.param2 = 1.1*np.ones(shape=out_shape)
+            ind = np.where(self.param2 > vej_max*pow(self.param1/mej_min, np.log10(0.25/vej_max)/np.log10(mej_max/mej_min)))
+            while len(ind) > 0:
+                int_shape = shape(self.param2[ind])
+                self.param2[ind] = np.random.uniform(low=vej_min, high=vej_max,
+                                                size=int_shape)
+                ind = np.where(self.param2 > vej_max*pow(self.param1/mej_min, np.log10(0.25/vej_max)/np.log10(mej_max/mej_min)))
         else:
             self.param2 = np.random.uniform(low=vej_min, high=vej_max,
                                             size=out_shape)
@@ -398,9 +401,9 @@ class saee_nsbh(kilonova):
             probability = bounds['orientation_probability']
         else:
             kappa = 10.0
-            mej_min = 0.1
+            mej_min = 0.05
             mej_max = 0.2
-            vej_min = 0.2
+            vej_min = 0.1
             vej_max = 0.25
 
         # Determine output shape for parameters based on size
@@ -413,10 +416,13 @@ class saee_nsbh(kilonova):
         self.param1 = np.random.uniform(low=mej_min, high=mej_max,
                                         size=out_shape)
         if uniform_v is False:
-            self.param2 = np.random.uniform(low=vej_min,
-                                            high=vej_max*pow(self.param1/mej_min,
-                                            np.log10(0.25/vej_max)/np.log10(mej_max/mej_min)),
-                                            size=out_shape)
+            self.param2 = 1.1*np.ones(shape=out_shape)
+            ind = np.where(self.param2 > vej_max*pow(self.param1/mej_min, np.log10(0.25/vej_max)/np.log10(mej_max/mej_min)))
+            while len(ind) > 0:
+                int_shape = shape(self.param2[ind])
+                self.param2[ind] = np.random.uniform(low=vej_min, high=vej_max,
+                                                size=int_shape)
+                ind = np.where(self.param2 > vej_max*pow(self.param1/mej_min, np.log10(0.25/vej_max)/np.log10(mej_max/mej_min)))
         else:
             self.param2 = np.random.uniform(low=vej_min, high=vej_max,
                                             size=out_shape)
