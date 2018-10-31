@@ -7,8 +7,8 @@ import numpy as np
 batch_mp_workers = 2
 verbose = True
 batch_size = 50  # can also be set to 'all'
-dithers = True
-desc_dithers = True
+dithers = False
+desc_dithers = False
 add_dithers = False
 cadence_has_nulls = False
 same_dist = True
@@ -22,11 +22,11 @@ t_after = 40.0
 z_max = 0.5  # Maximum redshift depth for simulation
 z_bin_size = 0.04  # Binning for redshift distribution histogram
 z_min = 0.0  # Given if you want to simulate shells
-rate = 300  # Rate in events per GPC^3 per restframe time
+rate = 1000  # Rate in events per GPC^3 per restframe time
 instrument_class_name = "lsst"
 survey_version = "lsstv4"
 cadence_flags = "combined"  # Currently use default in class
-transient_model_name = "saee_nsbh"
+transient_model_name = "desgw_kne"
 detect_type = [
     "scolnic_detections",
     "scolnic_like_detections",
@@ -34,8 +34,8 @@ detect_type = [
     "scolnic_like_detections_no_coadd",
 ]  # ['detect'], ['scolnic_detections'], or multiple
 seds_path = "/share/data1/csetzer/kilonova_seds/scolnic_decam/DECAMGemini_SED.txt"
-dither_path = "/share/data1/csetzer/lsst_cadences/descDithers_astro-lsst-01_2039.csv"
-cadence_path = "/share/data1/csetzer/lsst_cadences/astro-lsst-01_2039.db"
+cadence_path = "/share/data1/csetzer/lsst_cadences/pontus_2573.db"
+dither_path = "/share/data1/csetzer/lsst_cadences/descDithers_pontus_2573.csv"
 cadence_ra_col = "_ra"
 cadence_dec_col = "_dec"
 throughputs_path = "/share/data1/csetzer/lsst/throughputs/lsst"
@@ -43,7 +43,7 @@ reference_flux_path = "/share/data1/csetzer/lsst/throughputs/references"
 efficiency_table_path = (
     "/home/csetzer/software/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT"
 )
-run_dir = "lsst_saee_nsbh_astro_2039_" + datetime.datetime.now().strftime(
+run_dir = "lsst_desgw_kne_pontus2573_" + datetime.datetime.now().strftime(
     "%d%m%y_%H%M%S"
 )
 output_path = "/share/data1/csetzer/lsst_kne_sims_outputs/" + run_dir + "/"
