@@ -22,6 +22,8 @@ MODULE macronova_Pinto_eastman_CNS
   !                   with MNe observations *
   !                   simulation code       *
   !                                         *
+  !   CNS 31.10.2018: vectorize the code    *
+  !                                         *
   ! ===> read-in heating-rate file MUST BE  *
   !      WITHOUT EFFICIENCY FACTORS         *
   !                                         *
@@ -37,15 +39,15 @@ MODULE macronova_Pinto_eastman_CNS
 
   CONTAINS
 
-  SUBROUTINE macronova(np, parameters, read_hrate, heating_rates_file, Nt, luminosity)
+  SUBROUTINE macronova(N_tran, np, parameters, read_hrate, heating_rates_file, Nt, luminosity)
 
       IMPLICIT NONE
       !--------------------------!
       !-----  I/O parameters ----!
       !--------------------------!
-      INTEGER, INTENT(IN) :: np, Nt
-      DOUBLE PRECISION, INTENT(IN) :: parameters(np)
-      DOUBLE PRECISION, INTENT(OUT) :: luminosity(Nt+1,4)
+      INTEGER, INTENT(IN) :: N_tran, np, Nt
+      DOUBLE PRECISION, INTENT(IN) :: parameters(np, N_tran)
+      DOUBLE PRECISION, INTENT(OUT) :: luminosity(Nt+1,4,N_tran)
       LOGICAL, INTENT(IN) :: read_hrate
       CHARACTER*255, INTENT(IN) :: heating_rates_file
 
