@@ -2,6 +2,7 @@ import os
 import re
 import numpy as np
 import warnings
+
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 import sncosmo
 from astropy.cosmology import Planck15 as cosmo
@@ -15,16 +16,37 @@ class simulation(object):
     """
     Top-level class that represents the desired run_simulation
     """
-    def __init__(self, cadence_path, dither_path, throughputs_path,
-                 reference_path, z_max, output_path='.',
-                 cadence_flags='combined', z_min=0.0,
-                 z_bin_size=0.01, batch_size='all', cosmology=cosmo,
-                 rate_gpc=1000, dithers=True, simversion='lsstv4',
-                 add_dithers=False, t_before=30.0, t_after=30.0,
-                 response_path=None, instrument=None, ra_col='_ra',
-                 dec_col='_dec', filter_null=False, desc_dithers=False,
-                 same_dist=False, min_dec=-np.pi/2.0,
-                 max_dec=np.pi/6.0, trans_duration=30.0):
+
+    def __init__(
+        self,
+        cadence_path,
+        dither_path,
+        throughputs_path,
+        reference_path,
+        z_max,
+        output_path=".",
+        cadence_flags="combined",
+        z_min=0.0,
+        z_bin_size=0.01,
+        batch_size="all",
+        cosmology=cosmo,
+        rate_gpc=1000,
+        dithers=True,
+        simversion="lsstv4",
+        add_dithers=False,
+        t_before=30.0,
+        t_after=30.0,
+        response_path=None,
+        instrument=None,
+        ra_col="_ra",
+        dec_col="_dec",
+        filter_null=False,
+        desc_dithers=False,
+        same_dist=False,
+        min_dec=-np.pi / 2.0,
+        max_dec=np.pi / 6.0,
+        trans_duration=30.0,
+    ):
         self.cadence_path = cadence_path
         self.throughputs_path = throughputs_path
         self.reference_path = reference_path
@@ -58,16 +80,22 @@ class lsst(survey):
     """
     Top-level class for the LSST instrument and survey.
     """
+
     def __init__(self, simulation):
 
         self.FOV_radius = np.deg2rad(1.75)
-        self.instrument = 'lsst'
-        self.magsys = 'ab'
-        self.filters = ['u', 'g', 'r',
-                        'i', 'z', 'y']
-        self.dust_corrections = {'u': 4.145, 'g': 3.237, 'r': 2.273,
-                                 'i': 1.684, 'z': 1.323, 'y': 1.088}
-        self.utc_offset = -3.0 #Specify the UTC offset in hours INCLUDE the +/-
+        self.instrument = "lsst"
+        self.magsys = "ab"
+        self.filters = ["u", "g", "r", "i", "z", "y"]
+        self.dust_corrections = {
+            "u": 4.145,
+            "g": 3.237,
+            "r": 2.273,
+            "i": 1.684,
+            "z": 1.323,
+            "y": 1.088,
+        }
+        self.utc_offset = -3.0  # Specify the UTC offset in hours INCLUDE the +/-
         self.response_function(simulation.response_path)
         super().__init__(simulation)
 
@@ -79,17 +107,23 @@ class wfirst(survey):
     """
     Top-level class for the LSST instrument and survey.
     """
+
     def __init__(self, simulation):
 
         self.FOV_radius = np.deg2rad(1.75)
-        self.instrument = 'wfirst'
-        self.magsys = 'ab'
-        self.filters = ['u', 'g', 'r',
-                        'i', 'z', 'y']
-        self.dust_corrections = {'u': 4.145, 'g': 3.237, 'r': 2.273,
-                                 'i': 1.684, 'z': 1.323, 'y': 1.088}
+        self.instrument = "wfirst"
+        self.magsys = "ab"
+        self.filters = ["u", "g", "r", "i", "z", "y"]
+        self.dust_corrections = {
+            "u": 4.145,
+            "g": 3.237,
+            "r": 2.273,
+            "i": 1.684,
+            "z": 1.323,
+            "y": 1.088,
+        }
 
-        self.utc_offset = 0.0 #Specify the UTC offset in hours INCLUDE the +/-
+        self.utc_offset = 0.0  # Specify the UTC offset in hours INCLUDE the +/-
         self.response_function(simulation.response_path)
         super().__init__(simulation)
 
@@ -101,17 +135,23 @@ class ztf(survey):
     """
     Top-level class for the LSST instrument and survey.
     """
+
     def __init__(self, simulation):
 
         self.FOV_radius = np.deg2rad(1.75)
-        self.instrument = 'wfirst'
-        self.magsys = 'ab'
-        self.filters = ['u', 'g', 'r',
-                        'i', 'z', 'y']
-        self.dust_corrections = {'u': 4.145, 'g': 3.237, 'r': 2.273,
-                                 'i': 1.684, 'z': 1.323, 'y': 1.088}
+        self.instrument = "wfirst"
+        self.magsys = "ab"
+        self.filters = ["u", "g", "r", "i", "z", "y"]
+        self.dust_corrections = {
+            "u": 4.145,
+            "g": 3.237,
+            "r": 2.273,
+            "i": 1.684,
+            "z": 1.323,
+            "y": 1.088,
+        }
 
-        self.utc_offset = -3.0 #Specify the UTC offset in hours INCLUDE the +/-
+        self.utc_offset = -3.0  # Specify the UTC offset in hours INCLUDE the +/-
         self.response_function(simulation.response_path)
         super().__init__(simulation)
 
@@ -124,9 +164,19 @@ class saee_nsns(kilonova):
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     semi-analytic model for kilonovae spectral energy distributions.
     """
-    def __init__(self, mej=None, vej=None, kappa=None, bounds=None,
-                 uniform_v=False, KNE_parameters=None, parameter_dist=False,
-                 num_samples=1, probability=0.5):
+
+    def __init__(
+        self,
+        mej=None,
+        vej=None,
+        kappa=None,
+        bounds=None,
+        uniform_v=False,
+        KNE_parameters=None,
+        parameter_dist=False,
+        num_samples=1,
+        probability=0.5,
+    ):
         self.num_params = 3
         if parameter_dist is True:
             if num_samples > 1:
@@ -134,42 +184,44 @@ class saee_nsns(kilonova):
                 self.number_of_samples = num_samples
                 self.draw_parameters(bounds, uniform_v, probability)
             else:
-                print('To generate a parameter distribution you need to supply\
-                        a number of samples greater than one.')
+                print(
+                    "To generate a parameter distribution you need to supply\
+                        a number of samples greater than one."
+                )
                 exit()
-            self.subtype = 'rosswog semi-analytic'
-            self.type = 'parameter distribution'
+            self.subtype = "rosswog semi-analytic"
+            self.type = "parameter distribution"
         else:
             self.number_of_samples = num_samples
-            if (mej and vej and kappa):
+            if mej and vej and kappa:
                 self.param1 = mej
-                self.param1_name = 'm_ej'
+                self.param1_name = "m_ej"
                 self.param2 = vej
-                self.param2_name = 'v_ej'
+                self.param2_name = "v_ej"
                 self.param3 = kappa
-                self.param3_name = 'kappa'
+                self.param3_name = "kappa"
             elif KNE_parameters:
                 pass
             else:
                 self.draw_parameters(bounds, uniform_v, probability)
             self.make_sed(KNE_parameters)
-            self.subtype = 'rosswog semi-analytic'
+            self.subtype = "rosswog semi-analytic"
             super().__init__()
 
     def draw_parameters(self, bounds=None, uniform_v=False, probability=0.5):
         # Set the parameter names
-        self.param1_name = 'm_ej'
-        self.param2_name = 'v_ej'
-        self.param3_name = 'kappa'
+        self.param1_name = "m_ej"
+        self.param2_name = "v_ej"
+        self.param3_name = "kappa"
 
         if bounds is not None:
-            kappa_min = min(bounds['kappa'])
-            kappa_max = max(bounds['kappa'])
-            mej_min = min(bounds['m_ej'])
-            mej_max = max(bounds['m_ej'])
-            vej_min = min(bounds['v_ej'])
-            vej_max = max(bounds['v_ej'])
-            probability = bounds['orientation_probability']
+            kappa_min = min(bounds["kappa"])
+            kappa_max = max(bounds["kappa"])
+            mej_min = min(bounds["m_ej"])
+            mej_max = max(bounds["m_ej"])
+            vej_min = min(bounds["v_ej"])
+            vej_max = max(bounds["v_ej"])
+            probability = bounds["orientation_probability"]
         else:
             # Set to default values from Rosswog's paper
             kappa_min = 1.0
@@ -185,20 +237,39 @@ class saee_nsns(kilonova):
         else:
             out_shape = self.number_of_samples
 
-        self.param3 = np.random.binomial(1, probability, size=out_shape)*(kappa_max - kappa_min) + kappa_min
-        self.param1 = np.random.uniform(low=mej_min, high=mej_max,
-                                        size=out_shape)
+        self.param3 = (
+            np.random.binomial(1, probability, size=out_shape) * (kappa_max - kappa_min)
+            + kappa_min
+        )
+        self.param1 = np.random.uniform(low=mej_min, high=mej_max, size=out_shape)
         if uniform_v is False:
-            self.param2 = 1.1*np.ones(shape=out_shape)
-            ind = np.where(self.param2 > vej_max*pow(self.param1/mej_min, np.log10(0.25/vej_max)/np.log10(mej_max/mej_min)))
-            while len(ind) > 0:
-                int_shape = shape(self.param2[ind])
-                self.param2[ind] = np.random.uniform(low=vej_min, high=vej_max,
-                                                size=int_shape)
-                ind = np.where(self.param2 > vej_max*pow(self.param1/mej_min, np.log10(0.25/vej_max)/np.log10(mej_max/mej_min)))
+            self.param2 = 1.1 * np.ones(shape=out_shape)
+            ind = np.where(
+                self.param2
+                > vej_max
+                * pow(
+                    self.param1 / mej_min,
+                    np.log10(0.25 / vej_max) / np.log10(mej_max / mej_min),
+                )
+            )
+            while len(ind[0]) > 0:
+                int_shape = np.shape(self.param2[ind])
+                self.param2[ind] = np.random.uniform(
+                    low=vej_min, high=vej_max, size=int_shape
+                )
+                self.param1[ind] = np.random.uniform(
+                    low=mej_min, high=mej_max, size=int_shape
+                )
+                ind = np.where(
+                    self.param2
+                    > vej_max
+                    * pow(
+                        self.param1 / mej_min,
+                        np.log10(0.25 / vej_max) / np.log10(mej_max / mej_min),
+                    )
+                )
         else:
-            self.param2 = np.random.uniform(low=vej_min, high=vej_max,
-                                            size=out_shape)
+            self.param2 = np.random.uniform(low=vej_min, high=vej_max, size=out_shape)
 
     def make_sed(self, KNE_parameters=None):
         if KNE_parameters is None:
@@ -215,9 +286,8 @@ class saee_nsns(kilonova):
             # Not reading heating rates from file so feed fortran dummy
             # variables
             KNE_parameters.append(False)
-            KNE_parameters.append('dummy string')
-        self.phase, self.wave, self.flux = mw(KNE_parameters,
-                                              separated=True)
+            KNE_parameters.append("dummy string")
+        self.phase, self.wave, self.flux = mw(KNE_parameters, separated=True)
 
 
 class rosswog_numerical_kilonova(kilonova):
@@ -225,22 +295,22 @@ class rosswog_numerical_kilonova(kilonova):
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     numerically generated kilonovae spectral energy distributions.
     """
-    def __init__(self, path=None, singleSED=None, parameter_dist=False,
-                 num_samples=1):
+
+    def __init__(self, path=None, singleSED=None, parameter_dist=False, num_samples=1):
         self.number_of_samples = num_samples
         self.num_params = 3
         self.pre_dist_params = False
-        self.param1_name = 'm_ej'
-        self.param2_name = 'v_ej'
-        self.param3_name = 'kappa'
+        self.param1_name = "m_ej"
+        self.param2_name = "v_ej"
+        self.param3_name = "kappa"
 
         if parameter_dist is True:
-            self.subtype = 'rosswog numerical'
-            self.type = 'parameter distribution'
+            self.subtype = "rosswog numerical"
+            self.type = "parameter distribution"
 
         else:
             self.make_sed(path, singleSED)
-            self.subtype = 'rosswog numerical'
+            self.subtype = "rosswog numerical"
             super().__init__()
 
     def make_sed(self, path, singleSED):
@@ -250,11 +320,11 @@ class rosswog_numerical_kilonova(kilonova):
             # Randomly select SED
             rindex = np.random.randint(low=0, high=len(fl))
             filei = fl[rindex]
-            filename = path + '/' + filei
-            fileio = open(filename, 'r')
+            filename = path + "/" + filei
+            fileio = open(filename, "r")
         else:
             filename = path
-            fileio = open(filename, 'r')
+            fileio = open(filename, "r")
         self.SED_header_params(fileio)
         fileio.close()
         # Read in SEDS data with sncosmo tools
@@ -282,11 +352,12 @@ class metzger_kilonova(kilonova):
     model for kilonovae spectral energy distribution mimicing the GW170817
     event.
     """
+
     def __init__(self, parameter_dist=False, num_samples=1):
         self.number_of_samples = num_samples
         self.num_params = 0
         self.make_sed()
-        self.subtype = 'rosswog semi-analytic'
+        self.subtype = "rosswog semi-analytic"
         super().__init__()
 
     def make_sed(self):
@@ -299,11 +370,12 @@ class cowperthwaite_kilonova(kilonova):
     model for kilonovae spectral energy distribution mimicing the GW170817
     event.
     """
+
     def __init__(self, parameter_dist=False, num_samples=1):
         self.number_of_samples = num_samples
         self.num_params = 0
         self.make_sed()
-        self.subtype = 'rosswog semi-analytic'
+        self.subtype = "rosswog semi-analytic"
         super().__init__()
 
     def make_sed(self):
@@ -316,11 +388,12 @@ class kasen_kilonova(kilonova):
     model for kilonovae spectral energy distribution mimicing the GW170817
     event.
     """
+
     def __init__(self, parameter_dist=False, num_samples=1):
         self.number_of_samples = num_samples
         self.num_params = 0
         self.make_sed()
-        self.subtype = 'rosswog semi-analytic'
+        self.subtype = "rosswog semi-analytic"
         super().__init__()
 
     def make_sed(self):
@@ -333,13 +406,14 @@ class desgw_kne(kilonova):
     model for kilonovae spectral energy distribution mimicing the GW170817
     event.
     """
+
     def __init__(self, path=None, parameter_dist=False, num_samples=1):
         self.number_of_samples = num_samples
         self.num_params = 0
         self.pre_dist_params = False
-        self.subtype = 'scolnic empirical'
+        self.subtype = "scolnic empirical"
         if parameter_dist is True:
-            self.type = 'parameter distribution'
+            self.type = "parameter distribution"
         else:
             self.make_sed(path)
             super().__init__()
@@ -353,9 +427,19 @@ class saee_nsbh(kilonova):
     Top-level class for kilonovae transients based on Rosswog, et. al 2017
     semi-analytic model for kilonovae spectral energy distributions.
     """
-    def __init__(self, mej=None, vej=None, kappa=None, bounds=None,
-                 uniform_v=True, KNE_parameters=None, parameter_dist=False,
-                 num_samples=1, probability=0.5):
+
+    def __init__(
+        self,
+        mej=None,
+        vej=None,
+        kappa=None,
+        bounds=None,
+        uniform_v=True,
+        KNE_parameters=None,
+        parameter_dist=False,
+        num_samples=1,
+        probability=0.5,
+    ):
         self.num_params = 3
         if parameter_dist is True:
             if num_samples > 1:
@@ -363,42 +447,44 @@ class saee_nsbh(kilonova):
                 self.number_of_samples = num_samples
                 self.draw_parameters(bounds, uniform_v, probability)
             else:
-                print('To generate a parameter distribution you need to supply\
-                        a number of samples greater than one.')
+                print(
+                    "To generate a parameter distribution you need to supply\
+                        a number of samples greater than one."
+                )
                 exit()
-            self.subtype = 'saee'
-            self.type = 'parameter distribution'
+            self.subtype = "saee"
+            self.type = "parameter distribution"
         else:
             self.number_of_samples = num_samples
-            if (mej and vej and kappa):
+            if mej and vej and kappa:
                 self.param1 = mej
-                self.param1_name = 'm_ej'
+                self.param1_name = "m_ej"
                 self.param2 = vej
-                self.param2_name = 'v_ej'
+                self.param2_name = "v_ej"
                 self.param3 = kappa
-                self.param3_name = 'kappa'
+                self.param3_name = "kappa"
             elif KNE_parameters:
                 pass
             else:
                 self.draw_parameters(bounds, uniform_v, probability)
             self.make_sed(KNE_parameters)
-            self.subtype = 'saee'
+            self.subtype = "saee"
             super().__init__()
 
     def draw_parameters(self, bounds=None, uniform_v=False, probability=0.5):
         # Set the parameter names
-        self.param1_name = 'm_ej'
-        self.param2_name = 'v_ej'
-        self.param3_name = 'kappa'
+        self.param1_name = "m_ej"
+        self.param2_name = "v_ej"
+        self.param3_name = "kappa"
 
         if bounds is not None:
-            kappa_min = min(bounds['kappa'])
-            kappa_max = max(bounds['kappa'])
-            mej_min = min(bounds['m_ej'])
-            mej_max = max(bounds['m_ej'])
-            vej_min = min(bounds['v_ej'])
-            vej_max = max(bounds['v_ej'])
-            probability = bounds['orientation_probability']
+            kappa_min = min(bounds["kappa"])
+            kappa_max = max(bounds["kappa"])
+            mej_min = min(bounds["m_ej"])
+            mej_max = max(bounds["m_ej"])
+            vej_min = min(bounds["v_ej"])
+            vej_max = max(bounds["v_ej"])
+            probability = bounds["orientation_probability"]
         else:
             kappa = 10.0
             mej_min = 0.05
@@ -412,20 +498,36 @@ class saee_nsbh(kilonova):
         else:
             out_shape = self.number_of_samples
 
-        self.param3 = np.ones(shape=out_shape)*kappa
-        self.param1 = np.random.uniform(low=mej_min, high=mej_max,
-                                        size=out_shape)
+        self.param3 = np.ones(shape=out_shape) * kappa
+        self.param1 = np.random.uniform(low=mej_min, high=mej_max, size=out_shape)
         if uniform_v is False:
-            self.param2 = 1.1*np.ones(shape=out_shape)
-            ind = np.where(self.param2 > vej_max*pow(self.param1/mej_min, np.log10(0.25/vej_max)/np.log10(mej_max/mej_min)))
-            while len(ind) > 0:
-                int_shape = shape(self.param2[ind])
-                self.param2[ind] = np.random.uniform(low=vej_min, high=vej_max,
-                                                size=int_shape)
-                ind = np.where(self.param2 > vej_max*pow(self.param1/mej_min, np.log10(0.25/vej_max)/np.log10(mej_max/mej_min)))
+            self.param2 = 1.1 * np.ones(shape=out_shape)
+            ind = np.where(
+                self.param2
+                > vej_max
+                * pow(
+                    self.param1 / mej_min,
+                    np.log10(0.25 / vej_max) / np.log10(mej_max / mej_min),
+                )
+            )
+            while len(ind[0]) > 0:
+                int_shape = np.shape(self.param2[ind])
+                self.param2[ind] = np.random.uniform(
+                    low=vej_min, high=vej_max, size=int_shape
+                )
+                self.param1[ind] = np.random.uniform(
+                    low=mej_min, high=mej_max, size=int_shape
+                )
+                ind = np.where(
+                    self.param2
+                    > vej_max
+                    * pow(
+                        self.param1 / mej_min,
+                        np.log10(0.25 / vej_max) / np.log10(mej_max / mej_min),
+                    )
+                )
         else:
-            self.param2 = np.random.uniform(low=vej_min, high=vej_max,
-                                            size=out_shape)
+            self.param2 = np.random.uniform(low=vej_min, high=vej_max, size=out_shape)
 
     def make_sed(self, KNE_parameters=None):
         if KNE_parameters is None:
@@ -442,6 +544,5 @@ class saee_nsbh(kilonova):
             # Not reading heating rates from file so feed fortran dummy
             # variables
             KNE_parameters.append(False)
-            KNE_parameters.append('dummy string')
-        self.phase, self.wave, self.flux = mw(KNE_parameters,
-                                              separated=True)
+            KNE_parameters.append("dummy string")
+        self.phase, self.wave, self.flux = mw(KNE_parameters, separated=True)
