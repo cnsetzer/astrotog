@@ -14,7 +14,7 @@ if n_seeds > 1:
         4294967295, size=n_seeds
     ).tolist()  # chose seeds within the range [0,max unsigned integer i.e. 4,294,967,295).
 else:
-    seeds = [1234567890]
+    seeds = [123456]
 
 cwd = os.getcwd()
 user = cwd.split(sep="/")[1]

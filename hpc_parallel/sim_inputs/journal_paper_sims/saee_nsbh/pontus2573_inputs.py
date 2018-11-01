@@ -21,7 +21,7 @@ transient_duration = (
 )  # in days used to select time before survey to begin injecting transients
 t_before = 30.0
 t_after = 30.0
-z_max = 0.5  # Maximum redshift depth for simulation
+z_max = 0.75  # Maximum redshift depth for simulation
 z_bin_size = 0.04  # Binning for redshift distribution histogram
 z_min = 0.0  # Given if you want to simulate shells
 rate = 300  # Rate in events per GPC^3 per restframe time
