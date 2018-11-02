@@ -50,8 +50,8 @@ for input_path in input_paths:
             #PBS -k oe
             module purge
             module load python
-            module load mpi/mvapich/2-2.3b
             source activate astrotog_hpc
+            module load mpi/mvapich/2-2.3b
             cd {1}
 
             echo $PBS_O_WORKDIR
