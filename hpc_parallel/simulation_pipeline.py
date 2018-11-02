@@ -37,7 +37,10 @@ if __name__ == "__main__":
         print("\nThe random seed for this sample is: {}".format(seed))
 
         t_start = time.time()
-        os.system("clear")
+        if size == 1:
+            os.system("clear")
+        else:
+            print("\n ")
 
         exec("from {} import *".format(sys.argv[1]))
 
