@@ -442,7 +442,7 @@ if __name__ == "__main__":
         output_params = stored_param_data
         output_other_observations = stored_other_obs_data
 
-    if rank == 0:
+    if rank == 0 and save_all_output is True:
         if verbose:
             print("\nWriting out parameters and observations to {}".format(output_path))
         if not os.path.exists(output_path):
@@ -632,7 +632,8 @@ if __name__ == "__main__":
             print(
                 "Outputting coadded observations, scolnic detections, parameters modified with observed, alerted, and detected flags, and the redshift distribution."
             )
-        output_coadd.to_csv(output_path + "coadded_observations.csv")
+        if save_all_output is True:
+            output_coadd.to_csv(output_path + "coadded_observations.csv")
         output_detections.to_csv(output_path + "scolnic_detections.csv")
         output_detections2.to_csv(output_path + "scolnic_detections_no_coadd.csv")
         output_detections3.to_csv(output_path + "scolnic_like_detections.csv")
