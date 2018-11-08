@@ -4,9 +4,10 @@ import numpy as np
 # ----------------------------------------------------------------------
 # Section that user can edit to tailor simulation
 # ----------------------------------------------------------------------
+save_all_output = False
 batch_mp_workers = 2
 verbose = True
-batch_size = 50  # can also be set to 'all'
+batch_size = 100  # can also be set to 'all'
 dithers = False  # external dithers
 desc_dithers = False  # are these external dithers DESC format dithers
 add_dithers = False
@@ -14,15 +15,15 @@ cadence_has_nulls = False
 same_dist = (
     True
 )  # Flag to set largest distribution so that this is equal over all cadences
-min_dec = np.deg2rad(-90.0)
-max_dec = np.deg2rad(30.0)
+min_dec = np.deg2rad(-85.0)
+max_dec = np.deg2rad(25.0)
 transient_duration = (
     50.0
 )  # in days used to select time before survey to begin injecting transients
-t_before = 30.0
-t_after = 30.0
+t_before = 21.0
+t_after = 21.0
 z_max = 0.75  # Maximum redshift depth for simulation
-z_bin_size = 0.04  # Binning for redshift distribution histogram
+z_bin_size = 0.02  # Binning for redshift distribution histogram
 z_min = 0.0  # Given if you want to simulate shells
 rate = 1000  # Rate in events per GPC^3 per restframe time
 instrument_class_name = "lsst"
