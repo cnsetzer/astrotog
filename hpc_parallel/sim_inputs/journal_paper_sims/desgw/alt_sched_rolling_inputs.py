@@ -33,6 +33,10 @@ detect_type = [
     "scolnic_like_detections",
     "scolnic_detections_no_coadd",
     "scolnic_like_detections_no_coadd",
+    "cowperthwaite_detections",
+    "cowperthwaite_like_detections",
+    "cowperthwaite_detections_no_coadd",
+    "cowperthwaite_like_detections_no_coadd",
 ]  # ['detect'], ['scolnic_detections'], or multiple
 seds_path = "/share/data1/csetzer/kilonova_seds/scolnic_decam/DECAMGemini_SED.txt"
 cadence_path = "/share/data1/csetzer/lsst_cadences/alt_sched_rolling.db"
