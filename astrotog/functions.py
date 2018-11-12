@@ -488,13 +488,11 @@ def efficiency_process(survey, obs_df):
     return obs_df
 
 
-def scolnic_detections(param_df, obs_df, other_obs_df):
+def scolnic_detections(obs_df, other_obs_df, alerts=False):
     detected_transients = []
-    for iter, row in param_df.iterrows():
-        t_obs_df = obs_df.query("transient_id == {}".format(row["transient_id"]))
-        t_other_obs_df = other_obs_df.query(
-            "transient_id == {}".format(row["transient_id"])
-        )
+    for tid in obs_df["transient_id"].unique():
+        t_obs_df = obs_df.query("transient_id == {}".format(tid))
+        t_other_obs_df = other_obs_df.query("transient_id == {}".format(tid))
 
         # Bool flags to pass for transient to be a Scolnic detection
         step_one = False
@@ -512,22 +510,36 @@ def scolnic_detections(param_df, obs_df, other_obs_df):
                     and step_one is False
                 ):
                     step_one = True
+                    break
+            if step_one is True:
+                break
+
+        # Skip the rest of the checks if step one does not pass
+        if step_one is False:
+            continue
 
         # Step two, reject SN backgrounds
-        snr5_df = t_obs_df.query("signal_to_noise >= 5.0")
+        if alerts is True:
+            det_df = alert_df
+        else:
+            det_df = t_obs_df.query("signal_to_noise >= 5.0")
         # Criteria One
-        if len(list(snr5_df["bandfilter"].unique())) >= 2:
+        if len(list(det_df["bandfilter"].unique())) >= 2:
             step_two_cr1 = True
+        else:
+            continue
 
-        min_snr5_df = snr5_df.min()
-        max_snr5_df = snr5_df.max()
+        min_det_df = det_df.min()
+        max_det_df = det_df.max()
 
-        first_snr5 = min_snr5_df["mjd"]
-        last_snr5 = max_snr5_df["mjd"]
+        first_snr5 = min_det_df["mjd"]
+        last_snr5 = max_det_df["mjd"]
 
         # Criteria Two
-        if (last_snr5 - first_snr5) < 25.0:
+        if (last_snr5 - first_snr5) <= 25.0:
             step_two_cr2 = True
+        else:
+            continue
 
         # Criteria Three and Four
         for iter3, row3 in t_obs_df.iterrows():
@@ -543,6 +555,8 @@ def scolnic_detections(param_df, obs_df, other_obs_df):
                 and step_two_cr4 is False
             ):
                 step_two_cr4 = True
+            if step_two_cr3 is True and step_two_cr4 is True:
+                break
 
         for iter3, row3 in t_other_obs_df.iterrows():
             if (
@@ -557,91 +571,8 @@ def scolnic_detections(param_df, obs_df, other_obs_df):
                 and step_two_cr4 is False
             ):
                 step_two_cr4 = True
-
-        # record the transients which have been detected
-        if (
-            step_one is True
-            and step_two_cr1 is True
-            and step_two_cr2 is True
-            and step_two_cr3 is True
-            and step_two_cr4 is True
-        ):
-            detected_transients.append(row["transient_id"])
-
-    scolnic_detections = obs_df[obs_df["transient_id"].isin(detected_transients)]
-
-    return scolnic_detections
-
-
-def scolnic_like_detections(param_df, obs_df, other_obs_df):
-    detected_transients = []
-    for iter, row in param_df.iterrows():
-        t_obs_df = obs_df.query("transient_id == {}".format(row["transient_id"]))
-        t_other_obs_df = other_obs_df.query(
-            "transient_id == {}".format(row["transient_id"])
-        )
-
-        # Bool flags to pass for transient to be a Scolnic detection
-        step_one = False
-        step_two_cr1 = False
-        step_two_cr2 = False
-        step_two_cr3 = False
-        step_two_cr4 = False
-
-        # Step one, trigger simulation
-        alert_df = t_obs_df.query("alert == True")
-        for iter3, row3 in alert_df.iterrows():
-            for iter4, row4 in alert_df.iterrows():
-                if (
-                    abs(row3["mjd"] - row4["mjd"]) >= 0.020833333333333
-                    and step_one is False
-                ):
-                    step_one = True
-
-        # Step two, reject SN backgrounds
-        snr5_df = alert_df
-        # Criteria One
-        if len(list(snr5_df["bandfilter"].unique())) >= 2:
-            step_two_cr1 = True
-
-        min_snr5_df = snr5_df.min()
-        max_snr5_df = snr5_df.max()
-
-        first_snr5 = min_snr5_df["mjd"]
-        last_snr5 = max_snr5_df["mjd"]
-
-        # Criteria Two
-        if (last_snr5 - first_snr5) < 25.0:
-            step_two_cr2 = True
-
-        # Criteria Three and Four
-        for iter3, row3 in t_obs_df.iterrows():
-            if (
-                (first_snr5 - row3["mjd"]) > 0
-                and (first_snr5 - row3["mjd"]) <= 20.0
-                and step_two_cr3 is False
-            ):
-                step_two_cr3 = True
-            if (
-                (row3["mjd"] - last_snr5) > 0
-                and (row3["mjd"] - last_snr5) <= 20.0
-                and step_two_cr4 is False
-            ):
-                step_two_cr4 = True
-
-        for iter3, row3 in t_other_obs_df.iterrows():
-            if (
-                (first_snr5 - row3["mjd"]) > 0
-                and (first_snr5 - row3["mjd"]) <= 20.0
-                and step_two_cr3 is False
-            ):
-                step_two_cr3 = True
-            if (
-                (row3["mjd"] - last_snr5) > 0
-                and (row3["mjd"] - last_snr5) <= 20.0
-                and step_two_cr4 is False
-            ):
-                step_two_cr4 = True
+            if step_two_cr3 is True and step_two_cr4 is True:
+                break
 
         # record the transients which have been detected
         if (
@@ -918,11 +849,11 @@ def cowperthwaite_detections(obs_df, alerts=False):
 
     detected_transients = []
 
-    for id in obs_df["transient_id"].unique():
+    for tid in obs_df["transient_id"].unique():
         step_one = False
         step_two = False
 
-        sobs = obs_df.query("transient_id == {}".format(id))
+        sobs = obs_df.query("transient_id == {}".format(tid))
         if alerts:
             det_df = sobs.query("alert == True")
             if len(det_df) < 3:
@@ -945,7 +876,7 @@ def cowperthwaite_detections(obs_df, alerts=False):
                 step_two = True
 
         if step_one is True and step_two is True:
-            detected_transients.append(id)
+            detected_transients.append(tid)
 
     cow_det = obs_df[obs_df["transient_id"].isin(detected_transients)]
 
