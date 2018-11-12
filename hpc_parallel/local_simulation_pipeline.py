@@ -21,7 +21,6 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 # Set seed for reproduceability
-print(sys.argv)
 seed = np.int(sys.argv[2])
 np.random.seed(seed)
 pd.options.mode.chained_assignment = None  # None|'warn'|'raise'

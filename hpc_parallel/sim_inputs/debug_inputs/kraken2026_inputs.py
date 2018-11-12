@@ -4,7 +4,7 @@ import numpy as np
 # ----------------------------------------------------------------------
 # Section that user can edit to tailor simulation
 # ----------------------------------------------------------------------
-save_all_output = False
+save_all_output = True
 batch_mp_workers = 2
 verbose = True
 batch_size = 100  # can also be set to 'all'
@@ -20,7 +20,7 @@ transient_duration = (
 )  # in days used to select time before survey to begin injecting transients
 t_before = 21.0
 t_after = 21.0
-z_max = 0.1  # Maximum redshift depth for simulation
+z_max = 0.075  # Maximum redshift depth for simulation
 z_bin_size = 0.02  # Binning for redshift distribution histogram
 z_min = 0.0  # Given if you want to simulate shells
 rate = 1000  # Rate in events per GPC^3 per restframe time
