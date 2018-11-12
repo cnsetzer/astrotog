@@ -911,3 +911,17 @@ def determine_ddf_transients(simulation, params):
     params = params.join(subset_df)
 
     return params
+
+
+def cowperthwaite_detections(param_df, obs_df, alerts=False):
+    """
+    Function to compute the number of kilonovae which pass the detection criteria
+    put forth by Cowperthwaite et al. 2018.
+
+    Inputs:
+    param_df: pandas dataFrame
+        A dataframe listing
+
+    """
+
+    return
