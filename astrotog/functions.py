@@ -446,7 +446,8 @@ def other_observations(survey, param_df, t_before, t_after, other_obs_columns):
 
 
 def class_method_in_pool(class_instance, method_str, method_args):
-    return getattr(class_instance, method_str)(*method_args)
+    return_var = getattr(class_instance, method_str)(*method_args)
+    return return_var
 
 
 def extend_args_list(list1, list2):
