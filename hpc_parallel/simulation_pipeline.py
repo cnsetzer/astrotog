@@ -392,7 +392,10 @@ if __name__ == "__main__":
             t1 = time.time()
             delta_t = int(
                 ((t1 - t0) / (i + 1))
-                * ((num_params_pprocess - (i + 1) * current_batch_size) / (batch_size))
+                * (
+                    (num_params_pprocess - (i * batch_size + current_batch_size))
+                    / (batch_size)
+                )
                 + 0.015 * transient_dist.number_simulated
             )
             print(
@@ -442,16 +445,17 @@ if __name__ == "__main__":
         output_params = stored_param_data
         output_other_observations = stored_other_obs_data
 
-    if rank == 0 and save_all_output is True:
+    if rank == 0:
         if verbose:
             print("\nWriting out parameters and observations to {}".format(output_path))
         if not os.path.exists(output_path):
             os.makedirs(output_path)
-        # output_params.to_csv(output_path + 'parameters.csv')
-        output_observations.to_csv(output_path + "observations.csv")
-        output_other_observations.to_csv(output_path + "other_observations.csv")
-        if verbose:
-            print("Finished writing observation results.")
+        if save_all_output is True:
+            # output_params.to_csv(output_path + 'parameters.csv')
+            output_observations.to_csv(output_path + "observations.csv")
+            output_other_observations.to_csv(output_path + "other_observations.csv")
+            if verbose:
+                print("Finished writing observation results.")
 
     stored_obs_data = output_observations
     stored_param_data = output_params
