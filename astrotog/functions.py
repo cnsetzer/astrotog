@@ -911,3 +911,41 @@ def determine_ddf_transients(simulation, params):
     params = params.join(subset_df)
 
     return params
+
+
+def cowperthwaite_detections(obs_df, alerts=False):
+
+    detected_transients = []
+
+    for id in obs_df["transient_id"].unique():
+        step_one = False
+        step_two = False
+
+        sobs = obs_df.query("transient_id == {}".format(id))
+        if alerts:
+            det_df = sobs.query("alert == True")
+            if len(det_df) < 3:
+                continue
+            else:
+                step_one = True
+            if len(det_df["bandfilter"].unique()) <= len(det_df["mjd"]):
+                continue
+            else:
+                step_two = True
+        else:
+            det_df = sobs.query("signal_to_noise >= 5")
+            if len(sobs.query(det_df)) < 3:
+                continue
+            else:
+                step_one = True
+            if len(det_df["bandfilter"].unique()) <= len(det_df["mjd"]):
+                continue
+            else:
+                step_two = True
+
+        if step_one is True and step_two is True:
+            detected_transients.append(id)
+
+    cow_det = obs_df[obs_df["transient_id"].isin(detected_transients)]
+
+    return cow_det
