@@ -39,18 +39,18 @@ class transient(object):
         return self
 
     def redshift(self, cosmo):
-        lumdist = cosmo.luminosity_distance(self.z).value * 1e6  # in pc
-        amp = pow(np.divide(10.0, lumdist), 2)
+        # lumdist = cosmo.luminosity_distance(self.z).value * 1e6  # in pc
+        # amp = pow(np.divide(10.0, lumdist), 2)
         # Note that it is necessary to scale the amplitude relative to the 10pc
         # (i.e. 10^2 in the following eqn.) placement of the SED currently
         self.model.set(z=self.obs_z)
-        self.model.set(amplitude=amp)
+        # self.model.set(amplitude=amp)
 
         # Current working around for issue with amplitude...
-        # mapp = cosmo.distmod(self.z).value + self.model.source_peakmag(
-        #    "lsstz", "ab", sampling=0.1
-        # )
-        # self.model.set_source_peakmag(m=mapp, band="lsstz", magsys="ab", sampling=0.1)
+        mapp = cosmo.distmod(self.z).value + self.model.source_peakmag(
+            "lsstz", "ab", sampling=0.1
+        )
+        self.model.set_source_peakmag(m=mapp, band="lsstz", magsys="ab", sampling=0.1)
 
     def peculiar_velocity(self):
         # Draw from gaussian peculiar velocity distribution with width 300km/s
