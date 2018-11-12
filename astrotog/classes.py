@@ -36,6 +36,13 @@ class transient(object):
         self.peculiar_velocity()
         self.redshift(cosmo)
         self.tmax = t + self.model.maxtime()
+
+        print(
+            "Debug: The peak apparent magnitude in lsstz is {}".format(
+                self.model.source_peakmag("lsstz", "ab", sampling=0.1)
+            )
+        )
+
         return self
 
     def redshift(self, cosmo):
