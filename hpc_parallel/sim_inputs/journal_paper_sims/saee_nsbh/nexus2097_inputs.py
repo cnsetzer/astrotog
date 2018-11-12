@@ -4,7 +4,7 @@ import numpy as np
 # ----------------------------------------------------------------------
 # Section that user can edit to tailor simulation
 # ----------------------------------------------------------------------
-save_all_output = False
+save_all_output = True
 batch_mp_workers = 2
 verbose = True
 batch_size = 100  # can also be set to 'all'
