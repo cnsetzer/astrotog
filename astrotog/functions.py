@@ -845,7 +845,7 @@ def determine_ddf_transients(simulation, params):
     return params
 
 
-def cowperthwaite_detections(param_df, obs_df, alerts=False):
+def cowperthwaite_detections(obs_df, alerts=False):
     """
     Function to compute the number of kilonovae which pass the detection criteria
     put forth by Cowperthwaite et al. 2018.
@@ -853,7 +853,8 @@ def cowperthwaite_detections(param_df, obs_df, alerts=False):
     Inputs:
     param_df: pandas dataFrame
         A dataframe listing
-
+    """
+    detected_transients = []
     for tid in obs_df["transient_id"].unique():
         step_one = False
         step_two = False

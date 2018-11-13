@@ -565,7 +565,7 @@ if __name__ == "__main__":
                     "Processing coadded observations for detections in line with Cowperthwaite et. al 2018."
                 )
             intermediate_filter5 = getattr(afunc, "cowperthwaite_detections")(
-                coadded_observations, process_other_obs_data
+                coadded_observations
             )
         elif type == "cowperthwaite_detections_no_coadd":
             if rank == 0 and verbose:
@@ -573,7 +573,7 @@ if __name__ == "__main__":
                     "Processing coadded observations for detections in line with Cowperthwaite et. al 2018, but no coadds."
                 )
             intermediate_filter6 = getattr(afunc, "cowperthwaite_detections")(
-                process_obs_data, process_other_obs_data
+                process_obs_data
             )
         elif type == "cowperthwaite_like_detections":
             if rank == 0 and verbose:
@@ -581,7 +581,7 @@ if __name__ == "__main__":
                     "Processing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5."
                 )
             intermediate_filter7 = getattr(afunc, "cowperthwaite_detections")(
-                coadded_observations, process_other_obs_data, alerts=True
+                coadded_observations, alerts=True
             )
         elif type == "cowperthwaite_like_detections_no_coadd":
             if rank == 0 and verbose:
@@ -589,7 +589,7 @@ if __name__ == "__main__":
                     "Processing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5 and no coadds."
                 )
             intermediate_filter8 = getattr(afunc, "cowperthwaite_detections")(
-                process_obs_data, process_other_obs_data, alerts=True
+                process_obs_data, alerts=True
             )
         else:
             if verbose and rank == 0:
