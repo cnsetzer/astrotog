@@ -526,7 +526,6 @@ if __name__ == "__main__":
     coadded_observations.drop(columns=["alert"], inplace=True)
     coadded_observations = afunc.efficiency_process(survey, coadded_observations)
 
-    intermediate_filter = coadded_observations
     for type in detect_type:
         if type == "scolnic_detections":
             if rank == 0 and verbose:
@@ -534,31 +533,63 @@ if __name__ == "__main__":
                     "Processing coadded observations for detections in line with Scolnic et. al 2018."
                 )
             intermediate_filter = getattr(afunc, type)(
-                process_param_data, intermediate_filter, process_other_obs_data
+                coadded_observations, process_other_obs_data
             )
         elif type == "scolnic_detections_no_coadd":
             if rank == 0 and verbose:
                 print(
                     "Processing coadded observations for detections in line with Scolnic et. al 2018, but no coadds."
                 )
-            intermediate_filter2 = getattr(afunc, type.replace("_no_coadd", ""))(
-                process_param_data, process_obs_data, process_other_obs_data
+            intermediate_filter2 = getattr(afunc, "scolnic_detections")(
+                process_obs_data, process_other_obs_data
             )
         elif type == "scolnic_like_detections":
             if rank == 0 and verbose:
                 print(
                     "Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5."
                 )
-            intermediate_filter3 = getattr(afunc, type)(
-                process_param_data, coadded_observations, process_other_obs_data
+            intermediate_filter3 = getattr(afunc, "scolnic_detections")(
+                coadded_observations, process_other_obs_data, alerts=True
             )
         elif type == "scolnic_like_detections_no_coadd":
             if rank == 0 and verbose:
                 print(
                     "Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5 and no coadds."
                 )
-            intermediate_filter4 = getattr(afunc, type.replace("_no_coadd", ""))(
-                process_param_data, process_obs_data, process_other_obs_data
+            intermediate_filter4 = getattr(afunc, "scolnic_detections")(
+                process_obs_data, process_other_obs_data, alerts=True
+            )
+        elif type == "cowperthwaite_detections":
+            if rank == 0 and verbose:
+                print(
+                    "Processing coadded observations for detections in line with Cowperthwaite et. al 2018."
+                )
+            intermediate_filter5 = getattr(afunc, "cowperthwaite_detections")(
+                coadded_observations, process_other_obs_data
+            )
+        elif type == "cowperthwaite_detections_no_coadd":
+            if rank == 0 and verbose:
+                print(
+                    "Processing coadded observations for detections in line with Cowperthwaite et. al 2018, but no coadds."
+                )
+            intermediate_filter6 = getattr(afunc, "cowperthwaite_detections")(
+                process_obs_data, process_other_obs_data
+            )
+        elif type == "cowperthwaite_like_detections":
+            if rank == 0 and verbose:
+                print(
+                    "Processing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5."
+                )
+            intermediate_filter7 = getattr(afunc, "cowperthwaite_detections")(
+                coadded_observations, process_other_obs_data, alerts=True
+            )
+        elif type == "cowperthwaite_like_detections_no_coadd":
+            if rank == 0 and verbose:
+                print(
+                    "Processing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5 and no coadds."
+                )
+            intermediate_filter8 = getattr(afunc, "cowperthwaite_detections")(
+                process_obs_data, process_other_obs_data, alerts=True
             )
         else:
             if verbose and rank == 0:
@@ -570,10 +601,18 @@ if __name__ == "__main__":
     detected_observations2 = intermediate_filter2
     detected_observations3 = intermediate_filter3
     detected_observations4 = intermediate_filter4
+    detected_observations5 = intermediate_filter5
+    detected_observations6 = intermediate_filter6
+    detected_observations7 = intermediate_filter7
+    detected_observations8 = intermediate_filter8
     intermediate_filter = None
     intermediate_filter2 = None
     intermediate_filter3 = None
     intermediate_filter4 = None
+    intermediate_filter5 = None
+    intermediate_filter6 = None
+    intermediate_filter7 = None
+    intermediate_filter8 = None
 
     process_param_data = afunc.param_observe_detect(
         process_param_data, process_obs_data, detected_observations
@@ -586,6 +625,10 @@ if __name__ == "__main__":
     detected_observations2.dropna(inplace=True)
     detected_observations3.dropna(inplace=True)
     detected_observations4.dropna(inplace=True)
+    detected_observations5.dropna(inplace=True)
+    detected_observations6.dropna(inplace=True)
+    detected_observations7.dropna(inplace=True)
+    detected_observations8.dropna(inplace=True)
     process_param_data.dropna(inplace=True)
 
     # Join all batches and mpi workers and write the dataFrame to file
@@ -597,6 +640,10 @@ if __name__ == "__main__":
         detected_receive2 = comm.allgather(detected_observations2)
         detected_receive3 = comm.allgather(detected_observations3)
         detected_receive4 = comm.allgather(detected_observations4)
+        detected_receive5 = comm.allgather(detected_observations5)
+        detected_receive6 = comm.allgather(detected_observations6)
+        detected_receive7 = comm.allgather(detected_observations7)
+        detected_receive8 = comm.allgather(detected_observations8)
 
         output_params = pd.concat(params_receive, sort=False, ignore_index=True)
         output_coadd = pd.concat(coadd_receive, sort=False, ignore_index=True)
@@ -604,6 +651,10 @@ if __name__ == "__main__":
         output_detections2 = pd.concat(detected_receive2, sort=False, ignore_index=True)
         output_detections3 = pd.concat(detected_receive3, sort=False, ignore_index=True)
         output_detections4 = pd.concat(detected_receive4, sort=False, ignore_index=True)
+        output_detections5 = pd.concat(detected_receive5, sort=False, ignore_index=True)
+        output_detections6 = pd.concat(detected_receive6, sort=False, ignore_index=True)
+        output_detections7 = pd.concat(detected_receive7, sort=False, ignore_index=True)
+        output_detections8 = pd.concat(detected_receive8, sort=False, ignore_index=True)
 
     else:
         output_coadd = coadded_observations
@@ -612,6 +663,10 @@ if __name__ == "__main__":
         output_detections2 = detected_observations2
         output_detections3 = detected_observations3
         output_detections4 = detected_observations4
+        output_detections5 = detected_observations5
+        output_detections6 = detected_observations6
+        output_detections7 = detected_observations7
+        output_detections8 = detected_observations8
 
     coadd_receive = None
     params_receive = None
@@ -619,6 +674,10 @@ if __name__ == "__main__":
     detected_receive2 = None
     detected_receive3 = None
     detected_receive4 = None
+    detected_receive5 = None
+    detected_receive6 = None
+    detected_receive7 = None
+    detected_receive8 = None
     coadded_observations = None
     process_obs_data = None
     process_param_data = None
@@ -627,6 +686,10 @@ if __name__ == "__main__":
     detected_observations2 = None
     detected_observations3 = None
     detected_observations4 = None
+    detected_observations5 = None
+    detected_observations6 = None
+    detected_observations7 = None
+    detected_observations8 = None
 
     if rank == 0:
         # Get efficiencies and create redshift histogram
@@ -642,6 +705,12 @@ if __name__ == "__main__":
         output_detections2.to_csv(output_path + "scolnic_detections_no_coadd.csv")
         output_detections3.to_csv(output_path + "scolnic_like_detections.csv")
         output_detections4.to_csv(output_path + "scolnic_like_detections_no_coadd.csv")
+        output_detections5.to_csv(output_path + "cowperthwaite_detections.csv")
+        output_detections6.to_csv(output_path + "cowperthwaite_detections_no_coadd.csv")
+        output_detections7.to_csv(output_path + "cowperthwaite_like_detections.csv")
+        output_detections8.to_csv(
+            output_path + "cowperthwaite_like_detections_no_coadd.csv"
+        )
         output_params.to_csv(output_path + "modified_parameters.csv")
         redshift_histogram.savefig(
             output_path + "redshift_distribution.pdf", bbox_inches="tight"
