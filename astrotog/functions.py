@@ -582,7 +582,7 @@ def scolnic_detections(obs_df, other_obs_df, alerts=False):
             and step_two_cr3 is True
             and step_two_cr4 is True
         ):
-            detected_transients.append(row["transient_id"])
+            detected_transients.append(tid)
 
     scolnic_detections = obs_df[obs_df["transient_id"].isin(detected_transients)]
 

@@ -526,7 +526,6 @@ if __name__ == "__main__":
     coadded_observations.drop(columns=["alert"], inplace=True)
     coadded_observations = afunc.efficiency_process(survey, coadded_observations)
 
-    intermediate_filter = coadded_observations
     for type in detect_type:
         if type == "scolnic_detections":
             if rank == 0 and verbose:
@@ -534,7 +533,7 @@ if __name__ == "__main__":
                     "Processing coadded observations for detections in line with Scolnic et. al 2018."
                 )
             intermediate_filter = getattr(afunc, type)(
-                intermediate_filter, process_other_obs_data
+                coadded_observations, process_other_obs_data
             )
         elif type == "scolnic_detections_no_coadd":
             if rank == 0 and verbose:
