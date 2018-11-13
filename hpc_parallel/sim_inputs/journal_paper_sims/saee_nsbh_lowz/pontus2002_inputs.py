@@ -48,7 +48,7 @@ reference_flux_path = "/share/data1/csetzer/lsst/throughputs/references"
 efficiency_table_path = (
     "/home/csetzer/software/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT"
 )
-run_dir = "lsst_saee_nsbh_pontus2002_" + datetime.datetime.now().strftime(
+run_dir = "saee_nsbh_pontus2002_lowerz_" + datetime.datetime.now().strftime(
     "%d%m%y_%H%M%S"
 )
 output_path = "/share/data1/csetzer/lsst_kne_sims_outputs/" + run_dir + "/"
