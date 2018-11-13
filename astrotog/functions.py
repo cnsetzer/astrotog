@@ -856,24 +856,24 @@ def cowperthwaite_detections(obs_df, alerts=False):
         sobs = obs_df.query("transient_id == {}".format(tid))
         if alerts:
             det_df = sobs.query("alert == True")
-            if len(det_df) < 3:
+            if len(det_df["mjd"]) < 3:
                 continue
             else:
                 step_one = True
-            if len(det_df["bandfilter"].unique()) <= len(det_df["mjd"]):
-                continue
-            else:
+            if len(det_df["mjd"]) > len(det_df["bandfilter"].unique()):
                 step_two = True
+            else:
+                continue
         else:
-            det_df = sobs.query("signal_to_noise >= 5")
-            if len(sobs.query(det_df)) < 3:
+            det_df = sobs.query("signal_to_noise >= 5.0")
+            if len(det_df["mjd"]) < 3:
                 continue
             else:
                 step_one = True
-            if len(det_df["bandfilter"].unique()) <= len(det_df["mjd"]):
-                continue
-            else:
+            if len(det_df["mjd"]) > len(det_df["bandfilter"].unique()):
                 step_two = True
+            else:
+                continue
 
         if step_one is True and step_two is True:
             detected_transients.append(tid)
