@@ -2,8 +2,8 @@ import os
 import sys
 import numpy as np
 import warnings
-
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 from astropy.cosmology import Planck15 as cosmo
 from astrotog import functions as afunc
 from astrotog import classes as aclasses
@@ -15,10 +15,6 @@ import datetime
 import time
 from copy import copy
 import pandas as pd
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 # Set seed for reproduceability
 seed = np.int(sys.argv[2])
