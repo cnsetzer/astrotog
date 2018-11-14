@@ -2,10 +2,10 @@ __all__ = ["transient_distribution"]
 import os
 import re
 import numpy as np
-import warnings
 import pandas as pd
-
+import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 from astropy.constants import c as speed_of_light_ms
 import sncosmo
 from copy import deepcopy

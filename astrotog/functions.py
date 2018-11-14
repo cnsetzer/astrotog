@@ -1,6 +1,9 @@
 import re
 import numpy as np
 import pandas as pd
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 from scipy.integrate import simps
 from copy import deepcopy
 from sfdmap import SFDMap as sfd

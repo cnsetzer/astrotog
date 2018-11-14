@@ -2,8 +2,8 @@ import os
 import re
 import numpy as np
 import warnings
-
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 import sncosmo
 from astropy.cosmology import Planck15 as cosmo
 from LSSTmetrics.efficiencyTable import EfficiencyTable as eft
