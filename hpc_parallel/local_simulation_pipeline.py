@@ -532,7 +532,7 @@ if __name__ == "__main__":
                 print(
                     "Processing coadded observations for detections in line with Scolnic et. al 2018."
                 )
-            intermediate_filter = getattr(afunc, type)(
+            detected_observations = getattr(afunc, type)(
                 coadded_observations, process_other_obs_data
             )
         elif type == "scolnic_detections_no_coadd":
@@ -540,7 +540,7 @@ if __name__ == "__main__":
                 print(
                     "Processing coadded observations for detections in line with Scolnic et. al 2018, but no coadds."
                 )
-            intermediate_filter2 = getattr(afunc, "scolnic_detections")(
+            detected_observations2 = getattr(afunc, "scolnic_detections")(
                 process_obs_data, process_other_obs_data
             )
         elif type == "scolnic_like_detections":
@@ -548,7 +548,7 @@ if __name__ == "__main__":
                 print(
                     "Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5."
                 )
-            intermediate_filter3 = getattr(afunc, "scolnic_detections")(
+            detected_observations3 = getattr(afunc, "scolnic_detections")(
                 coadded_observations, process_other_obs_data, alerts=True
             )
         elif type == "scolnic_like_detections_no_coadd":
@@ -556,7 +556,7 @@ if __name__ == "__main__":
                 print(
                     "Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5 and no coadds."
                 )
-            intermediate_filter4 = getattr(afunc, "scolnic_detections")(
+            detected_observations4 = getattr(afunc, "scolnic_detections")(
                 process_obs_data, process_other_obs_data, alerts=True
             )
         elif type == "cowperthwaite_detections":
@@ -564,7 +564,7 @@ if __name__ == "__main__":
                 print(
                     "Processing coadded observations for detections in line with Cowperthwaite et. al 2018."
                 )
-            intermediate_filter5 = getattr(afunc, "cowperthwaite_detections")(
+            detected_observations5 = getattr(afunc, "cowperthwaite_detections")(
                 coadded_observations
             )
         elif type == "cowperthwaite_detections_no_coadd":
@@ -572,7 +572,7 @@ if __name__ == "__main__":
                 print(
                     "Processing coadded observations for detections in line with Cowperthwaite et. al 2018, but no coadds."
                 )
-            intermediate_filter6 = getattr(afunc, "cowperthwaite_detections")(
+            detected_observations6 = getattr(afunc, "cowperthwaite_detections")(
                 process_obs_data
             )
         elif type == "cowperthwaite_like_detections":
@@ -580,7 +580,7 @@ if __name__ == "__main__":
                 print(
                     "Processing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5."
                 )
-            intermediate_filter7 = getattr(afunc, "cowperthwaite_detections")(
+            detected_observations7 = getattr(afunc, "cowperthwaite_detections")(
                 coadded_observations, alerts=True
             )
         elif type == "cowperthwaite_like_detections_no_coadd":
@@ -588,7 +588,7 @@ if __name__ == "__main__":
                 print(
                     "Processing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5 and no coadds."
                 )
-            intermediate_filter8 = getattr(afunc, "cowperthwaite_detections")(
+            detected_observations8 = getattr(afunc, "cowperthwaite_detections")(
                 process_obs_data, alerts=True
             )
         else:
@@ -597,22 +597,6 @@ if __name__ == "__main__":
                     "Processing coadded observations with the given filter dictionary."
                 )
             intermediate_filter = getattr(afunc, type)(intermediate_filter, filters)
-    detected_observations = intermediate_filter
-    detected_observations2 = intermediate_filter2
-    detected_observations3 = intermediate_filter3
-    detected_observations4 = intermediate_filter4
-    detected_observations5 = intermediate_filter5
-    detected_observations6 = intermediate_filter6
-    detected_observations7 = intermediate_filter7
-    detected_observations8 = intermediate_filter8
-    intermediate_filter = None
-    intermediate_filter2 = None
-    intermediate_filter3 = None
-    intermediate_filter4 = None
-    intermediate_filter5 = None
-    intermediate_filter6 = None
-    intermediate_filter7 = None
-    intermediate_filter8 = None
 
     process_param_data = afunc.param_observe_detect(
         process_param_data, process_obs_data, detected_observations
@@ -631,30 +615,56 @@ if __name__ == "__main__":
     detected_observations8.dropna(inplace=True)
     process_param_data.dropna(inplace=True)
 
+    coadd_receive = None
+    params_receive = None
+    detected_receive = None
+    detected_receive2 = None
+    detected_receive3 = None
+    detected_receive4 = None
+    detected_receive5 = None
+    detected_receive6 = None
+    detected_receive7 = None
+    detected_receive8 = None
     # Join all batches and mpi workers and write the dataFrame to file
     if size > 1:
-        comm.barrier()
-        coadd_receive = comm.allgather(coadded_observations)
-        params_receive = comm.allgather(process_param_data)
-        detected_receive = comm.allgather(detected_observations)
-        detected_receive2 = comm.allgather(detected_observations2)
-        detected_receive3 = comm.allgather(detected_observations3)
-        detected_receive4 = comm.allgather(detected_observations4)
-        detected_receive5 = comm.allgather(detected_observations5)
-        detected_receive6 = comm.allgather(detected_observations6)
-        detected_receive7 = comm.allgather(detected_observations7)
-        detected_receive8 = comm.allgather(detected_observations8)
+        coadd_receive = comm.gather(coadded_observations, root=0)
+        params_receive = comm.gather(process_param_data, root=0)
+        detected_receive = comm.gather(detected_observations, root=0)
+        detected_receive2 = comm.gather(detected_observations2, root=0)
+        detected_receive3 = comm.gather(detected_observations3, root=0)
+        detected_receive4 = comm.gather(detected_observations4, root=0)
+        detected_receive5 = comm.gather(detected_observations5, root=0)
+        detected_receive6 = comm.gather(detected_observations6, root=0)
+        detected_receive7 = comm.gather(detected_observations7, root=0)
+        detected_receive8 = comm.gather(detected_observations8, root=0)
 
-        output_params = pd.concat(params_receive, sort=False, ignore_index=True)
-        output_coadd = pd.concat(coadd_receive, sort=False, ignore_index=True)
-        output_detections = pd.concat(detected_receive, sort=False, ignore_index=True)
-        output_detections2 = pd.concat(detected_receive2, sort=False, ignore_index=True)
-        output_detections3 = pd.concat(detected_receive3, sort=False, ignore_index=True)
-        output_detections4 = pd.concat(detected_receive4, sort=False, ignore_index=True)
-        output_detections5 = pd.concat(detected_receive5, sort=False, ignore_index=True)
-        output_detections6 = pd.concat(detected_receive6, sort=False, ignore_index=True)
-        output_detections7 = pd.concat(detected_receive7, sort=False, ignore_index=True)
-        output_detections8 = pd.concat(detected_receive8, sort=False, ignore_index=True)
+        if rank == 0:
+            output_params = pd.concat(params_receive, sort=False, ignore_index=True)
+            output_coadd = pd.concat(coadd_receive, sort=False, ignore_index=True)
+            output_detections = pd.concat(
+                detected_receive, sort=False, ignore_index=True
+            )
+            output_detections2 = pd.concat(
+                detected_receive2, sort=False, ignore_index=True
+            )
+            output_detections3 = pd.concat(
+                detected_receive3, sort=False, ignore_index=True
+            )
+            output_detections4 = pd.concat(
+                detected_receive4, sort=False, ignore_index=True
+            )
+            output_detections5 = pd.concat(
+                detected_receive5, sort=False, ignore_index=True
+            )
+            output_detections6 = pd.concat(
+                detected_receive6, sort=False, ignore_index=True
+            )
+            output_detections7 = pd.concat(
+                detected_receive7, sort=False, ignore_index=True
+            )
+            output_detections8 = pd.concat(
+                detected_receive8, sort=False, ignore_index=True
+            )
 
     else:
         output_coadd = coadded_observations
@@ -692,9 +702,6 @@ if __name__ == "__main__":
     detected_observations8 = None
 
     if rank == 0:
-        # Get efficiencies and create redshift histogram
-        redshift_histogram = afunc.redshift_distribution(output_params, sim_inst)
-
         if verbose:
             print(
                 "Outputting coadded observations, scolnic detections, parameters modified with observed, alerted, and detected flags, and the redshift distribution."
@@ -712,12 +719,8 @@ if __name__ == "__main__":
             output_path + "cowperthwaite_like_detections_no_coadd.csv"
         )
         output_params.to_csv(output_path + "modified_parameters.csv")
-        redshift_histogram.savefig(
-            output_path + "redshift_distribution.pdf", bbox_inches="tight"
-        )
-        plt.close(redshift_histogram)
-        if verbose:
-            print("Done writing the detection results.")
+    if verbose:
+        print("Done writing the detection results.")
 
     if size > 1:
         comm.barrier()
