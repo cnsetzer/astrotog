@@ -4,6 +4,7 @@ import numpy as np
 import warnings
 
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 from astropy.cosmology import Planck15 as cosmo
 from astrotog import functions as afunc
 from astrotog import classes as aclasses
@@ -15,10 +16,6 @@ import datetime
 import time
 from copy import copy
 import pandas as pd
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 # Set seed for reproduceability
 seed = np.int(sys.argv[2])
@@ -790,22 +787,6 @@ if __name__ == "__main__":
                         "Processing coadded observations with the given filter dictionary."
                     )
             intermediate_filter = getattr(afunc, type)(intermediate_filter, filters)
-    detected_observations = intermediate_filter
-    detected_observations2 = intermediate_filter2
-    detected_observations3 = intermediate_filter3
-    detected_observations4 = intermediate_filter4
-    detected_observations5 = intermediate_filter5
-    detected_observations6 = intermediate_filter6
-    detected_observations7 = intermediate_filter7
-    detected_observations8 = intermediate_filter8
-    intermediate_filter = None
-    intermediate_filter2 = None
-    intermediate_filter3 = None
-    intermediate_filter4 = None
-    intermediate_filter5 = None
-    intermediate_filter6 = None
-    intermediate_filter7 = None
-    intermediate_filter8 = None
 
     if rank == 0 and debug is True:
         f.write("\n")
@@ -828,6 +809,16 @@ if __name__ == "__main__":
     detected_observations8.dropna(inplace=True)
     process_param_data.dropna(inplace=True)
 
+    coadd_receive = None
+    params_receive = None
+    detected_receive = None
+    detected_receive2 = None
+    detected_receive3 = None
+    detected_receive4 = None
+    detected_receive5 = None
+    detected_receive6 = None
+    detected_receive7 = None
+    detected_receive8 = None
     # Join all batches and mpi workers and write the dataFrame to file
     if size > 1:
         if rank == 0 and debug is True:
@@ -913,9 +904,6 @@ if __name__ == "__main__":
     detected_observations8 = None
 
     if rank == 0:
-        # Get efficiencies and create redshift histogram
-        redshift_histogram = afunc.redshift_distribution(output_params, sim_inst)
-
         if verbose:
             print(
                 "Outputting coadded observations, scolnic detections, parameters modified with observed, alerted, and detected flags, and the redshift distribution."
