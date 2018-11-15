@@ -2,6 +2,7 @@ import os
 import re
 import numpy as np
 import warnings
+
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 import sncosmo
@@ -416,7 +417,7 @@ class desgw_kne(kilonova):
             cls._phase, cls._wave, cls._flux = sncosmo.read_griddata_ascii(path)
         return super(desgw_kne, cls).__new__(cls, *args, **kwargs)
 
-    def __init__(self, path=None, parameter_dist=False, num_samples=1):
+    def __init__(self, parameter_dist=False, num_samples=1):
         self.number_of_samples = num_samples
         self.num_params = 0
         self.pre_dist_params = False
