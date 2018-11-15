@@ -925,10 +925,10 @@ if __name__ == "__main__":
             output_path + "cowperthwaite_like_detections_no_coadd.csv"
         )
         output_params.to_csv(output_path + "modified_parameters.csv")
-    if verbose:
-        print("Done writing the detection results.")
-    if debug is True:
-        f.write("Done writing the detection results.")
+        if verbose:
+            print("Done writing the detection results.")
+        if debug is True:
+            f.write("Done writing the detection results.")
 
     if size > 1:
         comm.barrier()
