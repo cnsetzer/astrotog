@@ -40,7 +40,7 @@ for input_path in input_paths:
                     input_path.split(sep="/")[2]
                     + "_"
                     + inp.replace("_inputs.py", "")
-                    + "_seed{}".format(i)
+                    + "_s{}".format(i)
                 )
                 p = Popen(
                     "qsub",
@@ -60,8 +60,8 @@ for input_path in input_paths:
                 #PBS -k oe
                 module purge
                 module load python
-                module load mpi/mvapich/2-2.3b
                 source activate {4}
+                module load mpi/mvapich/2-2.3b
                 cd {5}
 
                 echo $PBS_O_WORKDIR

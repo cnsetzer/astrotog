@@ -63,7 +63,12 @@ class transient(object):
         # Draw from gaussian peculiar velocity distribution with width 300km/s
         # Hui and Greene (2006)
         state = np.random.get_state()
-        np.random.seed(seed=self.id)
+        if self.id < pow(2, 32):
+            np.random.seed(seed=self.id)
+        else:
+            print(
+                "For some reason this transient id is > 2^32, it is: {}".format(self.id)
+            )
         self.peculiar_vel = np.random.normal(loc=0, scale=300)
         np.random.set_state(state)
         self.obs_z = (1 + self.z) * (

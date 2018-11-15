@@ -78,6 +78,8 @@ def sed_timeseries(luminosity, separated=False):
         (R1, R2) = (Ri[i - 1, :], Ri[i, :])
         (v1, v2) = (vi[i - 1, :], vi[i, :])
         #
+        if t2 == t1:
+            t2 += 1.0  # offset by one second if the times are equal
         lum[it, :] = L1[:] + (t - t1[:]) / (t2[:] - t1[:]) * (L2[:] - L1[:])
         tef[it, :] = T1[:] + (t - t1[:]) / (t2[:] - t1[:]) * (T2[:] - T1[:])
         rad[it, :] = R1[:] + (t - t1[:]) / (t2[:] - t1[:]) * (R2[:] - R1[:])
