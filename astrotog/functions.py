@@ -2,6 +2,7 @@ import re
 import numpy as np
 import pandas as pd
 import warnings
+
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 from scipy.integrate import simps
@@ -110,10 +111,13 @@ def observe(table_columns, transient, survey):
             survey.col_dec,
         )
     )
+    if positional_overlaps.empty:
+        return pd_df
     t_overlaps = positional_overlaps.query(
         "{0} <= expMJD <= {1}".format(transient.t0, transient.tmax)
     )
-
+    if t_overlaps.empty:
+        return pd_df
     overlap_indices = []
     for index, row in t_overlaps.iterrows():
         pointing_ra = row[survey.col_ra]
@@ -126,7 +130,7 @@ def observe(table_columns, transient, survey):
         )
         if angdist < survey.FOV_radius:
             overlap_indices.append(index)
-    if not overlap_indices:
+    if len(overlap_indices) == 0:
         return pd_df
     else:
         survey_overlap = t_overlaps.loc[overlap_indices]
