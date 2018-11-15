@@ -414,14 +414,16 @@ class desgw_kne(kilonova):
     _flux = None
 
     def __new__(cls, path=None, *args, **kwargs):
-        if path is not None and cls._phase is None:
+        if (path is not None) and (cls._phase is None):
             print("Reading File")
             cls._phase, cls._wave, cls._flux = sncosmo.read_griddata_ascii(path)
-        elif path is None and cls._phase is None:
+        elif (path is None) and (cls._phase is None):
             print("Path must be provided for the first instance of this class.")
+            print(path)
+            print(cls._phase)
         else:
             pass
-        return super(desgw_kne, cls).__new__(cls, *args, **kwargs)
+        return super(desgw_kne, cls).__new__(cls)
 
     def __init__(self, path=None, parameter_dist=False, num_samples=1):
         self.number_of_samples = num_samples
