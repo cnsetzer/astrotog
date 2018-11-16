@@ -674,10 +674,7 @@ if __name__ == "__main__":
         # Split back into processes
         if rank == size - 1:
             ids_per_process = list(
-                np.arange(
-                    start=num_transients + 1 - (num_params_pprocess * rank),
-                    stop=num_transients + 1,
-                )
+                np.arange(start=num_params_pprocess * rank + 1, stop=num_transients + 1)
             )
             if debug is True:
                 with open(debug_file, mode="a") as f:
