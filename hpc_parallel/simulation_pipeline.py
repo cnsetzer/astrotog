@@ -873,19 +873,93 @@ if __name__ == "__main__":
                 f.write("-------------Debug:-------------")
                 f.write("Gather all the data to the root process.")
         coadd_receive = comm.gather(coadded_observations, root=0)
+        comm.barrier()
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Finished gathering coadds, now gathering parmeters")
         params_receive = comm.gather(process_param_data, root=0)
+        comm.barrier()
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "Finished gathering parameters, now gathering Scolnic detections."
+                )
         detected_receive = comm.gather(detected_observations, root=0)
+        comm.barrier()
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "Finished gathering Scolnic detections, now gathering Scolnic detections without coadds."
+                )
         detected_receive2 = comm.gather(detected_observations2, root=0)
+        comm.barrier()
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "Finished gathering Scolnic detections without coadds, now gathering Scolnic like detections."
+                )
         detected_receive3 = comm.gather(detected_observations3, root=0)
+        comm.barrier()
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "Finished gathering Scolnic like detections, now gathering Scolnic like detections without coadds."
+                )
         detected_receive4 = comm.gather(detected_observations4, root=0)
+        comm.barrier()
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "Finished gathering Scolnic like detections without coadds, now gathering Cowperthwaite detections."
+                )
         detected_receive5 = comm.gather(detected_observations5, root=0)
+        comm.barrier()
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "Finished gathering Cowperthwaite detections, now gathering Cowperthwaite detections without coadds."
+                )
         detected_receive6 = comm.gather(detected_observations6, root=0)
+        comm.barrier()
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "Finished gathering Cowperthwaite detections without coadds, now gathering Cowperthwaite like detections."
+                )
         detected_receive7 = comm.gather(detected_observations7, root=0)
+        comm.barrier()
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "Finished gathering Cowperthwaite-like detections, now gathering Cowperthwaite like detections without coadds."
+                )
         detected_receive8 = comm.gather(detected_observations8, root=0)
+        comm.barrier()
 
         if rank == 0:
             if debug is True:
                 with open(debug_file, mode="a") as f:
+                    f.write("\n")
+                    f.write("-------------Debug:-------------")
+                    f.write("Finished gathering all data.")
                     f.write("\n")
                     f.write("-------------Debug:-------------")
                     f.write("Concatenating the dataframes for output.")
