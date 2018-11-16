@@ -232,34 +232,18 @@ if __name__ == "__main__":
             f.write(
                 "Delete the empty array rows for the last mpi process due to uneven division of parameters per processes"
             )
+
     if rank == size - 1:
         num_params_poprocess = num_params_pprocess
+        num_params_pprocess = num_transients - (num_params_poprocess*rank)
         # Trim the nonsense from the process arrays
-        sky_del = []
-        param_del = []
-        for i in range(num_params_pprocess):
-            if any(elem == np.nan for elem in sky_loc_array[i]):
-                sky_del.append(i)
-                if debug is True:
-                    with open(debug_file, mode="a") as f:
-                        f.write("Nan encountered.")
-            elif any(abs(elem) < 1e-250 for elem in sky_loc_array[i]):
-                sky_del.append(i)
-            else:
-                pass
-            if param_array is not None:
-                if any(abs(elem) < 1e-250 for elem in param_array[i]):
-                    param_del.append(i)
-
-        sky_loc_array = np.delete(sky_loc_array, sky_del, 0)
-        if param_array is not None:
-            param_array = np.delete(param_array, param_del, 0)
-            assert len(param_array[:]) == len(sky_loc_array[:])
-        num_params_pprocess = len(sky_loc_array[:])
-
-        # Empty del lists
+        sky_del = deepcopy(sky_loc_array)
+        sky_loc_array = sky_del[:num_params_pprocess]
         sky_del = None
-        param_del = None
+        if param_array is not None:
+            param_del = deepcopy(param_array)
+            param_array = param_del[:num_params_pprocess]
+            param_del = None
 
     if rank == 0 and verbose:
         print("The split of parameters between processes is:")
