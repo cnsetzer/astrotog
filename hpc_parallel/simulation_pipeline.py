@@ -119,12 +119,12 @@ if __name__ == "__main__":
                     )
                 )
                 f.write(
-                    "The number of transients is: {}".format(
+                    "\nThe number of transients is: {}".format(
                         transient_dist.number_simulated
                     )
                 )
                 f.write(
-                    "The number of parameters per transient is: {}".format(
+                    "\nThe number of parameters per transient is: {}".format(
                         num_transient_params
                     )
                 )
@@ -526,7 +526,9 @@ if __name__ == "__main__":
             if debug is True:
                 with open(debug_file, mode="a") as f:
                     f.write(
-                        "Batch {0} complete of {1} batches.".format(i + 1, num_batches)
+                        "\nBatch {0} complete of {1} batches.".format(
+                            i + 1, num_batches
+                        )
                     )
             t1 = time.time()
             delta_t = int(
@@ -545,10 +547,11 @@ if __name__ == "__main__":
             if debug is True:
                 with open(debug_file, mode="a") as f:
                     f.write(
-                        "Estimated time remaining is: {}".format(
+                        "\nEstimated time remaining is: {}".format(
                             datetime.timedelta(seconds=delta_t)
                         )
                     )
+                    f.write("\n")
 
     if rank == 0 and verbose:
         t_mod2 = time.time()
