@@ -88,23 +88,21 @@ if __name__ == "__main__":
                 f.write("-------------Debug:-------------")
                 f.write("Creating the transient distribution")
         transient_dist = aclasses.transient_distribution(survey, sim_inst)
+        num_transients = transient_dist.number_simulated
         tran_param_dist = getattr(atopclass, transient_model_name)(
-            parameter_dist=True, num_samples=transient_dist.number_simulated
+            parameter_dist=True, num_samples=num_transients
         )
-        num_params_pprocess = int(np.ceil(transient_dist.number_simulated / size))
+        num_params_pprocess = int(np.ceil(num_transients / size))
         num_transient_params = tran_param_dist.num_params
         pre_dist_params = tran_param_dist.pre_dist_params
+
         if verbose:
             print(
                 "\nWe are using {0} MPI workers with {1} multiprocess threads per process.".format(
                     size, batch_mp_workers
                 )
             )
-            print(
-                "The number of transients is: {}".format(
-                    transient_dist.number_simulated
-                )
-            )
+            print("The number of transients is: {}".format(num_transients))
             print(
                 "The number of parameters per transient is: {}".format(
                     num_transient_params
@@ -118,11 +116,7 @@ if __name__ == "__main__":
                         size, batch_mp_workers
                     )
                 )
-                f.write(
-                    "\nThe number of transients is: {}".format(
-                        transient_dist.number_simulated
-                    )
-                )
+                f.write("\nThe number of transients is: {}".format(num_transients))
                 f.write(
                     "\nThe number of parameters per transient is: {}".format(
                         num_transient_params
@@ -133,6 +127,7 @@ if __name__ == "__main__":
         transient_model_name = None
         num_transient_params = None
         num_params_pprocess = None
+        num_transients = None
         survey = None
         sim_inst = None
         batch_size = None
@@ -158,6 +153,7 @@ if __name__ == "__main__":
         debug_file = comm.bcast(debug_file, root=0)
         output_path = comm.bcast(output_path, root=0)
         detect_type = comm.bcast(detect_type, root=0)
+        num_transients = comm.bcast(num_transients, root=0)
         num_transient_params = comm.bcast(num_transient_params, root=0)
         num_params_pprocess = comm.bcast(num_params_pprocess, root=0)
         tran_param_dist = comm.bcast(tran_param_dist, root=0)
@@ -243,9 +239,15 @@ if __name__ == "__main__":
         for i in range(num_params_pprocess):
             if any(elem == np.nan for elem in sky_loc_array[i]):
                 sky_del.append(i)
-                print("Nan encountered.")
+                if debug is True:
+                    with open(debug_file, mode="a") as f:
+                        f.write("Nan encountered.")
             elif any(abs(sky_loc_array[i]) < 1e-250):
                 sky_del.append(i)
+            else:
+                if debug is True:
+                    with open(debug_file, mode="a") as f:
+                        f.write("Weird values encounterd:{}".format(sky_loc_array[i]))
             if param_array is not None:
                 if any(abs(param_array[i]) < 1e-250):
                     param_del.append(i)
@@ -555,7 +557,7 @@ if __name__ == "__main__":
                     (num_params_pprocess - (i * batch_size + current_batch_size))
                     / (batch_size)
                 )
-                + 0.015 * transient_dist.number_simulated
+                + 0.015 * num_transients
             )
             print(
                 "Estimated time remaining is: {}".format(
@@ -575,14 +577,14 @@ if __name__ == "__main__":
         t_mod2 = time.time()
         print(
             "\nEstimated time for generating and observing the transients per transient is: {}".format(
-                (t_mod2 - t_mod1) / transient_dist.number_simulated
+                (t_mod2 - t_mod1) / num_transients
             )
         )
         if debug is True:
             with open(debug_file, mode="a") as f:
                 f.write(
                     "\nEstimated time for generating and observing the transients per transient is: {}".format(
-                        (t_mod2 - t_mod1) / transient_dist.number_simulated
+                        (t_mod2 - t_mod1) / num_transients
                     )
                 )
 
@@ -672,23 +674,11 @@ if __name__ == "__main__":
 
         comm.barrier()
         # Split back into processes
-        if rank == 0:
-            num_params_last = (
-                transient_dist.number_simulated - (size - 1) * num_params_pprocess
-            )
-            comm.send(num_params_last, dest=size - 1, tag=11)
+        if rank == size - 1:
             ids_per_process = list(
                 np.arange(
-                    start=num_params_pprocess * rank + 1,
-                    stop=num_params_pprocess * (rank + 1) + 1,
-                )
-            )
-        elif rank == size - 1:
-            num_params_last = comm.recv(source=0, tag=11)
-            ids_per_process = list(
-                np.arange(
-                    start=num_params_pprocess * rank + 1,
-                    stop=num_params_pprocess * rank + 1 + num_params_last,
+                    start=num_transients + 1 - (num_params_pprocess * rank),
+                    stop=num_transients + 1,
                 )
             )
         else:
@@ -699,9 +689,7 @@ if __name__ == "__main__":
                 )
             )
     else:
-        ids_per_process = list(
-            np.arange(start=1, stop=transient_dist.number_simulated + 1)
-        )
+        ids_per_process = list(np.arange(start=1, stop=num_transients + 1))
 
     # Split stored_obs_data, stored_param_data, stored_other_obs_data
     process_obs_data = stored_obs_data[
@@ -1083,7 +1071,7 @@ if __name__ == "__main__":
         t_end = time.time()
         print(
             "\n Estimated time for the last bit is: {}".format(
-                (t_end - t1) / transient_dist.number_simulated
+                (t_end - t1) / num_transients
             )
         )
         print(
@@ -1095,7 +1083,7 @@ if __name__ == "__main__":
             with open(debug_file, mode="a") as f:
                 f.write(
                     "\n Estimated time for the last bit is: {}".format(
-                        (t_end - t1) / transient_dist.number_simulated
+                        (t_end - t1) / num_transients
                     )
                 )
                 f.write(
