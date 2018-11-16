@@ -240,14 +240,12 @@ if __name__ == "__main__":
                 if debug is True:
                     with open(debug_file, mode="a") as f:
                         f.write("Nan encountered.")
-            elif any(abs(sky_loc_array[i]) < 1e-250):
+            elif any(abs(elem) < 1e-250 for elem in sky_loc_array[i]):
                 sky_del.append(i)
             else:
-                if debug is True:
-                    with open(debug_file, mode="a") as f:
-                        f.write("Weird values encounterd:{}".format(sky_loc_array[i]))
+                pass
             if param_array is not None:
-                if any(abs(param_array[i]) < 1e-250):
+                if any(abs(elem) < 1e-250 for elem in param_array[i]):
                     param_del.append(i)
 
         sky_loc_array = np.delete(sky_loc_array, sky_del, 0)
