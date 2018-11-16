@@ -5,7 +5,7 @@ import numpy as np
 # Section that user can edit to tailor simulation
 # ----------------------------------------------------------------------
 debug = True
-debug_file = "/home/csetzer/LSST/astrotog_output/debug_log.txt"
+debug_file = "/home/csetzer/LSST/astrotog_output/debug_log_lowz.txt"
 save_all_output = True
 batch_mp_workers = 2
 verbose = True

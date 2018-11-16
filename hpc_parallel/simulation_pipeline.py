@@ -235,8 +235,9 @@ if __name__ == "__main__":
         sky_del = []
         param_del = []
         for i in range(num_params_pprocess):
-            if any(elem is None for elem in sky_loc_array[i]):
+            if any(elem == np.nan for elem in sky_loc_array[i]):
                 sky_del.append(i)
+                print("Nan encountered.")
             elif any(abs(sky_loc_array[i]) < 1e-250):
                 sky_del.append(i)
             if param_array is not None:
