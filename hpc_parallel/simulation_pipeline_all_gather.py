@@ -231,6 +231,7 @@ if __name__ == "__main__":
                 "Delete the empty array rows for the last mpi process due to uneven division of parameters per processes"
             )
     if rank == size - 1:
+        num_params_poprocess = num_params_pprocess
         # Trim the nonsense from the process arrays
         sky_del = []
         param_del = []
@@ -672,7 +673,7 @@ if __name__ == "__main__":
         # Split back into processes
         if rank == size - 1:
             ids_per_process = list(
-                np.arange(start=num_params_pprocess * rank + 1, stop=num_transients + 1)
+                np.arange(start=num_params_poprocess * rank + 1, stop=num_transients + 1)
             )
             if debug is True:
                 with open(debug_file, mode="a") as f:
@@ -688,6 +689,13 @@ if __name__ == "__main__":
                     stop=num_params_pprocess * (rank + 1) + 1,
                 )
             )
+            if rank == 0 and debug is True:
+                with open(debug_file, mode="a") as f:
+                    f.write(
+                        "\nThe number of ids for rank {} is {}.\n".format(
+                            rank, len(ids_per_process)
+                        )
+                    )
     else:
         ids_per_process = list(np.arange(start=1, stop=num_transients + 1))
 
