@@ -226,7 +226,9 @@ if __name__ == "__main__":
         sky_del = []
         param_del = []
         for i in range(num_params_pprocess):
-            if any(abs(sky_loc_array[i]) < 1e-250):
+            if any(sky_loc_array[i] is None):
+                sky_del.append(i)
+            elif any(abs(sky_loc_array[i]) < 1e-250):
                 sky_del.append(i)
             if param_array is not None:
                 if any(abs(param_array[i]) < 1e-250):
