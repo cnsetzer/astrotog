@@ -10,7 +10,7 @@
 module purge
 module load python
 module load mpi/mvapich/2-2.3b
-source activate astrotog_hpc
+source activate astrotog2
 cd /home/csetzer/astrotog/hpc_parallel
 
 echo $PBS_O_WORKDIR
@@ -24,6 +24,6 @@ echo This jobs runs on the following machines:
 cat $PBS_NODEFILE | uniq > job_files/machine.file.$PBS_JOBID
 echo PBS_NODEFILE=$PBS_NODEFILE
 
-export PYTHONPATH=$PYTHONPATH:/home/csetzer/.conda/envs/astrotog_hpc/bin/python
+export PYTHONPATH=$PYTHONPATH:/home/csetzer/.conda/envs/astrotog222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222/bin/python
 
 mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH --machinefile $PBS_NODEFILE python sim_scripts/scolnic_whitepaper/LSST_hypatia_sim_nexus2097.py
