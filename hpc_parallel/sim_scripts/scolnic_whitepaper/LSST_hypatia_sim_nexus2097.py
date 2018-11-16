@@ -36,8 +36,8 @@ if __name__ == "__main__":
         batch_size = 50  # can also be set to 'all'
         dithers = False
         add_dithers = False
-        t_before = 40.0
-        t_after = 40.0
+        t_before = 21.0
+        t_after = 21.0
         z_max = 0.5  # Maximum redshift depth for simulation
         z_bin_size = 0.04  # Binning for redshift distribution histogram
         z_min = 0.0  # Given if you want to simulate shells
@@ -48,7 +48,7 @@ if __name__ == "__main__":
         transient_model_name = 'scolnic_kilonova'
         detect_type = ['scolnic_detections']  # ['detect'], ['scolnic_detections'], or multiple
         seds_path = '/share/data1/csetzer/kilonova_seds/scolnic_decam/DECAMGemini_SED.txt'
-        cadence_path = '/share/data1/csetzer/lsst_cadences/mothra_2045.db'
+        cadence_path = '/share/data1/csetzer/lsst_cadences/nexus_2097.db'
         throughputs_path = '/share/data1/csetzer/lsst/throughputs/lsst'
         reference_flux_path = '/share/data1/csetzer/lsst/throughputs/references'
         efficiency_table_path = '/home/csetzer/software/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT'
