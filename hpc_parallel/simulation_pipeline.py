@@ -365,7 +365,7 @@ if __name__ == "__main__":
                     batch_mp_workers
                 )
             )
-            f.write("The batch processing will now begin.")
+            f.write("\nThe batch processing will now begin.")
 
     if size > 1:
         comm.barrier()
@@ -626,7 +626,7 @@ if __name__ == "__main__":
                 print("Finished writing observation results.")
             if debug is True:
                 with open(debug_file, mode="a") as f:
-                    f.write("Finished writing observation results.")
+                    f.write("\nFinished writing observation results.")
 
     stored_obs_data = output_observations
     stored_param_data = output_params
@@ -705,14 +705,14 @@ if __name__ == "__main__":
         print("Doing nightly coadds...")
         if debug is True:
             with open(debug_file, mode="a") as f:
-                f.write("Doing nightly coadds...")
+                f.write("\nDoing nightly coadds...")
     coadded_observations = afunc.process_nightly_coadds(process_obs_data, survey)
 
     if verbose and rank == 0:
         print("Processing coadded nights for transients alert triggers.")
         if debug is True:
             with open(debug_file, mode="a") as f:
-                f.write("Processing coadded nights for transients alert triggers.")
+                f.write("\nProcessing coadded nights for transients alert triggers.")
     coadded_observations.drop(columns=["alert"], inplace=True)
     coadded_observations = afunc.efficiency_process(survey, coadded_observations)
 
@@ -725,7 +725,7 @@ if __name__ == "__main__":
                 if debug is True:
                     with open(debug_file, mode="a") as f:
                         f.write(
-                            "Processing coadded observations for detections in line with Scolnic et. al 2018."
+                            "\nProcessing coadded observations for detections in line with Scolnic et. al 2018."
                         )
             detected_observations = getattr(afunc, type)(
                 coadded_observations, process_other_obs_data
@@ -738,7 +738,7 @@ if __name__ == "__main__":
                 if debug is True:
                     with open(debug_file, mode="a") as f:
                         f.write(
-                            "Processing coadded observations for detections in line with Scolnic et. al 2018, but no coadds."
+                            "\nProcessing coadded observations for detections in line with Scolnic et. al 2018, but no coadds."
                         )
             detected_observations2 = getattr(afunc, "scolnic_detections")(
                 process_obs_data, process_other_obs_data
@@ -751,7 +751,7 @@ if __name__ == "__main__":
                 if debug is True:
                     with open(debug_file, mode="a") as f:
                         f.write(
-                            "Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5."
+                            "\nProcessing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5."
                         )
             detected_observations3 = getattr(afunc, "scolnic_detections")(
                 coadded_observations, process_other_obs_data, alerts=True
@@ -764,7 +764,7 @@ if __name__ == "__main__":
                 if debug is True:
                     with open(debug_file, mode="a") as f:
                         f.write(
-                            "Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5 and no coadds."
+                            "\nProcessing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5 and no coadds."
                         )
             detected_observations4 = getattr(afunc, "scolnic_detections")(
                 process_obs_data, process_other_obs_data, alerts=True
@@ -777,7 +777,7 @@ if __name__ == "__main__":
                 if debug is True:
                     with open(debug_file, mode="a") as f:
                         f.write(
-                            "Processing coadded observations for detections in line with Cowperthwaite et. al 2018."
+                            "\nProcessing coadded observations for detections in line with Cowperthwaite et. al 2018."
                         )
             detected_observations5 = getattr(afunc, "cowperthwaite_detections")(
                 coadded_observations
@@ -790,7 +790,7 @@ if __name__ == "__main__":
                 if debug is True:
                     with open(debug_file, mode="a") as f:
                         f.write(
-                            "Processing coadded observations for detections in line with Cowperthwaite et. al 2018, but no coadds."
+                            "\nProcessing coadded observations for detections in line with Cowperthwaite et. al 2018, but no coadds."
                         )
             detected_observations6 = getattr(afunc, "cowperthwaite_detections")(
                 process_obs_data
@@ -803,7 +803,7 @@ if __name__ == "__main__":
                 if debug is True:
                     with open(debug_file, mode="a") as f:
                         f.write(
-                            "Processing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5."
+                            "\nProcessing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5."
                         )
             detected_observations7 = getattr(afunc, "cowperthwaite_detections")(
                 coadded_observations, alerts=True
@@ -816,7 +816,7 @@ if __name__ == "__main__":
                 if debug is True:
                     with open(debug_file, mode="a") as f:
                         f.write(
-                            "Processing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5 and no coadds."
+                            "\nProcessing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5 and no coadds."
                         )
             detected_observations8 = getattr(afunc, "cowperthwaite_detections")(
                 process_obs_data, alerts=True
@@ -829,7 +829,7 @@ if __name__ == "__main__":
                 if debug is True:
                     with open(debug_file, mode="a") as f:
                         f.write(
-                            "Processing coadded observations with the given filter dictionary."
+                            "\nProcessing coadded observations with the given filter dictionary."
                         )
             intermediate_filter = getattr(afunc, type)(intermediate_filter, filters)
 
@@ -978,7 +978,7 @@ if __name__ == "__main__":
             print("Done writing the detection results.")
         if debug is True:
             with open(debug_file, mode="a") as f:
-                f.write("Done writing the detection results.")
+                f.write("\nDone writing the detection results.")
 
     if size > 1:
         comm.barrier()
