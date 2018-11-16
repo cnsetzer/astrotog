@@ -866,6 +866,16 @@ if __name__ == "__main__":
 
     if debug is True:
         with open(debug_file, mode="a") as f:
+            f.write("\n")
+            f.write("-------------Debug:-------------")
+            f.write(
+                "The length of info to gather is {} for rank {}".format(
+                    len(coadded_observations["transient_id"].unique()), rank
+                )
+            )
+
+    if debug is True:
+        with open(debug_file, mode="a") as f:
             f.write("\nAbout to gather results and process rank is {}.\n".format(rank))
     # Join all batches and mpi workers and write the dataFrame to file
     if size > 1:
