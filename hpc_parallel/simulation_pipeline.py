@@ -141,6 +141,8 @@ if __name__ == "__main__":
         seds_path = None
         pre_dist_params = None
         detect_type = None
+        debug = None
+        debug_file = None
 
     if rank == 0 and debug is True:
         with open(debug_file, mode="a") as f:
@@ -151,6 +153,8 @@ if __name__ == "__main__":
             )
     if size > 1:
         comm.barrier()
+        debug = comm.bcast(debug, root=0)
+        debug_file = comm.bcast(debug_file, root=0)
         detect_type = comm.bcast(detect_type, root=0)
         num_transient_params = comm.bcast(num_transient_params, root=0)
         num_params_pprocess = comm.bcast(num_params_pprocess, root=0)
@@ -256,12 +260,24 @@ if __name__ == "__main__":
 
     if rank == 0 and verbose:
         print("The split of parameters between processes is:")
+        if debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\nThe split of parameters between processes is:")
     if verbose:
+        comm.barrier()
         print(
             "Process rank = {0} has {1} transients assigned to it.".format(
                 rank, num_params_pprocess
             )
         )
+    if debug is True:
+        comm.barrier()
+        with open(debug_file, mode="a") as f:
+            f.write(
+                "\n Process rank = {0} has {1} transients assigned to it.".format(
+                    rank, num_params_pprocess
+                )
+            )
 
     if size > 1:
         if rank == 0 and debug is True:
@@ -568,6 +584,10 @@ if __name__ == "__main__":
                     )
                 )
 
+    if debug is True:
+        with open(debug_file, mode="a") as f:
+            f.write("\nBatch processing is done and process rank is {}.\n".format(rank))
+
     # Empty arrays as no longer needed
     sky_loc_array = None
     param_array = None
@@ -858,16 +878,9 @@ if __name__ == "__main__":
     detected_observations8.dropna(inplace=True)
     process_param_data.dropna(inplace=True)
 
-    coadd_receive = None
-    params_receive = None
-    detected_receive = None
-    detected_receive2 = None
-    detected_receive3 = None
-    detected_receive4 = None
-    detected_receive5 = None
-    detected_receive6 = None
-    detected_receive7 = None
-    detected_receive8 = None
+    if debug is True:
+        with open(debug_file, mode="a") as f:
+            f.write("\nAbout to gather results and process rank is {}.\n".format(rank))
     # Join all batches and mpi workers and write the dataFrame to file
     if size > 1:
         if rank == 0 and debug is True:
@@ -875,14 +888,14 @@ if __name__ == "__main__":
                 f.write("\n")
                 f.write("-------------Debug:-------------")
                 f.write("Gather all the data to the root process.")
-        coadd_receive = comm.gather(coadded_observations, root=0)
+        coadded_observations = comm.gather(coadded_observations, root=0)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
                 f.write("\n")
                 f.write("-------------Debug:-------------")
                 f.write("Finished gathering coadds, now gathering parmeters")
-        params_receive = comm.gather(process_param_data, root=0)
+        process_param_data = comm.gather(process_param_data, root=0)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -891,7 +904,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering parameters, now gathering Scolnic detections."
                 )
-        detected_receive = comm.gather(detected_observations, root=0)
+        detected_observations = comm.gather(detected_observations, root=0)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -900,7 +913,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering Scolnic detections, now gathering Scolnic detections without coadds."
                 )
-        detected_receive2 = comm.gather(detected_observations2, root=0)
+        detected_observations2 = comm.gather(detected_observations2, root=0)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -909,7 +922,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering Scolnic detections without coadds, now gathering Scolnic like detections."
                 )
-        detected_receive3 = comm.gather(detected_observations3, root=0)
+        detected_observations3 = comm.gather(detected_observations3, root=0)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -918,7 +931,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering Scolnic like detections, now gathering Scolnic like detections without coadds."
                 )
-        detected_receive4 = comm.gather(detected_observations4, root=0)
+        detected_observations4 = comm.gather(detected_observations4, root=0)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -927,7 +940,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering Scolnic like detections without coadds, now gathering Cowperthwaite detections."
                 )
-        detected_receive5 = comm.gather(detected_observations5, root=0)
+        detected_observations5 = comm.gather(detected_observations5, root=0)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -936,7 +949,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering Cowperthwaite detections, now gathering Cowperthwaite detections without coadds."
                 )
-        detected_receive6 = comm.gather(detected_observations6, root=0)
+        detected_observations6 = comm.gather(detected_observations6, root=0)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -945,7 +958,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering Cowperthwaite detections without coadds, now gathering Cowperthwaite like detections."
                 )
-        detected_receive7 = comm.gather(detected_observations7, root=0)
+        detected_observations7 = comm.gather(detected_observations7, root=0)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -954,7 +967,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering Cowperthwaite-like detections, now gathering Cowperthwaite like detections without coadds."
                 )
-        detected_receive8 = comm.gather(detected_observations8, root=0)
+        detected_observations8 = comm.gather(detected_observations8, root=0)
         comm.barrier()
 
         if rank == 0:
@@ -966,31 +979,33 @@ if __name__ == "__main__":
                     f.write("\n")
                     f.write("-------------Debug:-------------")
                     f.write("Concatenating the dataframes for output.")
-            output_params = pd.concat(params_receive, sort=False, ignore_index=True)
-            output_coadd = pd.concat(coadd_receive, sort=False, ignore_index=True)
+            output_params = pd.concat(process_param_data, sort=False, ignore_index=True)
+            output_coadd = pd.concat(
+                coadded_observations, sort=False, ignore_index=True
+            )
             output_detections = pd.concat(
-                detected_receive, sort=False, ignore_index=True
+                detected_observations, sort=False, ignore_index=True
             )
             output_detections2 = pd.concat(
-                detected_receive2, sort=False, ignore_index=True
+                detected_observations2, sort=False, ignore_index=True
             )
             output_detections3 = pd.concat(
-                detected_receive3, sort=False, ignore_index=True
+                detected_observations3, sort=False, ignore_index=True
             )
             output_detections4 = pd.concat(
-                detected_receive4, sort=False, ignore_index=True
+                detected_observations4, sort=False, ignore_index=True
             )
             output_detections5 = pd.concat(
-                detected_receive5, sort=False, ignore_index=True
+                detected_observations5, sort=False, ignore_index=True
             )
             output_detections6 = pd.concat(
-                detected_receive6, sort=False, ignore_index=True
+                detected_observations6, sort=False, ignore_index=True
             )
             output_detections7 = pd.concat(
-                detected_receive7, sort=False, ignore_index=True
+                detected_observations7, sort=False, ignore_index=True
             )
             output_detections8 = pd.concat(
-                detected_receive8, sort=False, ignore_index=True
+                detected_observations8, sort=False, ignore_index=True
             )
 
     else:
@@ -1005,16 +1020,6 @@ if __name__ == "__main__":
         output_detections7 = detected_observations7
         output_detections8 = detected_observations8
 
-    coadd_receive = None
-    params_receive = None
-    detected_receive = None
-    detected_receive2 = None
-    detected_receive3 = None
-    detected_receive4 = None
-    detected_receive5 = None
-    detected_receive6 = None
-    detected_receive7 = None
-    detected_receive8 = None
     coadded_observations = None
     process_obs_data = None
     process_param_data = None
