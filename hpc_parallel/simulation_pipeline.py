@@ -40,13 +40,13 @@ if __name__ == "__main__":
 
         exec("from {} import *".format(sys.argv[1]))
         if debug is True:
-            f = open(debug_file, mode="w")
-            f.write("\n")
-            f.write("\n")
-            f.write("This is the debug log for {}".format(output_path))
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write("Creating the simulation instance")
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("\n")
+                f.write("This is the debug log for {}".format(output_path))
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Creating the simulation instance")
         sim_inst = atopclass.simulation(
             cadence_path=cadence_path,
             throughputs_path=throughputs_path,
@@ -77,14 +77,16 @@ if __name__ == "__main__":
             trans_duration=transient_duration,
         )
         if debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write("Getting the survey library")
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Getting the survey library")
         survey = getattr(atopclass, instrument_class_name)(sim_inst)
         if debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write("Creating the transient distribution")
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Creating the transient distribution")
         transient_dist = aclasses.transient_distribution(survey, sim_inst)
         tran_param_dist = getattr(atopclass, transient_model_name)(
             parameter_dist=True, num_samples=transient_dist.number_simulated
@@ -109,22 +111,23 @@ if __name__ == "__main__":
                 )
             )
         if debug is True:
-            f.write("\n")
-            f.write(
-                "\nWe are using {0} MPI workers with {1} multiprocess threads per process.".format(
-                    size, batch_mp_workers
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write(
+                    "\nWe are using {0} MPI workers with {1} multiprocess threads per process.".format(
+                        size, batch_mp_workers
+                    )
                 )
-            )
-            f.write(
-                "The number of transients is: {}".format(
-                    transient_dist.number_simulated
+                f.write(
+                    "The number of transients is: {}".format(
+                        transient_dist.number_simulated
+                    )
                 )
-            )
-            f.write(
-                "The number of parameters per transient is: {}".format(
-                    num_transient_params
+                f.write(
+                    "The number of parameters per transient is: {}".format(
+                        num_transient_params
+                    )
                 )
-            )
     else:
         tran_param_dist = None
         transient_model_name = None
@@ -140,9 +143,12 @@ if __name__ == "__main__":
         detect_type = None
 
     if rank == 0 and debug is True:
-        f.write("\n")
-        f.write("-------------Debug:-------------")
-        f.write("Broadcasting simulation and transient information to all processes")
+        with open(debug_file, mode="a") as f:
+            f.write("\n")
+            f.write("-------------Debug:-------------")
+            f.write(
+                "Broadcasting simulation and transient information to all processes"
+            )
     if size > 1:
         comm.barrier()
         detect_type = comm.bcast(detect_type, root=0)
@@ -159,9 +165,10 @@ if __name__ == "__main__":
     total_array = None
     if rank == 0:
         if debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write("Constructing arrays of transient distribution parameters")
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Constructing arrays of transient distribution parameters")
         sky_loc_array = np.hstack(
             (
                 transient_dist.ids,
@@ -181,11 +188,12 @@ if __name__ == "__main__":
 
     if size > 1:
         if rank == 0 and debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write(
-                "Scattering the parameters of the distribution between mpi processes"
-            )
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "Scattering the parameters of the distribution between mpi processes"
+                )
         if rank == 0:
             if param_array is not None:
                 total_array = np.hstack((sky_loc_array, param_array))
@@ -216,11 +224,12 @@ if __name__ == "__main__":
     receive_array = None
 
     if rank == 0 and debug is True:
-        f.write("\n")
-        f.write("-------------Debug:-------------")
-        f.write(
-            "Delete the empty array rows for the last mpi process due to uneven division of parameters per processes"
-        )
+        with open(debug_file, mode="a") as f:
+            f.write("\n")
+            f.write("-------------Debug:-------------")
+            f.write(
+                "Delete the empty array rows for the last mpi process due to uneven division of parameters per processes"
+            )
     if rank == size - 1:
         # Trim the nonsense from the process arrays
         sky_del = []
@@ -255,9 +264,10 @@ if __name__ == "__main__":
 
     if size > 1:
         if rank == 0 and debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write("Distribute survey and simulation instances to all processes.")
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Distribute survey and simulation instances to all processes.")
         # There is definitely an inefficiency here. Might need a virtual server...
         # ----------------------------------------------
         comm.barrier()
@@ -347,13 +357,14 @@ if __name__ == "__main__":
         t_mod1 = t0
 
     if rank == 0 and debug is True:
-        f.write("\n")
-        f.write(
-            "\nLaunching multiprocess pool of {} workers per MPI core.".format(
-                batch_mp_workers
+        with open(debug_file, mode="a") as f:
+            f.write("\n")
+            f.write(
+                "\nLaunching multiprocess pool of {} workers per MPI core.".format(
+                    batch_mp_workers
+                )
             )
-        )
-        f.write("The batch processing will now begin.")
+            f.write("The batch processing will now begin.")
 
     if size > 1:
         comm.barrier()
@@ -369,13 +380,14 @@ if __name__ == "__main__":
         transient_batch = []
 
         if rank == 0 and debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write(
-                "For batch {}, create parameter sub arrays for generation of transients in this batch.".format(
-                    i
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "For batch {}, create parameter sub arrays for generation of transients in this batch.".format(
+                        i
+                    )
                 )
-            )
 
         if (
             "path"
@@ -390,21 +402,23 @@ if __name__ == "__main__":
             i * batch_size : i * batch_size + current_batch_size, :
         ]
         if rank == 0 and debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write("For batch {}, create transient seds.".format(i))
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("For batch {}, create transient seds.".format(i))
 
         transient_batch = p.starmap(
             getattr(atopclass, transient_model_name), batch_params
         )
         if rank == 0 and debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write(
-                "For batch {}, extend arguments list for proper format to use class method in parallel.".format(
-                    i
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "For batch {}, extend arguments list for proper format to use class method in parallel.".format(
+                        i
+                    )
                 )
-            )
         args_for_method = list(zip(batch_sky_loc.tolist(), repeat([cosmo])))
         extended_args = p.starmap(afunc.extend_args_list, args_for_method)
 
@@ -417,13 +431,14 @@ if __name__ == "__main__":
             zip(transient_batch, repeat("put_in_universe"), extended_args)
         )
         if rank == 0 and debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write(
-                "For batch {}, execute class method 'put in universe' in parallel.".format(
-                    i
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "For batch {}, execute class method 'put in universe' in parallel.".format(
+                        i
+                    )
                 )
-            )
 
         transient_batch = p.starmap(
             afunc.class_method_in_pool, batch_method_iter_for_pool
@@ -433,9 +448,12 @@ if __name__ == "__main__":
         batch_method_iter_for_pool = None
 
         if rank == 0 and debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write("For batch {}, write transient parameters to dataframe.".format(i))
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "For batch {}, write transient parameters to dataframe.".format(i)
+                )
 
         parameter_batch_iter = list(zip(repeat(param_columns), transient_batch))
 
@@ -447,13 +465,14 @@ if __name__ == "__main__":
         parameter_batch_iter = None
 
         if rank == 0 and debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write(
-                "For batch {}, execute observations of current batch of transients.".format(
-                    i
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "For batch {}, execute observations of current batch of transients.".format(
+                        i
+                    )
                 )
-            )
 
         observation_batch_iter = list(
             zip(repeat(obs_columns), transient_batch, repeat(survey))
@@ -472,13 +491,14 @@ if __name__ == "__main__":
         # Try to reorganize for better memory management
         observation_df = None
         if rank == 0 and debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write(
-                "For batch {}, find observation non-detections on either side of each transient given the specfied time windows.".format(
-                    i
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "For batch {}, find observation non-detections on either side of each transient given the specfied time windows.".format(
+                        i
+                    )
                 )
-            )
         other_obs_iter = list(
             zip(
                 repeat(survey),
@@ -503,7 +523,10 @@ if __name__ == "__main__":
             # Write computaiton time estimates
             print("Batch {0} complete of {1} batches.".format(i + 1, num_batches))
             if debug is True:
-                f.write("Batch {0} complete of {1} batches.".format(i + 1, num_batches))
+                with open(debug_file, mode="a") as f:
+                    f.write(
+                        "Batch {0} complete of {1} batches.".format(i + 1, num_batches)
+                    )
             t1 = time.time()
             delta_t = int(
                 ((t1 - t0) / (i + 1))
@@ -519,11 +542,12 @@ if __name__ == "__main__":
                 )
             )
             if debug is True:
-                f.write(
-                    "Estimated time remaining is: {}".format(
-                        datetime.timedelta(seconds=delta_t)
+                with open(debug_file, mode="a") as f:
+                    f.write(
+                        "Estimated time remaining is: {}".format(
+                            datetime.timedelta(seconds=delta_t)
+                        )
                     )
-                )
 
     if rank == 0 and verbose:
         t_mod2 = time.time()
@@ -533,11 +557,12 @@ if __name__ == "__main__":
             )
         )
         if debug is True:
-            f.write(
-                "\nEstimated time for generating and observing the transients per transient is: {}".format(
-                    (t_mod2 - t_mod1) / transient_dist.number_simulated
+            with open(debug_file, mode="a") as f:
+                f.write(
+                    "\nEstimated time for generating and observing the transients per transient is: {}".format(
+                        (t_mod2 - t_mod1) / transient_dist.number_simulated
+                    )
                 )
-            )
 
     # Empty arrays as no longer needed
     sky_loc_array = None
@@ -546,7 +571,8 @@ if __name__ == "__main__":
     if rank == 0 and verbose:
         print("\nProcessing transients for alert triggers.")
         if debug is True:
-            f.write("\nProcessing transients for alert triggers.")
+            with open(debug_file, mode="a") as f:
+                f.write("\nProcessing transients for alert triggers.")
     stored_obs_data = afunc.efficiency_process(survey, stored_obs_data)
 
     # Process the pandas dataframes for output and shared usage
@@ -560,9 +586,10 @@ if __name__ == "__main__":
     # Join all batches and mpi workers and write the dataFrame to file
     if size > 1:
         if rank == 0 and debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write("Allgather the parameter and observation data.")
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Allgather the parameter and observation data.")
         obs_receive = comm.allgather(stored_obs_data)
         params_receive = comm.allgather(stored_param_data)
         other_obs_receive = comm.allgather(stored_other_obs_data)
@@ -582,11 +609,12 @@ if __name__ == "__main__":
         if verbose and save_all_output:
             print("\nWriting out parameters and observations to {}".format(output_path))
             if debug is True:
-                f.write(
-                    "\nWriting out parameters and observations to {}".format(
-                        output_path
+                with open(debug_file, mode="a") as f:
+                    f.write(
+                        "\nWriting out parameters and observations to {}".format(
+                            output_path
+                        )
                     )
-                )
         if not os.path.exists(output_path):
             os.makedirs(output_path)
         if save_all_output is True:
@@ -596,7 +624,8 @@ if __name__ == "__main__":
             if verbose:
                 print("Finished writing observation results.")
             if debug is True:
-                f.write("Finished writing observation results.")
+                with open(debug_file, mode="a") as f:
+                    f.write("Finished writing observation results.")
 
     stored_obs_data = output_observations
     stored_param_data = output_params
@@ -610,9 +639,10 @@ if __name__ == "__main__":
 
     if size > 1:
         if rank == 0 and debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write("Separate the dataframes per process.")
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Separate the dataframes per process.")
 
         comm.barrier()
         # Split back into processes
@@ -666,19 +696,22 @@ if __name__ == "__main__":
     if verbose and rank == 0:
         print("\nNow processing for detections.")
         if debug is True:
-            f.write("\nNow processing for detections.")
+            with open(debug_file, mode="a") as f:
+                f.write("\nNow processing for detections.")
 
     # Do coadds first
     if verbose and rank == 0:
         print("Doing nightly coadds...")
         if debug is True:
-            f.write("Doing nightly coadds...")
+            with open(debug_file, mode="a") as f:
+                f.write("Doing nightly coadds...")
     coadded_observations = afunc.process_nightly_coadds(process_obs_data, survey)
 
     if verbose and rank == 0:
         print("Processing coadded nights for transients alert triggers.")
         if debug is True:
-            f.write("Processing coadded nights for transients alert triggers.")
+            with open(debug_file, mode="a") as f:
+                f.write("Processing coadded nights for transients alert triggers.")
     coadded_observations.drop(columns=["alert"], inplace=True)
     coadded_observations = afunc.efficiency_process(survey, coadded_observations)
 
@@ -689,9 +722,10 @@ if __name__ == "__main__":
                     "Processing coadded observations for detections in line with Scolnic et. al 2018."
                 )
                 if debug is True:
-                    f.write(
-                        "Processing coadded observations for detections in line with Scolnic et. al 2018."
-                    )
+                    with open(debug_file, mode="a") as f:
+                        f.write(
+                            "Processing coadded observations for detections in line with Scolnic et. al 2018."
+                        )
             detected_observations = getattr(afunc, type)(
                 coadded_observations, process_other_obs_data
             )
@@ -701,9 +735,10 @@ if __name__ == "__main__":
                     "Processing coadded observations for detections in line with Scolnic et. al 2018, but no coadds."
                 )
                 if debug is True:
-                    f.write(
-                        "Processing coadded observations for detections in line with Scolnic et. al 2018, but no coadds."
-                    )
+                    with open(debug_file, mode="a") as f:
+                        f.write(
+                            "Processing coadded observations for detections in line with Scolnic et. al 2018, but no coadds."
+                        )
             detected_observations2 = getattr(afunc, "scolnic_detections")(
                 process_obs_data, process_other_obs_data
             )
@@ -713,9 +748,10 @@ if __name__ == "__main__":
                     "Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5."
                 )
                 if debug is True:
-                    f.write(
-                        "Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5."
-                    )
+                    with open(debug_file, mode="a") as f:
+                        f.write(
+                            "Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5."
+                        )
             detected_observations3 = getattr(afunc, "scolnic_detections")(
                 coadded_observations, process_other_obs_data, alerts=True
             )
@@ -725,9 +761,10 @@ if __name__ == "__main__":
                     "Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5 and no coadds."
                 )
                 if debug is True:
-                    f.write(
-                        "Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5 and no coadds."
-                    )
+                    with open(debug_file, mode="a") as f:
+                        f.write(
+                            "Processing coadded observations for detections like Scolnic et. al 2018, but with alerts instead of SNR>5 and no coadds."
+                        )
             detected_observations4 = getattr(afunc, "scolnic_detections")(
                 process_obs_data, process_other_obs_data, alerts=True
             )
@@ -737,9 +774,10 @@ if __name__ == "__main__":
                     "Processing coadded observations for detections in line with Cowperthwaite et. al 2018."
                 )
                 if debug is True:
-                    f.write(
-                        "Processing coadded observations for detections in line with Cowperthwaite et. al 2018."
-                    )
+                    with open(debug_file, mode="a") as f:
+                        f.write(
+                            "Processing coadded observations for detections in line with Cowperthwaite et. al 2018."
+                        )
             detected_observations5 = getattr(afunc, "cowperthwaite_detections")(
                 coadded_observations
             )
@@ -749,9 +787,10 @@ if __name__ == "__main__":
                     "Processing coadded observations for detections in line with Cowperthwaite et. al 2018, but no coadds."
                 )
                 if debug is True:
-                    f.write(
-                        "Processing coadded observations for detections in line with Cowperthwaite et. al 2018, but no coadds."
-                    )
+                    with open(debug_file, mode="a") as f:
+                        f.write(
+                            "Processing coadded observations for detections in line with Cowperthwaite et. al 2018, but no coadds."
+                        )
             detected_observations6 = getattr(afunc, "cowperthwaite_detections")(
                 process_obs_data
             )
@@ -761,9 +800,10 @@ if __name__ == "__main__":
                     "Processing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5."
                 )
                 if debug is True:
-                    f.write(
-                        "Processing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5."
-                    )
+                    with open(debug_file, mode="a") as f:
+                        f.write(
+                            "Processing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5."
+                        )
             detected_observations7 = getattr(afunc, "cowperthwaite_detections")(
                 coadded_observations, alerts=True
             )
@@ -773,9 +813,10 @@ if __name__ == "__main__":
                     "Processing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5 and no coadds."
                 )
                 if debug is True:
-                    f.write(
-                        "Processing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5 and no coadds."
-                    )
+                    with open(debug_file, mode="a") as f:
+                        f.write(
+                            "Processing coadded observations for detections like Cowperthwaite et. al 2018, but with alerts instead of SNR>5 and no coadds."
+                        )
             detected_observations8 = getattr(afunc, "cowperthwaite_detections")(
                 process_obs_data, alerts=True
             )
@@ -785,15 +826,17 @@ if __name__ == "__main__":
                     "Processing coadded observations with the given filter dictionary."
                 )
                 if debug is True:
-                    f.write(
-                        "Processing coadded observations with the given filter dictionary."
-                    )
+                    with open(debug_file, mode="a") as f:
+                        f.write(
+                            "Processing coadded observations with the given filter dictionary."
+                        )
             intermediate_filter = getattr(afunc, type)(intermediate_filter, filters)
 
     if rank == 0 and debug is True:
-        f.write("\n")
-        f.write("-------------Debug:-------------")
-        f.write("Finished with detections and begin gather for output.")
+        with open(debug_file, mode="a") as f:
+            f.write("\n")
+            f.write("-------------Debug:-------------")
+            f.write("Finished with detections and begin gather for output.")
     process_param_data = afunc.param_observe_detect(
         process_param_data, process_obs_data, detected_observations
     )
@@ -824,9 +867,10 @@ if __name__ == "__main__":
     # Join all batches and mpi workers and write the dataFrame to file
     if size > 1:
         if rank == 0 and debug is True:
-            f.write("\n")
-            f.write("-------------Debug:-------------")
-            f.write("Gather all the data to the root process.")
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Gather all the data to the root process.")
         coadd_receive = comm.gather(coadded_observations, root=0)
         params_receive = comm.gather(process_param_data, root=0)
         detected_receive = comm.gather(detected_observations, root=0)
@@ -840,9 +884,10 @@ if __name__ == "__main__":
 
         if rank == 0:
             if debug is True:
-                f.write("\n")
-                f.write("-------------Debug:-------------")
-                f.write("Concatenating the dataframes for output.")
+                with open(debug_file, mode="a") as f:
+                    f.write("\n")
+                    f.write("-------------Debug:-------------")
+                    f.write("Concatenating the dataframes for output.")
             output_params = pd.concat(params_receive, sort=False, ignore_index=True)
             output_coadd = pd.concat(coadd_receive, sort=False, ignore_index=True)
             output_detections = pd.concat(
@@ -911,9 +956,10 @@ if __name__ == "__main__":
                 "Outputting coadded observations, scolnic detections, parameters modified with observed, alerted, and detected flags, and the redshift distribution."
             )
         if debug is True:
-            f.write(
-                "Outputting coadded observations, scolnic detections, parameters modified with observed, alerted, and detected flags, and the redshift distribution."
-            )
+            with open(debug_file, mode="a") as f:
+                f.write(
+                    "Outputting coadded observations, scolnic detections, parameters modified with observed, alerted, and detected flags, and the redshift distribution."
+                )
         if save_all_output is True:
             output_coadd.to_csv(output_path + "coadded_observations.csv")
         output_detections.to_csv(output_path + "scolnic_detections.csv")
@@ -930,7 +976,8 @@ if __name__ == "__main__":
         if verbose:
             print("Done writing the detection results.")
         if debug is True:
-            f.write("Done writing the detection results.")
+            with open(debug_file, mode="a") as f:
+                f.write("Done writing the detection results.")
 
     if size > 1:
         comm.barrier()
@@ -948,14 +995,14 @@ if __name__ == "__main__":
             )
         )
         if debug is True:
-            f.write(
-                "\n Estimated time for the last bit is: {}".format(
-                    (t_end - t1) / transient_dist.number_simulated
+            with open(debug_file, mode="a") as f:
+                f.write(
+                    "\n Estimated time for the last bit is: {}".format(
+                        (t_end - t1) / transient_dist.number_simulated
+                    )
                 )
-            )
-            f.write(
-                "\nSimulation completed successfully with elapsed time: {}.".format(
-                    datetime.timedelta(seconds=int(t_end - t_start))
+                f.write(
+                    "\nSimulation completed successfully with elapsed time: {}.".format(
+                        datetime.timedelta(seconds=int(t_end - t_start))
+                    )
                 )
-            )
-            f.close()
