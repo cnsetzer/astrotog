@@ -5,7 +5,7 @@ import numpy as np
 # Section that user can edit to tailor simulation
 # ----------------------------------------------------------------------
 debug = True
-debug_file = "/home/csetzer/LSST/astrotog_output/debug_log_020z_normalio.txt"
+debug_file = "/home/csetzer/LSST/astrotog_output/debug_log_040z_normalio.txt"
 save_all_output = True
 batch_mp_workers = 2
 verbose = True
@@ -22,7 +22,7 @@ transient_duration = (
 )  # in days used to select time before survey to begin injecting transients
 t_before = 21.0
 t_after = 21.0
-z_max = 0.2  # Maximum redshift depth for simulation
+z_max = 0.4  # Maximum redshift depth for simulation
 z_bin_size = 0.02  # Binning for redshift distribution histogram
 z_min = 0.0  # Given if you want to simulate shells
 rate = 1000  # Rate in events per GPC^3 per restframe time
