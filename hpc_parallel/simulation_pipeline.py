@@ -226,7 +226,7 @@ if __name__ == "__main__":
         sky_del = []
         param_del = []
         for i in range(num_params_pprocess):
-            if any(sky_loc_array[i] is None):
+            if any(elem is None for elem in sky_loc_array[i]):
                 sky_del.append(i)
             elif any(abs(sky_loc_array[i]) < 1e-250):
                 sky_del.append(i)
@@ -927,10 +927,10 @@ if __name__ == "__main__":
             output_path + "cowperthwaite_like_detections_no_coadd.csv"
         )
         output_params.to_csv(output_path + "modified_parameters.csv")
-    if verbose:
-        print("Done writing the detection results.")
-    if debug is True:
-        f.write("Done writing the detection results.")
+        if verbose:
+            print("Done writing the detection results.")
+        if debug is True:
+            f.write("Done writing the detection results.")
 
     if size > 1:
         comm.barrier()
