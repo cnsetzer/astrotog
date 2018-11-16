@@ -5,7 +5,7 @@ import numpy as np
 # Section that user can edit to tailor simulation
 # ----------------------------------------------------------------------
 debug = True
-debug_file = "/home/csetzer/LSST/astrotog_output/debug_log_035z.txt"
+debug_file = "/home/csetzer/LSST/astrotog_output/debug_log_050z.txt"
 save_all_output = True
 batch_mp_workers = 2
 verbose = True
@@ -22,7 +22,7 @@ transient_duration = (
 )  # in days used to select time before survey to begin injecting transients
 t_before = 21.0
 t_after = 21.0
-z_max = 0.35  # Maximum redshift depth for simulation
+z_max = 0.5  # Maximum redshift depth for simulation
 z_bin_size = 0.02  # Binning for redshift distribution histogram
 z_min = 0.0  # Given if you want to simulate shells
 rate = 1000  # Rate in events per GPC^3 per restframe time
@@ -50,7 +50,7 @@ reference_flux_path = "/share/data1/csetzer/lsst/throughputs/references"
 efficiency_table_path = (
     "/home/csetzer/software/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT"
 )
-run_dir = "hypatia_debug_desgw_kne_kraken2026_lowerz" + datetime.datetime.now().strftime(
+run_dir = "hypatia_debug_desgw_kne_kraken2026_lowerz2" + datetime.datetime.now().strftime(
     "%d%m%y_%H%M%S"
 )
 output_path = "/share/data1/csetzer/lsst_kne_sims_outputs/" + run_dir + "/"
