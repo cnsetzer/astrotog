@@ -138,6 +138,7 @@ if __name__ == "__main__":
         detect_type = None
         debug = None
         debug_file = None
+        output_path = None
 
     if rank == 0 and debug is True:
         with open(debug_file, mode="a") as f:
@@ -150,6 +151,7 @@ if __name__ == "__main__":
         comm.barrier()
         debug = comm.bcast(debug, root=0)
         debug_file = comm.bcast(debug_file, root=0)
+        output_path = comm.bcast(output_path, root=0)
         detect_type = comm.bcast(detect_type, root=0)
         num_transients = comm.bcast(num_transients, root=0)
         num_transient_params = comm.bcast(num_transient_params, root=0)
@@ -877,152 +879,152 @@ if __name__ == "__main__":
             f.write("\n")
             f.write("-------------Debug:-------------")
             f.write(
-                "The length of info to gather is {} for rank {}".format(
+                "The length of output is {} for rank {}".format(
                     len(coadded_observations["transient_id"].unique()), rank
                 )
             )
 
-    if debug is True:
-        with open(debug_file, mode="a") as f:
-            f.write("\nAbout to gather results and process rank is {}.\n".format(rank))
-    # Join all batches and mpi workers and write the dataFrame to file
-    if size > 1:
-        if rank == 0 and debug is True:
-            with open(debug_file, mode="a") as f:
-                f.write("\n")
-                f.write("-------------Debug:-------------")
-                f.write("Gather all the data to the root process.")
-        coadded_observations = comm.gather(coadded_observations, root=0)
-        comm.barrier()
-        if rank == 0 and debug is True:
-            with open(debug_file, mode="a") as f:
-                f.write("\n")
-                f.write("-------------Debug:-------------")
-                f.write("Finished gathering coadds, now gathering parmeters")
-        process_param_data = comm.gather(process_param_data, root=0)
-        comm.barrier()
-        if rank == 0 and debug is True:
-            with open(debug_file, mode="a") as f:
-                f.write("\n")
-                f.write("-------------Debug:-------------")
-                f.write(
-                    "Finished gathering parameters, now gathering Scolnic detections."
-                )
-        detected_observations = comm.gather(detected_observations, root=0)
-        comm.barrier()
-        if rank == 0 and debug is True:
-            with open(debug_file, mode="a") as f:
-                f.write("\n")
-                f.write("-------------Debug:-------------")
-                f.write(
-                    "Finished gathering Scolnic detections, now gathering Scolnic detections without coadds."
-                )
-        detected_observations2 = comm.gather(detected_observations2, root=0)
-        comm.barrier()
-        if rank == 0 and debug is True:
-            with open(debug_file, mode="a") as f:
-                f.write("\n")
-                f.write("-------------Debug:-------------")
-                f.write(
-                    "Finished gathering Scolnic detections without coadds, now gathering Scolnic like detections."
-                )
-        detected_observations3 = comm.gather(detected_observations3, root=0)
-        comm.barrier()
-        if rank == 0 and debug is True:
-            with open(debug_file, mode="a") as f:
-                f.write("\n")
-                f.write("-------------Debug:-------------")
-                f.write(
-                    "Finished gathering Scolnic like detections, now gathering Scolnic like detections without coadds."
-                )
-        detected_observations4 = comm.gather(detected_observations4, root=0)
-        comm.barrier()
-        if rank == 0 and debug is True:
-            with open(debug_file, mode="a") as f:
-                f.write("\n")
-                f.write("-------------Debug:-------------")
-                f.write(
-                    "Finished gathering Scolnic like detections without coadds, now gathering Cowperthwaite detections."
-                )
-        detected_observations5 = comm.gather(detected_observations5, root=0)
-        comm.barrier()
-        if rank == 0 and debug is True:
-            with open(debug_file, mode="a") as f:
-                f.write("\n")
-                f.write("-------------Debug:-------------")
-                f.write(
-                    "Finished gathering Cowperthwaite detections, now gathering Cowperthwaite detections without coadds."
-                )
-        detected_observations6 = comm.gather(detected_observations6, root=0)
-        comm.barrier()
-        if rank == 0 and debug is True:
-            with open(debug_file, mode="a") as f:
-                f.write("\n")
-                f.write("-------------Debug:-------------")
-                f.write(
-                    "Finished gathering Cowperthwaite detections without coadds, now gathering Cowperthwaite like detections."
-                )
-        detected_observations7 = comm.gather(detected_observations7, root=0)
-        comm.barrier()
-        if rank == 0 and debug is True:
-            with open(debug_file, mode="a") as f:
-                f.write("\n")
-                f.write("-------------Debug:-------------")
-                f.write(
-                    "Finished gathering Cowperthwaite-like detections, now gathering Cowperthwaite like detections without coadds."
-                )
-        detected_observations8 = comm.gather(detected_observations8, root=0)
-        comm.barrier()
-
-        if rank == 0:
-            if debug is True:
-                with open(debug_file, mode="a") as f:
-                    f.write("\n")
-                    f.write("-------------Debug:-------------")
-                    f.write("Finished gathering all data.")
-                    f.write("\n")
-                    f.write("-------------Debug:-------------")
-                    f.write("Concatenating the dataframes for output.")
-            output_params = pd.concat(process_param_data, sort=False, ignore_index=True)
-            output_coadd = pd.concat(
-                coadded_observations, sort=False, ignore_index=True
-            )
-            output_detections = pd.concat(
-                detected_observations, sort=False, ignore_index=True
-            )
-            output_detections2 = pd.concat(
-                detected_observations2, sort=False, ignore_index=True
-            )
-            output_detections3 = pd.concat(
-                detected_observations3, sort=False, ignore_index=True
-            )
-            output_detections4 = pd.concat(
-                detected_observations4, sort=False, ignore_index=True
-            )
-            output_detections5 = pd.concat(
-                detected_observations5, sort=False, ignore_index=True
-            )
-            output_detections6 = pd.concat(
-                detected_observations6, sort=False, ignore_index=True
-            )
-            output_detections7 = pd.concat(
-                detected_observations7, sort=False, ignore_index=True
-            )
-            output_detections8 = pd.concat(
-                detected_observations8, sort=False, ignore_index=True
-            )
-
-    else:
-        output_coadd = coadded_observations
-        output_params = process_param_data
-        output_detections = detected_observations
-        output_detections2 = detected_observations2
-        output_detections3 = detected_observations3
-        output_detections4 = detected_observations4
-        output_detections5 = detected_observations5
-        output_detections6 = detected_observations6
-        output_detections7 = detected_observations7
-        output_detections8 = detected_observations8
+    # if debug is True:
+    #     with open(debug_file, mode="a") as f:
+    #         f.write("\nAbout to gather results and process rank is {}.\n".format(rank))
+    # # Join all batches and mpi workers and write the dataFrame to file
+    # if size > 1:
+    #     if rank == 0 and debug is True:
+    #         with open(debug_file, mode="a") as f:
+    #             f.write("\n")
+    #             f.write("-------------Debug:-------------")
+    #             f.write("Gather all the data to the root process.")
+    #     coadded_observations = comm.gather(coadded_observations, root=0)
+    #     comm.barrier()
+    #     if rank == 0 and debug is True:
+    #         with open(debug_file, mode="a") as f:
+    #             f.write("\n")
+    #             f.write("-------------Debug:-------------")
+    #             f.write("Finished gathering coadds, now gathering parmeters")
+    #     process_param_data = comm.gather(process_param_data, root=0)
+    #     comm.barrier()
+    #     if rank == 0 and debug is True:
+    #         with open(debug_file, mode="a") as f:
+    #             f.write("\n")
+    #             f.write("-------------Debug:-------------")
+    #             f.write(
+    #                 "Finished gathering parameters, now gathering Scolnic detections."
+    #             )
+    #     detected_observations = comm.gather(detected_observations, root=0)
+    #     comm.barrier()
+    #     if rank == 0 and debug is True:
+    #         with open(debug_file, mode="a") as f:
+    #             f.write("\n")
+    #             f.write("-------------Debug:-------------")
+    #             f.write(
+    #                 "Finished gathering Scolnic detections, now gathering Scolnic detections without coadds."
+    #             )
+    #     detected_observations2 = comm.gather(detected_observations2, root=0)
+    #     comm.barrier()
+    #     if rank == 0 and debug is True:
+    #         with open(debug_file, mode="a") as f:
+    #             f.write("\n")
+    #             f.write("-------------Debug:-------------")
+    #             f.write(
+    #                 "Finished gathering Scolnic detections without coadds, now gathering Scolnic like detections."
+    #             )
+    #     detected_observations3 = comm.gather(detected_observations3, root=0)
+    #     comm.barrier()
+    #     if rank == 0 and debug is True:
+    #         with open(debug_file, mode="a") as f:
+    #             f.write("\n")
+    #             f.write("-------------Debug:-------------")
+    #             f.write(
+    #                 "Finished gathering Scolnic like detections, now gathering Scolnic like detections without coadds."
+    #             )
+    #     detected_observations4 = comm.gather(detected_observations4, root=0)
+    #     comm.barrier()
+    #     if rank == 0 and debug is True:
+    #         with open(debug_file, mode="a") as f:
+    #             f.write("\n")
+    #             f.write("-------------Debug:-------------")
+    #             f.write(
+    #                 "Finished gathering Scolnic like detections without coadds, now gathering Cowperthwaite detections."
+    #             )
+    #     detected_observations5 = comm.gather(detected_observations5, root=0)
+    #     comm.barrier()
+    #     if rank == 0 and debug is True:
+    #         with open(debug_file, mode="a") as f:
+    #             f.write("\n")
+    #             f.write("-------------Debug:-------------")
+    #             f.write(
+    #                 "Finished gathering Cowperthwaite detections, now gathering Cowperthwaite detections without coadds."
+    #             )
+    #     detected_observations6 = comm.gather(detected_observations6, root=0)
+    #     comm.barrier()
+    #     if rank == 0 and debug is True:
+    #         with open(debug_file, mode="a") as f:
+    #             f.write("\n")
+    #             f.write("-------------Debug:-------------")
+    #             f.write(
+    #                 "Finished gathering Cowperthwaite detections without coadds, now gathering Cowperthwaite like detections."
+    #             )
+    #     detected_observations7 = comm.gather(detected_observations7, root=0)
+    #     comm.barrier()
+    #     if rank == 0 and debug is True:
+    #         with open(debug_file, mode="a") as f:
+    #             f.write("\n")
+    #             f.write("-------------Debug:-------------")
+    #             f.write(
+    #                 "Finished gathering Cowperthwaite-like detections, now gathering Cowperthwaite like detections without coadds."
+    #             )
+    #     detected_observations8 = comm.gather(detected_observations8, root=0)
+    #     comm.barrier()
+    #
+    #     if rank == 0:
+    #         if debug is True:
+    #             with open(debug_file, mode="a") as f:
+    #                 f.write("\n")
+    #                 f.write("-------------Debug:-------------")
+    #                 f.write("Finished gathering all data.")
+    #                 f.write("\n")
+    #                 f.write("-------------Debug:-------------")
+    #                 f.write("Concatenating the dataframes for output.")
+    #         output_params = pd.concat(process_param_data, sort=False, ignore_index=True)
+    #         output_coadd = pd.concat(
+    #             coadded_observations, sort=False, ignore_index=True
+    #         )
+    #         output_detections = pd.concat(
+    #             detected_observations, sort=False, ignore_index=True
+    #         )
+    #         output_detections2 = pd.concat(
+    #             detected_observations2, sort=False, ignore_index=True
+    #         )
+    #         output_detections3 = pd.concat(
+    #             detected_observations3, sort=False, ignore_index=True
+    #         )
+    #         output_detections4 = pd.concat(
+    #             detected_observations4, sort=False, ignore_index=True
+    #         )
+    #         output_detections5 = pd.concat(
+    #             detected_observations5, sort=False, ignore_index=True
+    #         )
+    #         output_detections6 = pd.concat(
+    #             detected_observations6, sort=False, ignore_index=True
+    #         )
+    #         output_detections7 = pd.concat(
+    #             detected_observations7, sort=False, ignore_index=True
+    #         )
+    #         output_detections8 = pd.concat(
+    #             detected_observations8, sort=False, ignore_index=True
+    #         )
+    #
+    # else:
+    output_coadd = coadded_observations
+    output_params = process_param_data
+    output_detections = detected_observations
+    output_detections2 = detected_observations2
+    output_detections3 = detected_observations3
+    output_detections4 = detected_observations4
+    output_detections5 = detected_observations5
+    output_detections6 = detected_observations6
+    output_detections7 = detected_observations7
+    output_detections8 = detected_observations8
 
     coadded_observations = None
     process_obs_data = None
@@ -1047,24 +1049,36 @@ if __name__ == "__main__":
                 f.write(
                     "\nOutputting coadded observations, scolnic detections, parameters modified with observed, alerted, and detected flags, and the redshift distribution."
                 )
-        if save_all_output is True:
-            output_coadd.to_csv(output_path + "coadded_observations.csv")
-        output_detections.to_csv(output_path + "scolnic_detections.csv")
-        output_detections2.to_csv(output_path + "scolnic_detections_no_coadd.csv")
-        output_detections3.to_csv(output_path + "scolnic_like_detections.csv")
-        output_detections4.to_csv(output_path + "scolnic_like_detections_no_coadd.csv")
-        output_detections5.to_csv(output_path + "cowperthwaite_detections.csv")
-        output_detections6.to_csv(output_path + "cowperthwaite_detections_no_coadd.csv")
-        output_detections7.to_csv(output_path + "cowperthwaite_like_detections.csv")
-        output_detections8.to_csv(
-            output_path + "cowperthwaite_like_detections_no_coadd.csv"
-        )
-        output_params.to_csv(output_path + "modified_parameters.csv")
-        if verbose:
-            print("Done writing the detection results.")
-        if debug is True:
-            with open(debug_file, mode="a") as f:
-                f.write("\nDone writing the detection results.")
+    # if save_all_output is True:
+    output_coadd.to_csv(output_path + "coadded_observations_rank{}.csv".format(rank))
+    output_detections.to_csv(output_path + "scolnic_detections_rank{}.csv".format(rank))
+    output_detections2.to_csv(
+        output_path + "scolnic_detections_no_coadd_rank{}.csv".format(rank)
+    )
+    output_detections3.to_csv(
+        output_path + "scolnic_like_detections_rank{}.csv".format(rank)
+    )
+    output_detections4.to_csv(
+        output_path + "scolnic_like_detections_no_coadd_rank{}.csv".format(rank)
+    )
+    output_detections5.to_csv(
+        output_path + "cowperthwaite_detections_rank{}.csv".format(rank)
+    )
+    output_detections6.to_csv(
+        output_path + "cowperthwaite_detections_no_coadd_rank{}.csv".format(rank)
+    )
+    output_detections7.to_csv(
+        output_path + "cowperthwaite_like_detections_rank{}.csv".format(rank)
+    )
+    output_detections8.to_csv(
+        output_path + "cowperthwaite_like_detections_no_coadd_rank{}.csv".format(rank)
+    )
+    output_params.to_csv(output_path + "modified_parameters_rank{}.csv".format(rank))
+    if verbose:
+        print("Done writing the detection results.")
+    if debug is True:
+        with open(debug_file, mode="a") as f:
+            f.write("\nDone writing the detection results for rank {}.".format(rank))
 
     if size > 1:
         comm.barrier()

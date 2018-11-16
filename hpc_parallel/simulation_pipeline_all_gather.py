@@ -892,14 +892,14 @@ if __name__ == "__main__":
                 f.write("\n")
                 f.write("-------------Debug:-------------")
                 f.write("Gather all the data to the root process.")
-        coadded_observations = comm.gather(coadded_observations, root=0)
+        coadded_observations = comm.allgather(coadded_observations)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
                 f.write("\n")
                 f.write("-------------Debug:-------------")
                 f.write("Finished gathering coadds, now gathering parmeters")
-        process_param_data = comm.gather(process_param_data, root=0)
+        process_param_data = comm.allgather(process_param_data)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -908,7 +908,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering parameters, now gathering Scolnic detections."
                 )
-        detected_observations = comm.gather(detected_observations, root=0)
+        detected_observations = comm.allgather(detected_observations)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -917,7 +917,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering Scolnic detections, now gathering Scolnic detections without coadds."
                 )
-        detected_observations2 = comm.gather(detected_observations2, root=0)
+        detected_observations2 = comm.allgather(detected_observations2)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -926,7 +926,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering Scolnic detections without coadds, now gathering Scolnic like detections."
                 )
-        detected_observations3 = comm.gather(detected_observations3, root=0)
+        detected_observations3 = comm.allgather(detected_observations3)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -935,7 +935,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering Scolnic like detections, now gathering Scolnic like detections without coadds."
                 )
-        detected_observations4 = comm.gather(detected_observations4, root=0)
+        detected_observations4 = comm.allgather(detected_observations4)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -944,7 +944,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering Scolnic like detections without coadds, now gathering Cowperthwaite detections."
                 )
-        detected_observations5 = comm.gather(detected_observations5, root=0)
+        detected_observations5 = comm.allgather(detected_observations5)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -953,7 +953,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering Cowperthwaite detections, now gathering Cowperthwaite detections without coadds."
                 )
-        detected_observations6 = comm.gather(detected_observations6, root=0)
+        detected_observations6 = comm.allgather(detected_observations6)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -962,7 +962,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering Cowperthwaite detections without coadds, now gathering Cowperthwaite like detections."
                 )
-        detected_observations7 = comm.gather(detected_observations7, root=0)
+        detected_observations7 = comm.allgather(detected_observations7)
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -971,7 +971,7 @@ if __name__ == "__main__":
                 f.write(
                     "Finished gathering Cowperthwaite-like detections, now gathering Cowperthwaite like detections without coadds."
                 )
-        detected_observations8 = comm.gather(detected_observations8, root=0)
+        detected_observations8 = comm.allgather(detected_observations8)
         comm.barrier()
 
         if rank == 0:
