@@ -677,6 +677,13 @@ if __name__ == "__main__":
                     stop=num_transients + 1,
                 )
             )
+            if debug is True:
+                with open(debug_file, mode="a") as f:
+                    f.write(
+                        "\nThe number of ids for rank {} is {}.\n".format(
+                            rank, len(ids_per_process)
+                        )
+                    )
         else:
             ids_per_process = list(
                 np.arange(
@@ -842,11 +849,15 @@ if __name__ == "__main__":
                         )
             intermediate_filter = getattr(afunc, type)(intermediate_filter, filters)
 
-    if rank == 0 and debug is True:
+    if debug is True:
         with open(debug_file, mode="a") as f:
             f.write("\n")
             f.write("-------------Debug:-------------")
-            f.write("Finished with detections and begin gather for output.")
+            f.write(
+                "Finished with detections for rank {} and begin gather for output.".format(
+                    rank
+                )
+            )
     process_param_data = afunc.param_observe_detect(
         process_param_data, process_obs_data, detected_observations
     )
@@ -1037,7 +1048,7 @@ if __name__ == "__main__":
         if debug is True:
             with open(debug_file, mode="a") as f:
                 f.write(
-                    "Outputting coadded observations, scolnic detections, parameters modified with observed, alerted, and detected flags, and the redshift distribution."
+                    "\nOutputting coadded observations, scolnic detections, parameters modified with observed, alerted, and detected flags, and the redshift distribution."
                 )
         if save_all_output is True:
             output_coadd.to_csv(output_path + "coadded_observations.csv")
