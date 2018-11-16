@@ -1068,9 +1068,9 @@ if __name__ == "__main__":
     output_params.to_csv(output_path + "modified_parameters_rank{}.csv".format(rank))
     if verbose:
         print("Done writing the detection results.")
-    if rank == 0 and debug is True:
+    if debug is True:
         with open(debug_file, mode="a") as f:
-            f.write("\nDone writing the detection results.")
+            f.write("\nDone writing the detection results for rank {}.".format(rank))
 
     if size > 1:
         comm.barrier()
