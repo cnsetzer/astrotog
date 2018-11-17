@@ -14,7 +14,7 @@ import multiprocessing as mp
 from itertools import repeat
 import datetime
 import time
-from copy import copy
+from copy import deepcopy
 import pandas as pd
 
 # Set seed for reproduceability
