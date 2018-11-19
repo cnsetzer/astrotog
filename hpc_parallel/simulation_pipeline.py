@@ -233,7 +233,7 @@ if __name__ == "__main__":
 
     if rank == size - 1:
         num_params_poprocess = num_params_pprocess
-        num_params_pprocess = num_transients - (num_params_poprocess*rank)
+        num_params_pprocess = num_transients - (num_params_poprocess * rank)
         # Trim the nonsense from the process arrays
         sky_del = deepcopy(sky_loc_array)
         sky_loc_array = sky_del[:num_params_pprocess]
@@ -599,9 +599,78 @@ if __name__ == "__main__":
                 f.write("\n")
                 f.write("-------------Debug:-------------")
                 f.write("Allgather the parameter and observation data.")
-        obs_receive = comm.allgather(stored_obs_data)
+
+        comm.barrier()
         params_receive = comm.allgather(stored_param_data)
-        other_obs_receive = comm.allgather(stored_other_obs_data)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "Done allgather-ing the parameters, now doing this for the non-detection observations."
+                )
+
+        tot_df_len = stored_other_obs_data.shape[0]
+        split_len = np.ceil(tot_df_len / 4)
+        other_obs_send1 = stored_other_obs_data[0:split_len]
+        other_obs_send2 = stored_other_obs_data[split_len : 2 * split_len]
+        other_obs_send3 = stored_other_obs_data[split_len * 2 : 3 * split_len]
+        other_obs_send4 = stored_other_obs_data[split_len * 3 : tot_df_len]
+
+        comm.barrier()
+        other_obs_receive = comm.allgather(other_obs_send1)
+        other_obs_receive2 = comm.allgather(other_obs_send2)
+        other_obs_receive3 = comm.allgather(other_obs_send3)
+        other_obs_receive4 = comm.allgather(other_obs_send4)
+
+        other_obs_receive.extend(other_obs_receive2)
+        other_obs_receive.extend(other_obs_receive3)
+        other_obs_receive.extend(other_obs_receive4)
+        other_obs_send1 = None
+        other_obs_send2 = None
+        other_obs_send3 = None
+        other_obs_send4 = None
+        other_obs_receive2 = None
+        other_obs_receive3 = None
+        other_obs_receive4 = None
+
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write(
+                    "Done allgather-ing the non-detection observations, now doing this for observations."
+                )
+
+        tot_df_len = stored_obs_data.shape[0]
+        split_len = np.ceil(tot_df_len / 4)
+        obs_send1 = stored_obs_data[0:split_len]
+        obs_send2 = stored_obs_data[split_len : 2 * split_len]
+        obs_send3 = stored_obs_data[split_len * 2 : 3 * split_len]
+        obs_send4 = stored_obs_data[split_len * 3 : tot_df_len]
+
+        comm.barrier()
+        obs_receive = comm.allgather(obs_send1)
+        obs_receive2 = comm.allgather(obs_send2)
+        obs_receive3 = comm.allgather(obs_send3)
+        obs_receive4 = comm.allgather(obs_send4)
+
+        obs_receive.extend(obs_receive2)
+        obs_receive.extend(obs_receive3)
+        obs_receive.extend(obs_receive4)
+        obs_send1 = None
+        obs_send2 = None
+        obs_send3 = None
+        obs_send4 = None
+        obs_receive2 = None
+        obs_receive3 = None
+        obs_receive4 = None
+
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done allgather-ing everything.")
 
         output_params = pd.concat(params_receive, sort=False, ignore_index=True)
         output_observations = pd.concat(obs_receive, sort=False, ignore_index=True)
@@ -657,7 +726,9 @@ if __name__ == "__main__":
         # Split back into processes
         if rank == size - 1:
             ids_per_process = list(
-                np.arange(start=num_params_poprocess * rank + 1, stop=num_transients + 1)
+                np.arange(
+                    start=num_params_poprocess * rank + 1, stop=num_transients + 1
+                )
             )
             if debug is True:
                 with open(debug_file, mode="a") as f:
@@ -884,7 +955,37 @@ if __name__ == "__main__":
                 f.write("\n")
                 f.write("-------------Debug:-------------")
                 f.write("Gather all the data to the root process.")
-        coadded_observations = comm.gather(coadded_observations, root=0)
+
+        tot_df_len = coadded_observations.shape[0]
+        split_len = np.ceil(tot_df_len / 4)
+        coadd_send1 = coadded_observations[0:split_len]
+        coadd_send2 = coadded_observations[split_len : 2 * split_len]
+        coadd_send3 = coadded_observations[split_len * 2 : 3 * split_len]
+        coadd_send4 = coadded_observations[split_len * 3 : tot_df_len]
+
+        comm.barrier()
+        coadd_receive = comm.gather(coadd_send1, root=0)
+        coadd_receive2 = comm.gather(coadd_send2, root=0)
+        coadd_receive3 = comm.gather(coadd_send3, root=0)
+        coadd_receive4 = comm.gather(coadd_send4, root=0)
+
+        if rank == 0:
+            coadd_receive.extend(coadd_receive2)
+            coadd_receive.extend(coadd_receive3)
+            coadd_receive.extend(coadd_receive4)
+            coadded_observations = coadd_receive
+        else:
+            coadded_observations = None
+
+        coadd_send1 = None
+        coadd_send2 = None
+        coadd_send3 = None
+        coadd_send4 = None
+        coadd_receive = None
+        coadd_receive2 = None
+        coadd_receive3 = None
+        coadd_receive4 = None
+
         comm.barrier()
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
