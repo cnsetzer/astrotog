@@ -71,7 +71,3 @@ job_files/
 some_old_sim_scripts/
 pc_runs/
 old_pbs/
-
-
-# Ignore paper
-paper/
