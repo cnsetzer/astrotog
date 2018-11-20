@@ -611,28 +611,114 @@ if __name__ == "__main__":
                 )
 
         tot_df_len = stored_other_obs_data.shape[0]
-        split_len = np.ceil(tot_df_len / 4)
+        split_len = np.ceil(tot_df_len / 10)
         other_obs_send1 = stored_other_obs_data[0:split_len]
-        other_obs_send2 = stored_other_obs_data[split_len : 2 * split_len]
+        other_obs_send2 = stored_other_obs_data[split_len * 1 : 2 * split_len]
         other_obs_send3 = stored_other_obs_data[split_len * 2 : 3 * split_len]
-        other_obs_send4 = stored_other_obs_data[split_len * 3 : tot_df_len]
+        other_obs_send4 = stored_other_obs_data[split_len * 3 : 4 * split_len]
+        other_obs_send5 = stored_other_obs_data[split_len * 4 : 5 * split_len]
+        other_obs_send6 = stored_other_obs_data[split_len * 5 : 6 * split_len]
+        other_obs_send7 = stored_other_obs_data[split_len * 6 : 7 * split_len]
+        other_obs_send8 = stored_other_obs_data[split_len * 7 : 8 * split_len]
+        other_obs_send9 = stored_other_obs_data[split_len * 8 : 9 * split_len]
+        other_obs_send10 = stored_other_obs_data[split_len * 9 :]
 
         comm.barrier()
         other_obs_receive = comm.allgather(other_obs_send1)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 1, now sending chunk 2.")
+        comm.barrier()
         other_obs_receive2 = comm.allgather(other_obs_send2)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 2, now sending chunk 3.")
+        comm.barrier()
         other_obs_receive3 = comm.allgather(other_obs_send3)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 3, now sending chunk 4.")
+        comm.barrier()
         other_obs_receive4 = comm.allgather(other_obs_send4)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 4, now sending chunk 5.")
+        comm.barrier()
+        other_obs_receive5 = comm.allgather(other_obs_send5)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 5, now sending chunk 6.")
+        comm.barrier()
+        other_obs_receive6 = comm.allgather(other_obs_send6)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 6, now sending chunk 7.")
+        comm.barrier()
+        other_obs_receive7 = comm.allgather(other_obs_send7)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 7, now sending chunk 8.")
+        comm.barrier()
+        other_obs_receive8 = comm.allgather(other_obs_send8)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 8, now sending chunk 9.")
+        comm.barrier()
+        other_obs_receive9 = comm.allgather(other_obs_send9)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 9, now sending chunk 10.")
+        comm.barrier()
+        other_obs_receive10 = comm.allgather(other_obs_send10)
 
         other_obs_receive.extend(other_obs_receive2)
         other_obs_receive.extend(other_obs_receive3)
         other_obs_receive.extend(other_obs_receive4)
+        other_obs_receive.extend(other_obs_receive5)
+        other_obs_receive.extend(other_obs_receive6)
+        other_obs_receive.extend(other_obs_receive7)
+        other_obs_receive.extend(other_obs_receive8)
+        other_obs_receive.extend(other_obs_receive9)
+        other_obs_receive.extend(other_obs_receive10)
+
         other_obs_send1 = None
         other_obs_send2 = None
         other_obs_send3 = None
         other_obs_send4 = None
+        other_obs_send5 = None
+        other_obs_send6 = None
+        other_obs_send7 = None
+        other_obs_send8 = None
+        other_obs_send9 = None
+        other_obs_send10 = None
+
         other_obs_receive2 = None
         other_obs_receive3 = None
         other_obs_receive4 = None
+        other_obs_receive5 = None
+        other_obs_receive6 = None
+        other_obs_receive7 = None
+        other_obs_receive8 = None
+        other_obs_receive9 = None
+        other_obs_receive10 = None
 
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -643,28 +729,114 @@ if __name__ == "__main__":
                 )
 
         tot_df_len = stored_obs_data.shape[0]
-        split_len = np.ceil(tot_df_len / 4)
+        split_len = np.ceil(tot_df_len / 10)
         obs_send1 = stored_obs_data[0:split_len]
-        obs_send2 = stored_obs_data[split_len : 2 * split_len]
+        obs_send2 = stored_obs_data[split_len * 1 : 2 * split_len]
         obs_send3 = stored_obs_data[split_len * 2 : 3 * split_len]
-        obs_send4 = stored_obs_data[split_len * 3 : tot_df_len]
+        obs_send4 = stored_obs_data[split_len * 3 : 4 * split_len]
+        obs_send5 = stored_obs_data[split_len * 4 : 5 * split_len]
+        obs_send6 = stored_obs_data[split_len * 5 : 6 * split_len]
+        obs_send7 = stored_obs_data[split_len * 6 : 7 * split_len]
+        obs_send8 = stored_obs_data[split_len * 7 : 8 * split_len]
+        obs_send9 = stored_obs_data[split_len * 8 : 9 * split_len]
+        obs_send10 = stored_obs_data[split_len * 9 :]
 
         comm.barrier()
         obs_receive = comm.allgather(obs_send1)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 1, now sending chunk 2.")
+        comm.barrier()
         obs_receive2 = comm.allgather(obs_send2)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 2, now sending chunk 3.")
+        comm.barrier()
         obs_receive3 = comm.allgather(obs_send3)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 3, now sending chunk 4.")
+        comm.barrier()
         obs_receive4 = comm.allgather(obs_send4)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 4, now sending chunk 5.")
+        comm.barrier()
+        obs_receive5 = comm.allgather(obs_send5)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 5, now sending chunk 6.")
+        comm.barrier()
+        obs_receive6 = comm.allgather(obs_send6)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 6, now sending chunk 7.")
+        comm.barrier()
+        obs_receive7 = comm.allgather(obs_send7)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 7, now sending chunk 8.")
+        comm.barrier()
+        obs_receive8 = comm.allgather(obs_send8)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 8, now sending chunk 9.")
+        comm.barrier()
+        obs_receive9 = comm.allgather(obs_send9)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 9, now sending chunk 10.")
+        comm.barrier()
+        obs_receive10 = comm.allgather(obs_send10)
 
         obs_receive.extend(obs_receive2)
         obs_receive.extend(obs_receive3)
         obs_receive.extend(obs_receive4)
+        obs_receive.extend(obs_receive5)
+        obs_receive.extend(obs_receive6)
+        obs_receive.extend(obs_receive7)
+        obs_receive.extend(obs_receive8)
+        obs_receive.extend(obs_receive9)
+        obs_receive.extend(obs_receive10)
+
         obs_send1 = None
         obs_send2 = None
         obs_send3 = None
         obs_send4 = None
+        obs_send5 = None
+        obs_send6 = None
+        obs_send7 = None
+        obs_send8 = None
+        obs_send9 = None
+        obs_send10 = None
+
         obs_receive2 = None
         obs_receive3 = None
         obs_receive4 = None
+        obs_receive5 = None
+        obs_receive6 = None
+        obs_receive7 = None
+        obs_receive8 = None
+        obs_receive9 = None
+        obs_receive10 = None
 
         if rank == 0 and debug is True:
             with open(debug_file, mode="a") as f:
@@ -957,23 +1129,95 @@ if __name__ == "__main__":
                 f.write("Gather all the data to the root process.")
 
         tot_df_len = coadded_observations.shape[0]
-        split_len = np.ceil(tot_df_len / 4)
+        split_len = np.ceil(tot_df_len / 10)
         coadd_send1 = coadded_observations[0:split_len]
-        coadd_send2 = coadded_observations[split_len : 2 * split_len]
+        coadd_send2 = coadded_observations[split_len * 1 : 2 * split_len]
         coadd_send3 = coadded_observations[split_len * 2 : 3 * split_len]
-        coadd_send4 = coadded_observations[split_len * 3 : tot_df_len]
+        coadd_send4 = coadded_observations[split_len * 3 : 4 * split_len]
+        coadd_send5 = coadded_observations[split_len * 4 : 5 * split_len]
+        coadd_send6 = coadded_observations[split_len * 5 : 6 * split_len]
+        coadd_send7 = coadded_observations[split_len * 6 : 7 * split_len]
+        coadd_send8 = coadded_observations[split_len * 7 : 8 * split_len]
+        coadd_send9 = coadded_observations[split_len * 8 : 9 * split_len]
+        coadd_send10 = coadded_observations[split_len * 9 :]
 
         comm.barrier()
         coadd_receive = comm.gather(coadd_send1, root=0)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 1, now sending chunk 2.")
+        comm.barrier()
         coadd_receive2 = comm.gather(coadd_send2, root=0)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 2, now sending chunk 3.")
+        comm.barrier()
         coadd_receive3 = comm.gather(coadd_send3, root=0)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 3, now sending chunk 4.")
+        comm.barrier()
         coadd_receive4 = comm.gather(coadd_send4, root=0)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 4, now sending chunk 5.")
+        comm.barrier()
+        coadd_receive5 = comm.gather(coadd_send5, root=0)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 5, now sending chunk 6.")
+        comm.barrier()
+        coadd_receive6 = comm.gather(coadd_send6, root=0)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 6, now sending chunk 7.")
+        comm.barrier()
+        coadd_receive7 = comm.gather(coadd_send7, root=0)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 7, now sending chunk 8.")
+        comm.barrier()
+        coadd_receive8 = comm.gather(coadd_send8, root=0)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 8, now sending chunk 9.")
+        comm.barrier()
+        coadd_receive9 = comm.gather(coadd_send9, root=0)
+        if rank == 0 and debug is True:
+            with open(debug_file, mode="a") as f:
+                f.write("\n")
+                f.write("-------------Debug:-------------")
+                f.write("Done sending chunk 9, now sending chunk 10.")
+        comm.barrier()
+        coadd_receive10 = comm.gather(coadd_send10, root=0)
 
         if rank == 0:
             coadd_receive.extend(coadd_receive2)
             coadd_receive.extend(coadd_receive3)
             coadd_receive.extend(coadd_receive4)
-            coadded_observations = coadd_receive
+            coadd_receive.extend(coadd_receive5)
+            coadd_receive.extend(coadd_receive6)
+            coadd_receive.extend(coadd_receive7)
+            coadd_receive.extend(coadd_receive8)
+            coadd_receive.extend(coadd_receive9)
+            coadd_receive.extend(coadd_receive10)
+            coadded_observations = deepcopy(coadd_receive)
         else:
             coadded_observations = None
 
@@ -981,10 +1225,22 @@ if __name__ == "__main__":
         coadd_send2 = None
         coadd_send3 = None
         coadd_send4 = None
+        coadd_send5 = None
+        coadd_send6 = None
+        coadd_send7 = None
+        coadd_send8 = None
+        coadd_send9 = None
+        coadd_send10 = None
         coadd_receive = None
         coadd_receive2 = None
         coadd_receive3 = None
         coadd_receive4 = None
+        coadd_receive5 = None
+        coadd_receive6 = None
+        coadd_receive7 = None
+        coadd_receive8 = None
+        coadd_receive9 = None
+        coadd_receive10 = None
 
         comm.barrier()
         if rank == 0 and debug is True:

@@ -6,7 +6,7 @@ import numpy as np
 # ----------------------------------------------------------------------
 debug = True
 debug_file = (
-    "/home/csetzer/LSST/astrotog_output/debug_log_saeensns_alt_sched_rolling_2.txt"
+    "/home/csetzer/LSST/astrotog_output/debug_log_saeensns_alt_sched_rolling_3.txt"
 )
 save_all_output = True
 batch_mp_workers = 2
@@ -20,7 +20,7 @@ same_dist = True
 min_dec = np.deg2rad(-90.0)
 max_dec = np.deg2rad(35.0)
 transient_duration = (
-    50.0
+    30.0
 )  # in days used to select time before survey to begin injecting transients
 t_before = 21.0
 t_after = 21.0

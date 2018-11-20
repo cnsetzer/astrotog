@@ -276,7 +276,7 @@ class saee_nsns(kilonova):
         if KNE_parameters is None:
             KNE_parameters = []
             KNE_parameters.append(0.00001157)
-            KNE_parameters.append(60.0)
+            KNE_parameters.append(35.0)
             KNE_parameters.append(self.param1)
             KNE_parameters.append(self.param2)
             KNE_parameters.append(1.3)
@@ -534,7 +534,7 @@ class saee_nsbh(kilonova):
         if KNE_parameters is None:
             KNE_parameters = []
             KNE_parameters.append(0.00001157)
-            KNE_parameters.append(60.0)
+            KNE_parameters.append(35.0)
             KNE_parameters.append(self.param1)
             KNE_parameters.append(self.param2)
             KNE_parameters.append(1.3)

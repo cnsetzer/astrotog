@@ -5,7 +5,7 @@ import numpy as np
 # Section that user can edit to tailor simulation
 # ----------------------------------------------------------------------
 debug = True
-debug_file = "/home/csetzer/LSST/astrotog_output/debug_log_saeensns_kraken2042_2.txt"
+debug_file = "/home/csetzer/LSST/astrotog_output/debug_log_saeensns_kraken2042_3.txt"
 save_all_output = True
 batch_mp_workers = 2
 verbose = True
@@ -18,7 +18,7 @@ same_dist = True
 min_dec = np.deg2rad(-90.0)
 max_dec = np.deg2rad(35.0)
 transient_duration = (
-    50.0
+    30.0
 )  # in days used to select time before survey to begin injecting transients
 t_before = 21.0
 t_after = 21.0
