@@ -235,7 +235,7 @@ if __name__ == "__main__":
 
     if rank == size - 1:
         num_params_poprocess = num_params_pprocess
-        num_params_pprocess = num_transients - (num_params_poprocess*rank)
+        num_params_pprocess = num_transients - (num_params_poprocess * rank)
         # Trim the nonsense from the process arrays
         sky_del = deepcopy(sky_loc_array)
         sky_loc_array = sky_del[:num_params_pprocess]
@@ -594,27 +594,27 @@ if __name__ == "__main__":
     stored_param_data.dropna(inplace=True)
     stored_other_obs_data.dropna(inplace=True)
 
-    # Join all batches and mpi workers and write the dataFrame to file
-    if size > 1:
-        if rank == 0 and debug is True:
-            with open(debug_file, mode="a") as f:
-                f.write("\n")
-                f.write("-------------Debug:-------------")
-                f.write("Allgather the parameter and observation data.")
-        obs_receive = comm.allgather(stored_obs_data)
-        params_receive = comm.allgather(stored_param_data)
-        other_obs_receive = comm.allgather(stored_other_obs_data)
-
-        output_params = pd.concat(params_receive, sort=False, ignore_index=True)
-        output_observations = pd.concat(obs_receive, sort=False, ignore_index=True)
-        output_other_observations = pd.concat(
-            other_obs_receive, sort=False, ignore_index=True
-        )
-
-    else:
-        output_observations = stored_obs_data
-        output_params = stored_param_data
-        output_other_observations = stored_other_obs_data
+    # # Join all batches and mpi workers and write the dataFrame to file
+    # if size > 1:
+    #     if rank == 0 and debug is True:
+    #         with open(debug_file, mode="a") as f:
+    #             f.write("\n")
+    #             f.write("-------------Debug:-------------")
+    #             f.write("Allgather the parameter and observation data.")
+    #     obs_receive = comm.allgather(stored_obs_data)
+    #     params_receive = comm.allgather(stored_param_data)
+    #     other_obs_receive = comm.allgather(stored_other_obs_data)
+    #
+    #     output_params = pd.concat(params_receive, sort=False, ignore_index=True)
+    #     output_observations = pd.concat(obs_receive, sort=False, ignore_index=True)
+    #     output_other_observations = pd.concat(
+    #         other_obs_receive, sort=False, ignore_index=True
+    #     )
+    #
+    # else:
+    output_observations = deepcopy(stored_obs_data)
+    output_params = deepcopy(stored_param_data)
+    output_other_observations = deepcopy(stored_other_obs_data)
 
     if rank == 0:
         if verbose and save_all_output:
@@ -628,19 +628,19 @@ if __name__ == "__main__":
                     )
         if not os.path.exists(output_path):
             os.makedirs(output_path)
-        if save_all_output is True:
-            # output_params.to_csv(output_path + 'parameters.csv')
-            output_observations.to_csv(output_path + "observations.csv")
-            output_other_observations.to_csv(output_path + "other_observations.csv")
-            if verbose:
-                print("Finished writing observation results.")
-            if debug is True:
-                with open(debug_file, mode="a") as f:
-                    f.write("\nFinished writing observation results.")
+    comm.barrier()
+    if save_all_output is True:
+        # output_params.to_csv(output_path + 'parameters.csv')
+        output_observations.to_csv(output_path + "observations_rank{}.csv".format(rank))
+        output_other_observations.to_csv(
+            output_path + "other_observations_rank{}.csv".format(rank)
+        )
+        if verbose and rank == 0:
+            print("Finished writing observation results.")
+        if debug is True and rank == 0:
+            with open(debug_file, mode="a") as f:
+                f.write("\nFinished writing observation results.")
 
-    stored_obs_data = output_observations
-    stored_param_data = output_params
-    stored_other_obs_data = output_other_observations
     output_params = None
     output_observations = None
     output_other_observations = None
@@ -648,54 +648,58 @@ if __name__ == "__main__":
     params_receive = None
     other_obs_receive = None
 
-    if size > 1:
-        if rank == 0 and debug is True:
-            with open(debug_file, mode="a") as f:
-                f.write("\n")
-                f.write("-------------Debug:-------------")
-                f.write("Separate the dataframes per process.")
+    # if size > 1:
+    #     if rank == 0 and debug is True:
+    #         with open(debug_file, mode="a") as f:
+    #             f.write("\n")
+    #             f.write("-------------Debug:-------------")
+    #             f.write("Separate the dataframes per process.")
+    #
+    #     comm.barrier()
+    #     # Split back into processes
+    #     if rank == size - 1:
+    #         ids_per_process = list(
+    #             np.arange(
+    #                 start=num_params_poprocess * rank + 1, stop=num_transients + 1
+    #             )
+    #         )
+    #         if debug is True:
+    #             with open(debug_file, mode="a") as f:
+    #                 f.write(
+    #                     "\nThe number of ids for rank {} is {}.\n".format(
+    #                         rank, len(ids_per_process)
+    #                     )
+    #                 )
+    #     else:
+    #         ids_per_process = list(
+    #             np.arange(
+    #                 start=num_params_pprocess * rank + 1,
+    #                 stop=num_params_pprocess * (rank + 1) + 1,
+    #             )
+    #         )
+    #         if rank == 0 and debug is True:
+    #             with open(debug_file, mode="a") as f:
+    #                 f.write(
+    #                     "\nThe number of ids for rank {} is {}.\n".format(
+    #                         rank, len(ids_per_process)
+    #                     )
+    #                 )
+    # else:
+    #     ids_per_process = list(np.arange(start=1, stop=num_transients + 1))
 
-        comm.barrier()
-        # Split back into processes
-        if rank == size - 1:
-            ids_per_process = list(
-                np.arange(start=num_params_poprocess * rank + 1, stop=num_transients + 1)
-            )
-            if debug is True:
-                with open(debug_file, mode="a") as f:
-                    f.write(
-                        "\nThe number of ids for rank {} is {}.\n".format(
-                            rank, len(ids_per_process)
-                        )
-                    )
-        else:
-            ids_per_process = list(
-                np.arange(
-                    start=num_params_pprocess * rank + 1,
-                    stop=num_params_pprocess * (rank + 1) + 1,
-                )
-            )
-            if rank == 0 and debug is True:
-                with open(debug_file, mode="a") as f:
-                    f.write(
-                        "\nThe number of ids for rank {} is {}.\n".format(
-                            rank, len(ids_per_process)
-                        )
-                    )
-    else:
-        ids_per_process = list(np.arange(start=1, stop=num_transients + 1))
-
-    # Split stored_obs_data, stored_param_data, stored_other_obs_data
-    process_obs_data = stored_obs_data[
-        stored_obs_data["transient_id"].isin(ids_per_process)
-    ]
-    process_other_obs_data = stored_other_obs_data[
-        stored_other_obs_data["transient_id"].isin(ids_per_process)
-    ]
-    process_param_data = stored_param_data[
-        stored_param_data["transient_id"].isin(ids_per_process)
-    ]
-
+    # # Split stored_obs_data, stored_param_data, stored_other_obs_data
+    # process_obs_data = stored_obs_data[
+    #     stored_obs_data["transient_id"].isin(ids_per_process)
+    # ]
+    # process_other_obs_data = stored_other_obs_data[
+    #     stored_other_obs_data["transient_id"].isin(ids_per_process)
+    # ]
+    # process_param_data = stored_param_data[
+    #     stored_param_data["transient_id"].isin(ids_per_process)
+    # ]
+    process_obs_data = deepcopy(stored_obs_data)
+    process_param_data = deepcopy(stored_param_data)
+    process_other_obs_data = deepcopy(stored_other_obs_data)
     stored_obs_data = None
     stored_param_data = None
     stored_other_obs_data = None
@@ -1007,16 +1011,16 @@ if __name__ == "__main__":
     #         )
     #
     # else:
-    output_coadd = coadded_observations
-    output_params = process_param_data
-    output_detections = detected_observations
-    output_detections2 = detected_observations2
-    output_detections3 = detected_observations3
-    output_detections4 = detected_observations4
-    output_detections5 = detected_observations5
-    output_detections6 = detected_observations6
-    output_detections7 = detected_observations7
-    output_detections8 = detected_observations8
+    output_coadd = deepcopy(coadded_observations)
+    output_params = deepcopy(process_param_data)
+    output_detections = deepcopy(detected_observations)
+    output_detections2 = deepcopy(detected_observations2)
+    output_detections3 = deepcopy(detected_observations3)
+    output_detections4 = deepcopy(detected_observations4)
+    output_detections5 = deepcopy(detected_observations5)
+    output_detections6 = deepcopy(detected_observations6)
+    output_detections7 = deepcopy(detected_observations7)
+    output_detections8 = deepcopy(detected_observations8)
 
     coadded_observations = None
     process_obs_data = None
