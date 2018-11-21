@@ -153,11 +153,11 @@ cldnc = pd.read_csv(
 folder_splits = results_folder.split("_")
 for split in folder_splits:
     if re.search("desgw", split):
-        model = "DES-GW"
+        model = "Single KN"
     elif re.search("nsbh", split):
-        model = "SAEE-NSBH"
+        model = "Pop. NSBH"
     elif re.search("nsns", split):
-        model = "SAEE-NSNS"
+        model = "Pop. BNS"
     elif re.search("kraken2026", split):
         cadence = "opsim_baseline"
     elif re.search("kraken2042", split):
@@ -173,9 +173,12 @@ for split in folder_splits:
     elif re.search("alt", split):
         cadence = "alt_sched_rolling"
 
-plot_model_name = model.replace("-", "_")
+if re.search('Single',model):
+    plot_model_name = model.replace(" ", "_")
+else:
+    plot_model_name = model.replace(". ", "_")
 
-if cadence == "pontus2573" and model == "DES-GW":
+if cadence == "pontus2573" and model == "Single KN":
     best = True
 else:
     best = False
@@ -419,14 +422,14 @@ all_zs = list(param_df["true_redshift"].values)
 detect_zs1 = list(
     param_df[
         param_df["transient_id"].isin(
-            list(detect_store[borb]["DES-GW"][dtype_toshow]["transient_id"].unique())
+            list(detect_store[borb]["Single KN"][dtype_toshow]["transient_id"].unique())
         )
     ]["true_redshift"]
 )
 detect_zs2 = list(
     param_df[
         param_df["transient_id"].isin(
-            list(detect_store[borb]["SAEE-NSNS"][dtype_toshow]["transient_id"].unique())
+            list(detect_store[borb]["Pop. BNS"][dtype_toshow]["transient_id"].unique())
         )
     ]["true_redshift"]
 )
@@ -447,7 +450,7 @@ ndetect, bins, patches = ax.hist(
     #    edgecolor="blue",
     #    color="blue",
     alpha=0.3,
-    label="DES-GW",
+    label="Single KN",
 )
 ndetect, bins, patches = ax.hist(
     x=detect_zs2,
@@ -456,7 +459,7 @@ ndetect, bins, patches = ax.hist(
     #    edgecolor="blue",
     #    color="blue",
     alpha=0.3,
-    label="SAEE-NSNS",
+    label="Pop. BNS",
 )
 # plt.tick_params(which='both', length=10, width=1.5)
 ax.axvline(x=0.102, linestyle="--", color="k")
@@ -482,7 +485,7 @@ plt.close(fig)
 
 # Plot the number light curve points for a detect type between baseline and best
 dtype_toshow = "sd"
-model_to_show = "DES-GW"
+model_to_show = "Single KN"
 
 base_nlc = (
     detect_store["baseline"][model_to_show][dtype]
@@ -513,8 +516,8 @@ plt.close(fig)
 # Plot detection counts NSNS
 dtype_toshow = "N_scolnic"
 fig, ax = plt.subplots()
-desgw = sim_info.query("model == 'DES-GW'")
-nsns = sim_info.query("model == 'SAEE-NSNS'")
+desgw = sim_info.query("model == 'Single KN'")
+nsns = sim_info.query("model == 'Pop. BNS'")
 ax.errorbar(
     desgw["cadence"],
     desgw[dtype_toshow],
@@ -541,8 +544,8 @@ plt.close(fig)
 # Plot detection counts NSNS vs NSBH
 dtype_toshow = "N_scolnic"
 fig, ax = plt.subplots()
-nsbh = sim_info.query("model == 'SAEE-NSBH'")
-nsns = sim_info.query("model == 'SAEE-NSNS'")
+nsbh = sim_info.query("model == 'Pop. NSBH'")
+nsns = sim_info.query("model == 'Pop. BNS'")
 ax.errorbar(
     nsbh["cadence"],
     nsbh[dtype_toshow],
@@ -568,8 +571,11 @@ plt.close(fig)
 
 
 # Plot comparison of detection counts DESGW
-model_to_show = "DES-GW"
-plot_model_name = model_to_show.replace("-", "_")
+model_to_show = "Single KN"
+if re.search('Single',model):
+    plot_model_name = model.replace(" ", "_")
+else:
+    plot_model_name = model.replace(". ", "_")
 dtype_toshow = [
     "N_scolnic",
     "N_scolnic_like",
