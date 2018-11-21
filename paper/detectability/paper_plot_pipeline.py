@@ -7,6 +7,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from LSSTmetrics.efficiencyTable import EfficiencyTable as eft
 
+circular = sns.color_palette("colorblind", 10)
+sequential = sns.cubehelix_palette(10, start=0.5, rot=-0.75)
+diverging = sns.color_palette("RdBu", 10)
+sns.set_palette(circular)
+
+
 detect_function = eft.fromDES_EfficiencyFile(
     "/Users/cnsetzer/software/Cadence/LSSTmetrics/example_data/SEARCHEFF_PIPELINE_DES.DAT"
 )
@@ -100,7 +106,10 @@ for i, results_folder in enumerate(os.listdir(sim_results_folder)):
 
     plot_model_name = model.replace("-", "_")
 
+    ###########################################################################
     # Plot One
+    ###########################################################################
+
     if re.search("SAEE", model) and re.search("baseline", cadence):
         mej = param_df["m_ej"].values
         vej = param_df["v_ej"].values
@@ -116,7 +125,10 @@ for i, results_folder in enumerate(os.listdir(sim_results_folder)):
         )
         plt.close(fig)
 
+    ###########################################################################
     # Plot Two
+    ###########################################################################
+
     if re.search("baseline", cadence):
         prob_df = pd.DataFrame(columns=["Alert_Probability"])
         obs_df.join(prob_df)
@@ -153,7 +165,10 @@ for i, results_folder in enumerate(os.listdir(sim_results_folder)):
         )
         plt.close(fig)
 
+        #######################################################################
         # Plot Three
+        #######################################################################
+
         sd["Num_lc_all"] = sd.grouby(["transient_id"]).transform(len)
         sd['Num"lc_band'] = sd.grouby(["transient_id", "bandfilter"]).transform(len)
         sdnc["Num_lc_all"] = sdnc.grouby(["transient_id"]).transform(len)
@@ -177,7 +192,10 @@ for i, results_folder in enumerate(os.listdir(sim_results_folder)):
 
         fig, ax = plt.subplots()
 
+    ###########################################################################
     # Save data for plots four, five, six, and seven
+    ###########################################################################
+
     sim_info.at[i, "model"] = model
     sim_info.at[i, "cadence"] = cadence
     sim_info.at[i, "N_scolnic"] = len(sd["transient_id"].unique())
@@ -189,6 +207,8 @@ for i, results_folder in enumerate(os.listdir(sim_results_folder)):
     sim_info.at[i, "N_cowperthwaite_like"] = len(cld["transient_id"].unique())
     sim_info.at[i, "N_cowperthwaite_like_nocd"] = len(cldnc["transient_id"].unique())
 
+    ###########################################################################
+    ###########################################################################
     if re.search("baseline", cadence) and re.search("DES-GW", model):
         # Plot eight redshift distribution
         z_min = 0.0
