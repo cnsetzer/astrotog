@@ -139,6 +139,7 @@ if __name__ == "__main__":
         debug = None
         debug_file = None
         output_path = None
+        save_all_output = None
 
     if rank == 0 and debug is True:
         with open(debug_file, mode="a") as f:
@@ -149,6 +150,7 @@ if __name__ == "__main__":
             )
     if size > 1:
         comm.barrier()
+        save_all_output = comm.bcast(save_all_output, root=0)
         debug = comm.bcast(debug, root=0)
         debug_file = comm.bcast(debug_file, root=0)
         output_path = comm.bcast(output_path, root=0)
