@@ -99,11 +99,11 @@ for sim in sims:
                 if qry.empty:
                     pass
                 else:
-                    ddf_ind.extend(index)
+                    ddf_ind.append(index)
                 if qry2.empty:
                     pass
                 else:
-                    wfd_ind.extend(index)
+                    wfd_ind.append(index)
         else:
             continue
 
