@@ -2,7 +2,8 @@ import os
 import re
 import pandas as pd
 
-results_path = "/Users/cnsetzer/Documents/LSST/astrotog_output/paper_results/seed0/"
+#results_path = "/Users/cnsetzer/Documents/LSST/astrotog_output/paper_results/seed0/"
+results_path = "/share/data1/csetzer/lsst_kne_sims_outputs/"
 
 sims_folders = os.listdir(results_path)
 
