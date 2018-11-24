@@ -96,21 +96,24 @@ for sim in sims:
             continue
         if ('wfd_'+prod in sim_outs) and ('ddf_'+prod in sim_outs):
             continue
-        print('\nDoing separation for {}'.format(prod))
-        file = pd.read_csv(results_folders+sim+'/'+prod, index_col=0)
-        if 'mjd' in file.columns:
-            for index, series in file.iterrows():
-                obsmjd = series['mjd']
-                qry = ddf_obs.query('expMJD == {}'.format(obsmjd))
-                qry2 = wfd_obs.query('expMJD == {}'.format(obsmjd))
-                if qry.empty:
-                    pass
-                else:
-                    ddf_ind.append(index)
-                if qry2.empty:
-                    pass
-                else:
-                    wfd_ind.append(index)
+        if re.search('detections', prod):
+            print('\nDoing separation for {}'.format(prod))
+            file = pd.read_csv(results_folders+sim+'/'+prod, index_col=0)
+            if 'mjd' in file.columns:
+                for index, series in file.iterrows():
+                    obsmjd = series['mjd']
+                    qry = ddf_obs.query('expMJD == {}'.format(obsmjd))
+                    qry2 = wfd_obs.query('expMJD == {}'.format(obsmjd))
+                    if qry.empty:
+                        pass
+                    else:
+                        ddf_ind.append(index)
+                    if qry2.empty:
+                        pass
+                    else:
+                        wfd_ind.append(index)
+            else:
+                continue
         else:
             continue
 
