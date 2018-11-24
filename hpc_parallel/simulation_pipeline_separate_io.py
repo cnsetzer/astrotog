@@ -39,6 +39,8 @@ if __name__ == "__main__":
             print("\n ")
 
         exec("from {} import *".format(sys.argv[1]))
+
+        output_path = base_output_path + "seed_{}_".format(seed) + run_dir + "/"
         if debug is True:
             with open(debug_file, mode="a") as f:
                 f.write("\n")
@@ -391,7 +393,7 @@ if __name__ == "__main__":
                 f.write("-------------Debug:-------------")
                 f.write(
                     "For batch {}, create parameter sub arrays for generation of transients in this batch.".format(
-                        i
+                        i+1
                     )
                 )
 
@@ -411,7 +413,7 @@ if __name__ == "__main__":
             with open(debug_file, mode="a") as f:
                 f.write("\n")
                 f.write("-------------Debug:-------------")
-                f.write("For batch {}, create transient seds.".format(i))
+                f.write("For batch {}, create transient seds.".format(i+1))
 
         transient_batch = p.starmap(
             getattr(atopclass, transient_model_name), batch_params
@@ -422,7 +424,7 @@ if __name__ == "__main__":
                 f.write("-------------Debug:-------------")
                 f.write(
                     "For batch {}, extend arguments list for proper format to use class method in parallel.".format(
-                        i
+                        i+1
                     )
                 )
         args_for_method = list(zip(batch_sky_loc.tolist(), repeat([cosmo])))
@@ -442,7 +444,7 @@ if __name__ == "__main__":
                 f.write("-------------Debug:-------------")
                 f.write(
                     "For batch {}, execute class method 'put in universe' in parallel.".format(
-                        i
+                        i+1
                     )
                 )
 
@@ -458,7 +460,7 @@ if __name__ == "__main__":
                 f.write("\n")
                 f.write("-------------Debug:-------------")
                 f.write(
-                    "For batch {}, write transient parameters to dataframe.".format(i)
+                    "For batch {}, write transient parameters to dataframe.".format(i+1)
                 )
 
         parameter_batch_iter = list(zip(repeat(param_columns), transient_batch))
@@ -476,7 +478,7 @@ if __name__ == "__main__":
                 f.write("-------------Debug:-------------")
                 f.write(
                     "For batch {}, execute observations of current batch of transients.".format(
-                        i
+                        i+1
                     )
                 )
 
@@ -502,7 +504,7 @@ if __name__ == "__main__":
                 f.write("-------------Debug:-------------")
                 f.write(
                     "For batch {}, find observation non-detections on either side of each transient given the specfied time windows.".format(
-                        i
+                        i+1
                     )
                 )
         other_obs_iter = list(
@@ -542,7 +544,7 @@ if __name__ == "__main__":
                     (num_params_pprocess - (i * batch_size + current_batch_size))
                     / (batch_size)
                 )
-                + 0.015 * num_transients
+                + 0.025 * num_transients
             )
             print(
                 "Estimated time remaining is: {}".format(
@@ -630,7 +632,7 @@ if __name__ == "__main__":
                     )
         if not os.path.exists(output_path):
             os.makedirs(output_path)
-    comm.barrier()
+
     if save_all_output is True:
         # output_params.to_csv(output_path + 'parameters.csv')
         output_observations.to_csv(output_path + "observations_rank{}.csv".format(rank))
@@ -855,9 +857,9 @@ if __name__ == "__main__":
                     rank
                 )
             )
-    process_param_data = afunc.param_observe_detect(
-        process_param_data, process_obs_data, detected_observations
-    )
+    # process_param_data = afunc.param_observe_detect(
+    #     process_param_data, process_obs_data, detected_observations
+    # )
     # process_param_data = afunc.determine_ddf_transients(sim_inst, process_param_data)
 
     # Gather up all data to root
@@ -1078,8 +1080,8 @@ if __name__ == "__main__":
         with open(debug_file, mode="a") as f:
             f.write("\nDone writing the detection results for rank {}.".format(rank))
 
-    if size > 1:
-        comm.barrier()
+    # if size > 1:
+    #     comm.barrier()
 
     if rank == 0 and verbose:
         t_end = time.time()
