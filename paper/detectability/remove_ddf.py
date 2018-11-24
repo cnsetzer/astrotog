@@ -94,8 +94,8 @@ for sim in sims:
         if 'mjd' in file.columns:
             for index, series in file.iterrows():
                 obsmjd = series['mjd']
-                qry = ddf_obs.query('expMJD = {}'.format(obsmjd))
-                qry2 = wfd_obs.query('expMJD = {}'.format(obsmjd))
+                qry = ddf_obs.query('expMJD == {}'.format(obsmjd))
+                qry2 = wfd_obs.query('expMJD == {}'.format(obsmjd))
                 if qry.empty:
                     pass
                 else:
