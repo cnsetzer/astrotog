@@ -88,10 +88,15 @@ for sim in sims:
         ).summary
 
     sim_outs = os.listdir(results_folders+sim+'/')
-    ddf_ind = []
-    wfd_ind = []
+
     for prod in sim_outs:
-        print('Doing separation for {}'.format(prod))
+        ddf_ind = []
+        wfd_ind = []
+        if re.search(r'wfd|ddf', prod):
+            continue
+        if ('wfd_'+prod in sim_outs) and ('ddf_'+prod in sim_outs):
+            continue
+        print('\nDoing separation for {}'.format(prod))
         file = pd.read_csv(results_folders+sim+'/'+prod, index_col=0)
         if 'mjd' in file.columns:
             for index, series in file.iterrows():
