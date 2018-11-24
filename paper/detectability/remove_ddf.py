@@ -110,8 +110,8 @@ for sim in sims:
                 if 'mjd' in file.columns:
                     for index, series in file.iterrows():
                         obsmjd = series['mjd']
-                        qry = ddf_obs.query('expMJD == {}'.format(obsmjd))
-                        qry2 = wfd_obs.query('expMJD == {}'.format(obsmjd))
+                        qry = ddf_obs.query('{} - 0.00015 <= expMJD & expMJD <= {} + 0.00015'.format(obsmjd))
+                        qry2 = wfd_obs.query('{} - 0.00015 <= expMJD & expMJD <= {} + 0.00015'.format(obsmjd))
                         if qry.empty:
                             pass
                         else:
@@ -125,8 +125,8 @@ for sim in sims:
             else:
                 continue
 
-        wfd_ver = file[file.index.isin(wfd_ind)]
-        ddf_ver = file[file.index.isin(ddf_ind)]
+            wfd_ver = file[file.index.isin(wfd_ind)]
+            ddf_ver = file[file.index.isin(ddf_ind)]
 
-        wfd_ver.to_csv(results_folders+sim+'/wfd_'+prod)
-        ddf_ver.to_csv(results_folders+sim+'/ddf_'+prod)
+            wfd_ver.to_csv(results_folders+sim+'/wfd_'+prod)
+            ddf_ver.to_csv(results_folders+sim+'/ddf_'+prod)
