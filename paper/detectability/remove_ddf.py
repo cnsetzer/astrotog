@@ -8,6 +8,7 @@ cad_path = '/share/data1/csetzer/lsst_cadences/'
 sims = os.listdir(results_folders)
 
 for sim in sims:
+    print('\nProcessing wfd/ddf separation for {}'.format(sim))
     if re.search('kraken2026',sim):
         ddf_obs = oss.OpSimOutput.fromOpSimDB(
             cad_path + 'kraken_2026.db',
@@ -90,6 +91,7 @@ for sim in sims:
     ddf_ind = []
     wfd_ind = []
     for prod in sim_outs:
+        print('Doing separation for {}'.format(prod))
         file = pd.read_csv(results_folders+sim+'/'+prod, index_col=0)
         if 'mjd' in file.columns:
             for index, series in file.iterrows():
