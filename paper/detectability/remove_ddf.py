@@ -110,8 +110,8 @@ for sim in sims:
                 if 'mjd' in file.columns:
                     for index, series in file.iterrows():
                         obsmjd = series['mjd']
-                        qry = ddf_obs.query('{} - 0.00015 <= expMJD & expMJD <= {} + 0.00015'.format(obsmjd))
-                        qry2 = wfd_obs.query('{} - 0.00015 <= expMJD & expMJD <= {} + 0.00015'.format(obsmjd))
+                        qry = ddf_obs.query('{0} - 0.000115 <= expMJD <= {0} + 0.000115'.format(obsmjd))
+                        qry2 = wfd_obs.query('{0} - 0.000115 <= expMJD <= {0} + 0.000115'.format(obsmjd))
                         if qry.empty:
                             pass
                         else:
