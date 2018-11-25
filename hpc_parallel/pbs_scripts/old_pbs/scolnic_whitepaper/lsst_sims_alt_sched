@@ -1,0 +1,28 @@
+#!/bin/bash --norc
+#PBS -S /bin/bash
+#PBS -V
+#PBS -N lsst_scolnic_alt_sched
+#PBS -q cores40
+#PBS -l nodes=1:ppn=40,walltime=99:00:00
+#PBS -r n
+#PBS -k oe
+module purge
+module load python
+module load mpi/mvapich/2-2.3b
+source activate astrotog_hpc
+cd /home/csetzer/astrotog/hpc_parallel
+
+echo $PBS_O_WORKDIR
+echo Running on host `hostname`
+echo Time is `date`
+echo Directory is `pwd`
+echo PBS job ID is $PBS_JOBID
+echo This jobs runs on the following machines:
+
+#!Create a machine file
+cat $PBS_NODEFILE | uniq > job_files/machine.file.$PBS_JOBID
+echo PBS_NODEFILE=$PBS_NODEFILE
+
+export PYTHONPATH=$PYTHONPATH:/home/csetzer/.conda/envs/astrotog_hpc/bin/python
+
+mpirun -genvlist PATH,LD_LIBRARY_PATH,LD_RUN_PATH,PYTHONPATH --machinefile $PBS_NODEFILE python sim_scripts/scolnic_whitepaper/LSST_hypatia_sim_alt_sched.py

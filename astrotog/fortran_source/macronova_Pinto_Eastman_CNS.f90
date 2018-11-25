@@ -642,17 +642,17 @@ MODULE macronova_Pinto_eastman_CNS
       !-------------!
       !-- cleanup --!
       !-------------!
-      ! CLOSE(uSol)
-      ! CLOSE(uMod)
-      ! CLOSE(uLum)
-      ! CLOSE(unit_mac)
-      ! PRINT '("...finished writing files.")'
+      !---------------------!
+      !-- deallocate arrays --!
+      !---------------------!
+      DEALLOCATE(phi,phi_p,rhs,qm,pm)
+      DEALLOCATE(Tnn,Tnp,Mnn,Mnp)
+      DEALLOCATE(AP,BP,W,WORK)
+      DEALLOCATE(psi,LT,Dm,Nm2)
+      IF (read_hrate) THEN
+        DEALLOCATE(t_HR,HR)
+      ENDIF
 
-      !******************************************************************************
-      !******************************************************************************
-      !           Need Modifications Here
-      !******************************************************************************
-      !******************************************************************************
 
 
   END SUBROUTINE macronova

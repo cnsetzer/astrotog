@@ -11,6 +11,7 @@ __pycache__/
 env/
 build/
 develop-eggs/
+debug/
 dist/
 downloads/
 eggs/
@@ -67,6 +68,6 @@ target/
 
 # HPC Files
 job_files/
-
-# Ignore paper
-paper/
+some_old_sim_scripts/
+pc_runs/
+old_pbs/
