@@ -630,8 +630,8 @@ if __name__ == "__main__":
                             output_path
                         )
                     )
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
 
     if save_all_output is True:
         # output_params.to_csv(output_path + 'parameters.csv')
@@ -1080,8 +1080,8 @@ if __name__ == "__main__":
         with open(debug_file, mode="a") as f:
             f.write("\nDone writing the detection results for rank {}.".format(rank))
 
-    # if size > 1:
-    #     comm.barrier()
+    if size > 1:
+        comm.barrier()
 
     if rank == 0 and verbose:
         t_end = time.time()
