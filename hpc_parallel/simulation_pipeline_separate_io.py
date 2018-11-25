@@ -393,7 +393,7 @@ if __name__ == "__main__":
                 f.write("-------------Debug:-------------")
                 f.write(
                     "For batch {}, create parameter sub arrays for generation of transients in this batch.".format(
-                        i+1
+                        i + 1
                     )
                 )
 
@@ -413,7 +413,7 @@ if __name__ == "__main__":
             with open(debug_file, mode="a") as f:
                 f.write("\n")
                 f.write("-------------Debug:-------------")
-                f.write("For batch {}, create transient seds.".format(i+1))
+                f.write("For batch {}, create transient seds.".format(i + 1))
 
         transient_batch = p.starmap(
             getattr(atopclass, transient_model_name), batch_params
@@ -424,7 +424,7 @@ if __name__ == "__main__":
                 f.write("-------------Debug:-------------")
                 f.write(
                     "For batch {}, extend arguments list for proper format to use class method in parallel.".format(
-                        i+1
+                        i + 1
                     )
                 )
         args_for_method = list(zip(batch_sky_loc.tolist(), repeat([cosmo])))
@@ -444,7 +444,7 @@ if __name__ == "__main__":
                 f.write("-------------Debug:-------------")
                 f.write(
                     "For batch {}, execute class method 'put in universe' in parallel.".format(
-                        i+1
+                        i + 1
                     )
                 )
 
@@ -460,7 +460,9 @@ if __name__ == "__main__":
                 f.write("\n")
                 f.write("-------------Debug:-------------")
                 f.write(
-                    "For batch {}, write transient parameters to dataframe.".format(i+1)
+                    "For batch {}, write transient parameters to dataframe.".format(
+                        i + 1
+                    )
                 )
 
         parameter_batch_iter = list(zip(repeat(param_columns), transient_batch))
@@ -478,7 +480,7 @@ if __name__ == "__main__":
                 f.write("-------------Debug:-------------")
                 f.write(
                     "For batch {}, execute observations of current batch of transients.".format(
-                        i+1
+                        i + 1
                     )
                 )
 
@@ -504,7 +506,7 @@ if __name__ == "__main__":
                 f.write("-------------Debug:-------------")
                 f.write(
                     "For batch {}, find observation non-detections on either side of each transient given the specfied time windows.".format(
-                        i+1
+                        i + 1
                     )
                 )
         other_obs_iter = list(
@@ -630,9 +632,11 @@ if __name__ == "__main__":
                             output_path
                         )
                     )
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
 
+    if size > 1:
+        comm.barrier()
     if save_all_output is True:
         # output_params.to_csv(output_path + 'parameters.csv')
         output_observations.to_csv(output_path + "observations_rank{}.csv".format(rank))
