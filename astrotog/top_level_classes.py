@@ -491,7 +491,7 @@ class saee_nsbh(kilonova):
             mej_min = 0.05
             mej_max = 0.2
             vej_min = 0.1
-            vej_max = 0.25
+            vej_max = 0.5
 
         # Determine output shape for parameters based on size
         if self.number_of_samples > 1:
